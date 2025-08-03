@@ -11,6 +11,7 @@ interface UseImageCanvasProps {
   childRegions: ChildRegion[];
   onParentRegionChange: (region: ParentRegion | null) => void;
   onChildRegionAdd: (region: ChildRegion) => void;
+  onChildRegionChange?: (region: ChildRegion) => void;
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
   colorSettings?: ColorSettings;
@@ -23,6 +24,7 @@ export function useImageCanvas({
   childRegions,
   onParentRegionChange,
   onChildRegionAdd,
+  onChildRegionChange,
   onChildRegionSelect,
   selectedChildId,
   colorSettings,
@@ -30,6 +32,13 @@ export function useImageCanvas({
 }: UseImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageLoadedRef = useRef(false);
+  
+  const handleCursorChange = useCallback((cursor: string) => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.cursor = cursor;
+    }
+  }, []);
   
   const drawing = useCanvasDrawing();
   const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, resetZoom } = useZoom();
@@ -73,13 +82,17 @@ export function useImageCanvas({
     childRegions,
     onParentRegionChange,
     onChildRegionAdd,
+    onChildRegionChange,
     onChildRegionSelect,
     selectedChildId,
     onTemporaryDraw: handleTemporaryDraw,
     onRedraw: handleRedraw,
     zoom,
     pan,
-    onPanChange: setPan
+    onPanChange: setPan,
+    getHandleAtPoint: drawing.getHandleAtPoint,
+    calculateResize: drawing.calculateResize,
+    onCursorChange: handleCursorChange
   });
 
   useEffect(() => {

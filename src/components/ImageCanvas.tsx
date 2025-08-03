@@ -9,6 +9,7 @@ interface ImageCanvasProps {
   childRegions: ChildRegion[];
   onParentRegionChange: (region: ParentRegion | null) => void;
   onChildRegionAdd: (region: ChildRegion) => void;
+  onChildRegionChange?: (region: ChildRegion) => void;
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
   gridSettings: GridSettings;
@@ -25,12 +26,12 @@ export function ImageCanvas({
   colorSettings,
   onParentRegionChange,
   onChildRegionAdd,
+  onChildRegionChange,
   onChildRegionSelect,
   selectedChildId,
   imageFile,
   className = ''
 }: ImageCanvasProps) {
-  const [isShiftPressed, setIsShiftPressed] = React.useState(false);
   
   const { canvasRef, loadImage, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
     selectionMode,
@@ -38,6 +39,7 @@ export function ImageCanvas({
     childRegions,
     onParentRegionChange,
     onChildRegionAdd,
+    onChildRegionChange,
     onChildRegionSelect,
     selectedChildId,
     colorSettings,
@@ -50,29 +52,6 @@ export function ImageCanvas({
     }
   }, [imageFile, loadImage]);
 
-  // Track Shift key state for cursor changes
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
-        setIsShiftPressed(true);
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
-        setIsShiftPressed(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
-
 
 
   return (
@@ -83,7 +62,6 @@ export function ImageCanvas({
         <canvas
           ref={canvasRef}
           style={{
-            cursor: isShiftPressed ? 'grab' : 'crosshair',
             imageRendering: 'pixelated',
             position: 'relative',
             zIndex: 2

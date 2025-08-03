@@ -89,6 +89,20 @@ export function useAnalysisData() {
     });
   }, [updateChildRegionData]);
 
+  const handleChildRegionChange = useCallback((region: ChildRegion) => {
+    setAnalysisData(prev => {
+      if (!prev.parentRegion) return prev;
+      
+      const updatedRegion = updateChildRegionData(region, prev.parentRegion, prev.gridSettings);
+      return {
+        ...prev,
+        childRegions: prev.childRegions.map(child => 
+          child.id === region.id ? updatedRegion : child
+        )
+      };
+    });
+  }, [updateChildRegionData]);
+
   const handleChildRegionDelete = useCallback((id: number) => {
     setAnalysisData(prev => ({
       ...prev,
@@ -143,6 +157,7 @@ export function useAnalysisData() {
     analysisData,
     handleParentRegionChange,
     handleChildRegionAdd,
+    handleChildRegionChange,
     handleChildRegionDelete,
     handleChildRegionRename,
     handleGridSettingsChange,

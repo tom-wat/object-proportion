@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import type { ParentRegion, ChildRegion, ColorSettings } from '../types';
+import type { ParentRegion, ChildRegion, ColorSettings, ResizeHandle, ResizeHandleInfo } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
 
 export function useCanvasDrawing() {
@@ -48,6 +48,162 @@ export function useCanvasDrawing() {
   ) => {
     ctx.fillRect(x - size/2, y - size/2, size, size);
   }, []);
+  const getResizeHandles = useCallback((region: { x: number; y: number; width: number; height: number }, rotation: number = 0): ResizeHandleInfo[] => {
+    const { x, y, width, height } = region;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    
+    // Base handle positions (relative to region)
+    const baseHandles: ResizeHandleInfo[] = [
+      { type: 'top-left', x, y },
+      { type: 'top-center', x: x + width / 2, y },
+      { type: 'top-right', x: x + width, y },
+      { type: 'middle-left', x, y: y + height / 2 },
+      { type: 'middle-right', x: x + width, y: y + height / 2 },
+      { type: 'bottom-left', x, y: y + height },
+      { type: 'bottom-center', x: x + width / 2, y: y + height },
+      { type: 'bottom-right', x: x + width, y: y + height },
+    ];
+    
+    // Apply rotation to each handle position
+    if (rotation !== 0) {
+      return baseHandles.map(handle => {
+        const dx = handle.x - centerX;
+        const dy = handle.y - centerY;
+        const rotatedX = centerX + dx * Math.cos(rotation) - dy * Math.sin(rotation);
+        const rotatedY = centerY + dx * Math.sin(rotation) + dy * Math.cos(rotation);
+        return {
+          type: handle.type,
+          x: rotatedX,
+          y: rotatedY
+        };
+      });
+    }
+    
+    return baseHandles;
+  }, []);
+  const getHandleAtPoint = useCallback((
+    point: { x: number; y: number },
+    region: { x: number; y: number; width: number; height: number },
+    zoom: number = 1,
+    rotation: number = 0
+  ): ResizeHandleInfo | null => {
+    const handles = getResizeHandles(region, rotation);
+    const tolerance = (CANVAS_CONSTANTS.HANDLE_SIZE / 2) / zoom;
+    
+    for (const handle of handles) {
+      const distance = Math.sqrt(
+        Math.pow(point.x - handle.x, 2) + Math.pow(point.y - handle.y, 2)
+      );
+      if (distance <= tolerance) {
+        return handle;
+      }
+    }
+    return null;
+  }, [getResizeHandles]);
+  const calculateResize = useCallback((
+    originalRegion: { x: number; y: number; width: number; height: number },
+    handleType: ResizeHandle,
+    deltaX: number,
+    deltaY: number,
+    minWidth: number = CANVAS_CONSTANTS.MIN_REGION_SIZE,
+    minHeight: number = CANVAS_CONSTANTS.MIN_REGION_SIZE,
+    rotation: number = 0
+  ) => {
+    let { x, y, width, height } = originalRegion;
+    
+    // Transform delta for rotation
+    let transformedDeltaX = deltaX;
+    let transformedDeltaY = deltaY;
+    
+    if (rotation !== 0) {
+      // Inverse rotation to get delta in region's local coordinate system
+      transformedDeltaX = deltaX * Math.cos(-rotation) - deltaY * Math.sin(-rotation);
+      transformedDeltaY = deltaX * Math.sin(-rotation) + deltaY * Math.cos(-rotation);
+    }
+
+    switch (handleType) {
+      case 'top-left': {
+        const newWidthTL = width - transformedDeltaX;
+        const newHeightTL = height - transformedDeltaY;
+        if (newWidthTL >= minWidth && newHeightTL >= minHeight) {
+          x += transformedDeltaX;
+          y += transformedDeltaY;
+          width = newWidthTL;
+          height = newHeightTL;
+        }
+        break;
+      }
+
+      case 'top-center': {
+        const newHeightTC = height - transformedDeltaY;
+        if (newHeightTC >= minHeight) {
+          y += transformedDeltaY;
+          height = newHeightTC;
+        }
+        break;
+      }
+
+      case 'top-right': {
+        const newWidthTR = width + transformedDeltaX;
+        const newHeightTR = height - transformedDeltaY;
+        if (newWidthTR >= minWidth && newHeightTR >= minHeight) {
+          y += transformedDeltaY;
+          width = newWidthTR;
+          height = newHeightTR;
+        }
+        break;
+      }
+
+      case 'middle-left': {
+        const newWidthML = width - transformedDeltaX;
+        if (newWidthML >= minWidth) {
+          x += transformedDeltaX;
+          width = newWidthML;
+        }
+        break;
+      }
+
+      case 'middle-right': {
+        const newWidthMR = width + transformedDeltaX;
+        if (newWidthMR >= minWidth) {
+          width = newWidthMR;
+        }
+        break;
+      }
+
+      case 'bottom-left': {
+        const newWidthBL = width - transformedDeltaX;
+        const newHeightBL = height + transformedDeltaY;
+        if (newWidthBL >= minWidth && newHeightBL >= minHeight) {
+          x += transformedDeltaX;
+          width = newWidthBL;
+          height = newHeightBL;
+        }
+        break;
+      }
+
+      case 'bottom-center': {
+        const newHeightBC = height + transformedDeltaY;
+        if (newHeightBC >= minHeight) {
+          height = newHeightBC;
+        }
+        break;
+      }
+
+      case 'bottom-right': {
+        const newWidthBR = width + transformedDeltaX;
+        const newHeightBR = height + transformedDeltaY;
+        if (newWidthBR >= minWidth && newHeightBR >= minHeight) {
+          width = newWidthBR;
+          height = newHeightBR;
+        }
+        break;
+      }
+    }
+
+    return { x, y, width, height };
+  }, []);
 
   const drawParentRegion = useCallback((ctx: CanvasRenderingContext2D, region: ParentRegion, colorSettings?: ColorSettings) => {
     const parentColor = colorSettings?.parentColor || COLORS.PRIMARY;
@@ -66,17 +222,14 @@ export function useCanvasDrawing() {
     ctx.strokeRect(region.x, region.y, region.width, region.height);
 
     ctx.fillStyle = parentColor;
-    const handles = [
-      { x: region.x, y: region.y },
-      { x: region.x + region.width, y: region.y },
-      { x: region.x + region.width, y: region.y + region.height },
-      { x: region.x, y: region.y + region.height },
-    ];
     
-    handles.forEach(handle => {
+    // Draw resize handles (using non-rotated coordinates since they are already calculated with rotation)
+    const resizeHandles = getResizeHandles(region, 0); // Use 0 rotation since we're already in rotated context
+    resizeHandles.forEach(handle => {
       drawHandle(ctx, handle.x, handle.y);
     });
 
+    // Draw rotation handle and line in the same coordinate system
     const rotationHandleY = region.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
     ctx.beginPath();
     ctx.arc(region.x + region.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE, 0, 2 * Math.PI);
@@ -87,9 +240,8 @@ export function useCanvasDrawing() {
     ctx.lineTo(region.x + region.width/2, rotationHandleY);
     ctx.stroke();
 
-
     ctx.restore();
-  }, [drawHandle]);
+  }, [drawHandle, getResizeHandles]);
 
   const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings) => {
     const childColor = colorSettings?.childColor || COLORS.PRIMARY;
@@ -103,11 +255,20 @@ export function useCanvasDrawing() {
       ctx.fillRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
     }
 
+    // Draw resize handles for selected child
+    if (isSelected) {
+      ctx.fillStyle = isSelected ? COLORS.SELECTED : childColor;
+      const resizeHandles = getResizeHandles(region.bounds);
+      resizeHandles.forEach(handle => {
+        drawHandle(ctx, handle.x, handle.y);
+      });
+    }
+
     ctx.fillStyle = isSelected ? COLORS.SELECTED : childColor;
     ctx.font = `${CANVAS_CONSTANTS.FONT_SIZE}px ${CANVAS_CONSTANTS.FONT_FAMILY}`;
     ctx.fillText(region.id.toString(), region.bounds.x - 5, region.bounds.y - 5);
 
-  }, []);
+  }, [getResizeHandles, drawHandle]);
 
   const drawTemporaryRegion = useCallback((
     ctx: CanvasRenderingContext2D,
@@ -264,5 +425,8 @@ export function useCanvasDrawing() {
     drawTemporaryRegion,
     redraw,
     setImage,
+    getResizeHandles,
+    getHandleAtPoint,
+    calculateResize,
   };
 }

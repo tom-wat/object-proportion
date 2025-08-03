@@ -65,6 +65,16 @@ export interface AnalysisData {
 }
 
 export type SelectionMode = 'parent' | 'child';
+export type ResizeHandle = 
+  | 'top-left' | 'top-center' | 'top-right'
+  | 'middle-left' | 'middle-right'
+  | 'bottom-left' | 'bottom-center' | 'bottom-right';
+
+export interface ResizeHandleInfo {
+  type: ResizeHandle;
+  x: number;
+  y: number;
+}
 
 export interface AppState {
   imageLoaded: boolean;

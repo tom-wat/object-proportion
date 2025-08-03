@@ -13,6 +13,7 @@ function App() {
     analysisData,
     handleParentRegionChange,
     handleChildRegionAdd,
+    handleChildRegionChange,
     handleChildRegionDelete,
     handleChildRegionRename,
     handleGridSettingsChange,
@@ -113,6 +114,7 @@ function App() {
               gridSettings={analysisData.gridSettings}
               onParentRegionChange={handleParentRegionChange}
               onChildRegionAdd={handleChildRegionAdd}
+              onChildRegionChange={handleChildRegionChange}
               onChildRegionSelect={handleChildRegionSelect}
               selectedChildId={selectedChildId}
               imageFile={imageFile}
