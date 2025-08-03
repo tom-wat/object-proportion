@@ -14,6 +14,7 @@ interface UseImageCanvasProps {
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
   colorSettings?: ColorSettings;
+  gridSettings?: { visible: boolean; type: string; customSize?: number };
 }
 
 export function useImageCanvas({
@@ -24,7 +25,8 @@ export function useImageCanvas({
   onChildRegionAdd,
   onChildRegionSelect,
   selectedChildId,
-  colorSettings
+  colorSettings,
+  gridSettings
 }: UseImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageLoadedRef = useRef(false);
@@ -37,24 +39,24 @@ export function useImageCanvas({
     imageLoadedRef.current = true;
     
     // Draw with zoom and pan
-    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings);
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings]);
+    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings]);
   
   const imageLoader = useImageLoader({ onImageLoad: handleImageLoad });
   
   const handleRedraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings);
     }
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings]);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings]);
   
   const handleTemporaryDraw = useCallback((x: number, y: number, width: number, height: number, isParent: boolean) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
       // まず現在の状態を再描画
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings);
       
       // 一時的な領域を描画
       ctx.save();
@@ -63,7 +65,7 @@ export function useImageCanvas({
       drawing.drawTemporaryRegion(ctx, x, y, width, height, isParent);
       ctx.restore();
     }
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings]);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings]);
   
   const interaction = useCanvasInteraction({
     selectionMode,

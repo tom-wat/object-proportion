@@ -8,6 +8,7 @@ interface GridOverlayProps {
   zoom?: number;
   pan?: { x: number; y: number };
   className?: string;
+  gridColor?: string;
 }
 
 export function GridOverlay({
@@ -16,7 +17,8 @@ export function GridOverlay({
   canvasSize,
   zoom = 1,
   pan = { x: 0, y: 0 },
-  className = ''
+  className = '',
+  gridColor = '#ffffff'
 }: GridOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -60,7 +62,7 @@ export function GridOverlay({
     }
 
     // Set grid style
-    ctx.strokeStyle = 'rgba(156, 163, 175, 0.3)'; // gray-400 with opacity
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5 / zoom; // Adjust line width for zoom
 
     // Draw vertical lines
@@ -82,7 +84,8 @@ export function GridOverlay({
     }
 
     // Draw center axes (slightly more visible)
-    ctx.strokeStyle = 'rgba(156, 163, 175, 0.5)';
+    const centerColor = gridColor.replace(/,\s*0\.\d+\)/, ', 0.5)'); // Increase opacity for center lines
+    ctx.strokeStyle = centerColor;
     ctx.lineWidth = 1 / zoom;
     
     const centerX = parentRegion.x + parentRegion.width / 2;
@@ -101,12 +104,12 @@ export function GridOverlay({
     ctx.stroke();
 
     ctx.restore();
-  }, [parentRegion, gridSettings, canvasSize.width, canvasSize.height, zoom, pan]);
+  }, [parentRegion, gridSettings, canvasSize.width, canvasSize.height, zoom, pan, gridColor]);
 
   return (
     <canvas
       ref={canvasRef}
-      className={`absolute top-0 left-0 pointer-events-none ${className}`}
+      className={`absolute top-0 left-0 pointer-events-none z-0 ${className}`}
       style={{
         width: canvasSize.width,
         height: canvasSize.height

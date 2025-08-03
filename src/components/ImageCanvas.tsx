@@ -1,7 +1,7 @@
 import React from 'react';
 import type { SelectionMode, ParentRegion, ChildRegion, GridSettings, ColorSettings } from '../types';
 import { useImageCanvas } from '../hooks/useImageCanvas';
-import { GridOverlay } from './GridOverlay';
+
 
 interface ImageCanvasProps {
   selectionMode: SelectionMode;
@@ -32,7 +32,7 @@ export function ImageCanvas({
 }: ImageCanvasProps) {
   const [isShiftPressed, setIsShiftPressed] = React.useState(false);
   
-  const { canvasRef, loadImage, getCanvasSize, zoom, pan, zoomIn, zoomOut, resetZoom } = useImageCanvas({
+  const { canvasRef, loadImage, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
     selectionMode,
     parentRegion,
     childRegions,
@@ -40,7 +40,8 @@ export function ImageCanvas({
     onChildRegionAdd,
     onChildRegionSelect,
     selectedChildId,
-    colorSettings
+    colorSettings,
+    gridSettings
   });
 
   React.useEffect(() => {
@@ -72,16 +73,20 @@ export function ImageCanvas({
     };
   }, []);
 
-  const canvasSize = getCanvasSize();
+
 
   return (
     <div className={`w-full h-full bg-gray-100 ${className}`}>
       <div className="w-full h-full flex justify-center items-center overflow-hidden relative">
+
+
         <canvas
           ref={canvasRef}
           style={{
             cursor: isShiftPressed ? 'grab' : 'crosshair',
-            imageRendering: 'pixelated'
+            imageRendering: 'pixelated',
+            position: 'relative',
+            zIndex: 2
           }}
           className="w-full h-full"
         />
@@ -111,15 +116,7 @@ export function ImageCanvas({
           </button>
         </div>
 
-        {gridSettings.visible && parentRegion && (
-          <GridOverlay
-            parentRegion={parentRegion}
-            gridSettings={gridSettings}
-            canvasSize={canvasSize}
-            zoom={zoom}
-            pan={pan}
-          />
-        )}
+
       </div>
     </div>
   );

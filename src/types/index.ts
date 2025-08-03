@@ -48,6 +48,8 @@ export interface GridSettings {
 export interface ColorSettings {
   parentColor: string;
   childColor: string;
+  gridColor: string;
+  gridOpacity: number;
 }
 
 export interface AnalysisData {

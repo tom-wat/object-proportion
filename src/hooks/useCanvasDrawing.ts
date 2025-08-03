@@ -115,13 +115,96 @@ export function useCanvasDrawing() {
     y: number,
     width: number,
     height: number,
-    _isParent: boolean
+    _isParent?: boolean // eslint-disable-line @typescript-eslint/no-unused-vars
   ) => {
     ctx.strokeStyle = COLORS.PRIMARY;
     ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH;
     ctx.setLineDash(CANVAS_CONSTANTS.DASH_PATTERN);
     ctx.strokeRect(x, y, width, height);
     ctx.setLineDash([]);
+  }, []);
+
+  const drawGrid = useCallback((
+    ctx: CanvasRenderingContext2D,
+    parentRegion: ParentRegion,
+    gridSettings: { type: string; customSize?: number },
+    gridColor: string,
+    gridOpacity: number,
+    zoom: number
+  ) => {
+    const gridSize = gridSettings.type === 'custom' 
+      ? (gridSettings.customSize || 16) 
+      : parseInt(gridSettings.type.split('x')[0]);
+
+    const cellWidth = parentRegion.width / gridSize;
+    const cellHeight = parentRegion.height / gridSize;
+
+    ctx.save();
+    
+    // Apply rotation if needed
+    if (parentRegion.rotation !== 0) {
+      const centerX = parentRegion.x + parentRegion.width / 2;
+      const centerY = parentRegion.y + parentRegion.height / 2;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(parentRegion.rotation);
+      ctx.translate(-centerX, -centerY);
+    }
+
+    // Set grid style
+    // Convert hex color to rgba with opacity
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 209, g: 213, b: 219 }; // fallback to default gray
+    };
+    
+    const rgb = hexToRgb(gridColor);
+    const gridColorWithOpacity = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
+    
+    ctx.strokeStyle = gridColorWithOpacity;
+    ctx.lineWidth = 0.5 / zoom; // Adjust line width for zoom
+
+    // Draw vertical lines
+    for (let i = 0; i <= gridSize; i++) {
+      const x = parentRegion.x + i * cellWidth;
+      ctx.beginPath();
+      ctx.moveTo(x, parentRegion.y);
+      ctx.lineTo(x, parentRegion.y + parentRegion.height);
+      ctx.stroke();
+    }
+
+    // Draw horizontal lines
+    for (let i = 0; i <= gridSize; i++) {
+      const y = parentRegion.y + i * cellHeight;
+      ctx.beginPath();
+      ctx.moveTo(parentRegion.x, y);
+      ctx.lineTo(parentRegion.x + parentRegion.width, y);
+      ctx.stroke();
+    }
+
+    // Draw center axes
+    ctx.strokeStyle = gridColorWithOpacity;
+    ctx.lineWidth = 1.5 / zoom;
+    
+    const centerX = parentRegion.x + parentRegion.width / 2;
+    const centerY = parentRegion.y + parentRegion.height / 2;
+    
+    // Vertical center line
+    ctx.beginPath();
+    ctx.moveTo(centerX, parentRegion.y);
+    ctx.lineTo(centerX, parentRegion.y + parentRegion.height);
+    ctx.stroke();
+    
+    // Horizontal center line
+    ctx.beginPath();
+    ctx.moveTo(parentRegion.x, centerY);
+    ctx.lineTo(parentRegion.x + parentRegion.width, centerY);
+    ctx.stroke();
+
+    ctx.restore();
   }, []);
 
   const redraw = useCallback((
@@ -131,7 +214,8 @@ export function useCanvasDrawing() {
     zoom: number = 1,
     pan: { x: number; y: number } = { x: 0, y: 0 },
     selectedChildId: number | null = null,
-    colorSettings?: ColorSettings
+    colorSettings?: ColorSettings,
+    gridSettings?: { visible: boolean; type: string; customSize?: number }
   ) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -149,10 +233,17 @@ export function useCanvasDrawing() {
     // Draw image first
     drawImage(ctx, canvas);
     
+    // Draw grid second (behind frames)
+    if (gridSettings?.visible && parentRegion && colorSettings?.gridColor && (colorSettings.gridOpacity || 0) > 0) {
+      drawGrid(ctx, parentRegion, gridSettings, colorSettings.gridColor, colorSettings.gridOpacity || 0.7, zoom);
+    }
+    
+    // Draw parent region third
     if (parentRegion) {
       drawParentRegion(ctx, parentRegion, colorSettings);
     }
 
+    // Draw child regions last
     childRegions.forEach((region, index) => {
       const isSelected = selectedChildId === region.id;
       drawChildRegion(ctx, region, index, isSelected, colorSettings);
@@ -160,7 +251,7 @@ export function useCanvasDrawing() {
 
     // Restore context state
     ctx.restore();
-  }, [drawImage, drawParentRegion, drawChildRegion]);
+  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion]);
 
   const setImage = useCallback((image: HTMLImageElement) => {
     imageRef.current = image;

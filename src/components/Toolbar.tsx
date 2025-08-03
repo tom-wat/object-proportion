@@ -130,6 +130,33 @@ export function Toolbar({
               title="Child Region Color"
             />
           </div>
+          <div className="flex items-center space-x-1">
+            <label className="text-xs text-gray-500">Grid:</label>
+            <input
+              type="color"
+              value={colorSettings.gridColor}
+              onChange={(e) => onColorSettingsChange({
+                ...colorSettings,
+                gridColor: e.target.value
+              })}
+              className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+              title="Grid Color"
+            />
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={colorSettings.gridOpacity}
+              onChange={(e) => onColorSettingsChange({
+                ...colorSettings,
+                gridOpacity: parseFloat(e.target.value)
+              })}
+              className="w-12 h-4 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              title="Grid Opacity"
+            />
+            <span className="text-xs text-gray-500">{Math.round(colorSettings.gridOpacity * 100)}%</span>
+          </div>
         </div>
 
         {/* Export Buttons */}
