@@ -40,8 +40,10 @@ export interface ChildRegion {
 }
 
 export interface GridSettings {
-  type: '16x16' | '32x32' | 'custom';
-  customSize?: number;
+  visible: boolean;
+}
+
+export interface ChildGridSettings {
   visible: boolean;
 }
 
@@ -50,12 +52,15 @@ export interface ColorSettings {
   childColor: string;
   gridColor: string;
   gridOpacity: number;
+  childGridColor: string;
+  childGridOpacity: number;
 }
 
 export interface AnalysisData {
   parentRegion: ParentRegion | null;
   childRegions: ChildRegion[];
   gridSettings: GridSettings;
+  childGridSettings: ChildGridSettings;
   colorSettings: ColorSettings;
   imageInfo: {
     width: number;

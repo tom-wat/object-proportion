@@ -1,10 +1,12 @@
-import type { SelectionMode, GridSettings, ColorSettings } from '../types';
+import type { SelectionMode, GridSettings, ChildGridSettings, ColorSettings } from '../types';
 
 interface ToolbarProps {
   selectionMode: SelectionMode;
   onSelectionModeChange: (mode: SelectionMode) => void;
   gridSettings: GridSettings;
   onGridSettingsChange: (settings: GridSettings) => void;
+  childGridSettings: ChildGridSettings;
+  onChildGridSettingsChange: (settings: ChildGridSettings) => void;
   colorSettings: ColorSettings;
   onColorSettingsChange: (settings: ColorSettings) => void;
   onExportJSON: () => void;
@@ -19,6 +21,8 @@ export function Toolbar({
   onSelectionModeChange,
   gridSettings,
   onGridSettingsChange,
+  childGridSettings,
+  onChildGridSettingsChange,
   colorSettings,
   onColorSettingsChange,
   onExportJSON,
@@ -58,9 +62,9 @@ export function Toolbar({
           </div>
         </div>
 
-        {/* Grid Settings */}
+        {/* Parent Grid Settings */}
         <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Grid:</span>
+          <span className="text-sm font-medium text-gray-700">Parent Grid (16×16):</span>
           <button
             onClick={() => onGridSettingsChange({ ...gridSettings, visible: !gridSettings.visible })}
             className={`px-2 py-1 text-sm rounded border transition-colors ${
@@ -71,34 +75,22 @@ export function Toolbar({
           >
             {gridSettings.visible ? 'ON' : 'OFF'}
           </button>
-          
-          <select
-            value={gridSettings.type}
-            onChange={(e) => onGridSettingsChange({ 
-              ...gridSettings, 
-              type: e.target.value as GridSettings['type']
-            })}
-            className="px-2 py-1 text-sm border border-gray-300 rounded"
-          >
-            <option value="16x16">16×16</option>
-            <option value="32x32">32×32</option>
-            <option value="custom">Custom</option>
-          </select>
+        </div>
 
-          {gridSettings.type === 'custom' && (
-            <input
-              type="number"
-              min="8"
-              max="64"
-              value={gridSettings.customSize || 16}
-              onChange={(e) => onGridSettingsChange({
-                ...gridSettings,
-                customSize: parseInt(e.target.value) || 16
-              })}
-              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded"
-              placeholder="16"
-            />
-          )}
+        {/* Child Grid Settings */}
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-gray-700">Child Grid (16×16):</span>
+          <button
+            onClick={() => onChildGridSettingsChange({ ...childGridSettings, visible: !childGridSettings.visible })}
+            className={`px-2 py-1 text-sm rounded border transition-colors ${
+              childGridSettings.visible
+                ? 'bg-green-500 text-white border-green-500'
+                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+            }`}
+            disabled={childCount === 0}
+          >
+            {childGridSettings.visible ? 'ON' : 'OFF'}
+          </button>
         </div>
 
         {/* Color Settings */}
@@ -131,7 +123,7 @@ export function Toolbar({
             />
           </div>
           <div className="flex items-center space-x-1">
-            <label className="text-xs text-gray-500">Grid:</label>
+            <label className="text-xs text-gray-500">Parent Grid:</label>
             <input
               type="color"
               value={colorSettings.gridColor}
@@ -140,7 +132,7 @@ export function Toolbar({
                 gridColor: e.target.value
               })}
               className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
-              title="Grid Color"
+              title="Parent Grid Color"
             />
             <input
               type="range"
@@ -153,9 +145,36 @@ export function Toolbar({
                 gridOpacity: parseFloat(e.target.value)
               })}
               className="w-12 h-4 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              title="Grid Opacity"
+              title="Parent Grid Opacity"
             />
             <span className="text-xs text-gray-500">{Math.round(colorSettings.gridOpacity * 100)}%</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <label className="text-xs text-gray-500">Child Grid:</label>
+            <input
+              type="color"
+              value={colorSettings.childGridColor}
+              onChange={(e) => onColorSettingsChange({
+                ...colorSettings,
+                childGridColor: e.target.value
+              })}
+              className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+              title="Child Grid Color"
+            />
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={colorSettings.childGridOpacity}
+              onChange={(e) => onColorSettingsChange({
+                ...colorSettings,
+                childGridOpacity: parseFloat(e.target.value)
+              })}
+              className="w-12 h-4 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              title="Child Grid Opacity"
+            />
+            <span className="text-xs text-gray-500">{Math.round(colorSettings.childGridOpacity * 100)}%</span>
           </div>
         </div>
 

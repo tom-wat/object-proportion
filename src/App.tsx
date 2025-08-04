@@ -17,6 +17,7 @@ function App() {
     handleChildRegionDelete,
     handleChildRegionRename,
     handleGridSettingsChange,
+    handleChildGridSettingsChange,
     handleColorSettingsChange,
     handleClearAll,
     setImageInfo,
@@ -96,6 +97,8 @@ function App() {
           onSelectionModeChange={setSelectionMode}
           gridSettings={analysisData.gridSettings}
           onGridSettingsChange={handleGridSettingsChange}
+          childGridSettings={analysisData.childGridSettings}
+          onChildGridSettingsChange={handleChildGridSettingsChange}
           colorSettings={analysisData.colorSettings}
           onColorSettingsChange={handleColorSettingsChange}
           onExportJSON={handleExportJSON}
@@ -121,6 +124,7 @@ function App() {
               parentRegion={analysisData.parentRegion}
               childRegions={analysisData.childRegions}
               gridSettings={analysisData.gridSettings}
+              childGridSettings={analysisData.childGridSettings}
               onParentRegionChange={handleParentRegionChange}
               onChildRegionAdd={handleChildRegionAdd}
               onChildRegionChange={handleChildRegionChange}
@@ -140,7 +144,6 @@ function App() {
           <SidePanel
             parentRegion={analysisData.parentRegion}
             childRegions={analysisData.childRegions}
-            gridSettings={analysisData.gridSettings}
             onChildRegionSelect={handleChildRegionSelect}
             onChildRegionDelete={handleChildRegionDelete}
             onChildRegionRename={handleChildRegionRename}

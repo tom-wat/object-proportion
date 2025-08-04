@@ -1,25 +1,21 @@
-import type { ParentRegion, ChildRegion, GridSettings } from '../types';
+import type { ParentRegion, ChildRegion } from '../types';
 
 interface CoordinateDisplayProps {
   parentRegion: ParentRegion | null;
   selectedChild: ChildRegion | null;
-  gridSettings: GridSettings;
   className?: string;
 }
 
 export function CoordinateDisplay({
   parentRegion,
   selectedChild,
-  gridSettings,
   className = ''
 }: CoordinateDisplayProps) {
   if (!parentRegion) {
     return null;
   }
 
-  const gridSize = gridSettings.type === 'custom' 
-    ? (gridSettings.customSize || 16) 
-    : parseInt(gridSettings.type.split('x')[0]);
+  const gridSize = 16; // Fixed 16x16 grid
 
   return (
     <div className={`bg-white border border-gray-200 rounded p-3 ${className}`}>

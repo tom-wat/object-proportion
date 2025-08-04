@@ -1,5 +1,5 @@
 import React from 'react';
-import type { SelectionMode, ParentRegion, ChildRegion, GridSettings, ColorSettings } from '../types';
+import type { SelectionMode, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings } from '../types';
 import { useImageCanvas } from '../hooks/useImageCanvas';
 
 
@@ -13,6 +13,7 @@ interface ImageCanvasProps {
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
   gridSettings: GridSettings;
+  childGridSettings: ChildGridSettings;
   colorSettings: ColorSettings;
   imageFile: File | null;
   cachedImage?: HTMLImageElement | null;
@@ -25,6 +26,7 @@ export function ImageCanvas({
   parentRegion,
   childRegions,
   gridSettings,
+  childGridSettings,
   colorSettings,
   onParentRegionChange,
   onChildRegionAdd,
@@ -48,7 +50,8 @@ export function ImageCanvas({
     selectedChildId,
     isParentSelected,
     colorSettings,
-    gridSettings
+    gridSettings,
+    childGridSettings
   });
 
   React.useEffect(() => {

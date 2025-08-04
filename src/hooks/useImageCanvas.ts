@@ -3,7 +3,7 @@ import { useCanvasDrawing } from './useCanvasDrawing';
 import { useCanvasInteraction } from './useCanvasInteraction';
 import { useImageLoader } from './useImageLoader';
 import { useZoom } from './useZoom';
-import type { ParentRegion, ChildRegion, SelectionMode, ColorSettings } from '../types';
+import type { ParentRegion, ChildRegion, SelectionMode, ColorSettings, ChildGridSettings } from '../types';
 
 interface UseImageCanvasProps {
   selectionMode: SelectionMode;
@@ -16,7 +16,8 @@ interface UseImageCanvasProps {
   selectedChildId: number | null;
   isParentSelected?: boolean;
   colorSettings?: ColorSettings;
-  gridSettings?: { visible: boolean; type: string; customSize?: number };
+  gridSettings?: { visible: boolean };
+  childGridSettings?: ChildGridSettings;
 }
 
 export function useImageCanvas({
@@ -30,7 +31,8 @@ export function useImageCanvas({
   selectedChildId,
   isParentSelected,
   colorSettings,
-  gridSettings
+  gridSettings,
+  childGridSettings
 }: UseImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageLoadedRef = useRef(false);
@@ -50,24 +52,24 @@ export function useImageCanvas({
     imageLoadedRef.current = true;
     
     // Draw with zoom and pan
-    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, isParentSelected);
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, isParentSelected]);
+    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected]);
   
   const imageLoader = useImageLoader({ onImageLoad: handleImageLoad });
   
   const handleRedraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, isParentSelected);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected);
     }
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, isParentSelected]);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected]);
   
   const handleTemporaryDraw = useCallback((x: number, y: number, width: number, height: number, isParent: boolean) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
       // まず現在の状態を再描画
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, isParentSelected);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected);
       
       // 一時的な領域を描画
       ctx.save();
@@ -76,7 +78,7 @@ export function useImageCanvas({
       drawing.drawTemporaryRegion(ctx, x, y, width, height, isParent, zoom);
       ctx.restore();
     }
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, isParentSelected]);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected]);
   
   const interaction = useCanvasInteraction({
     selectionMode,

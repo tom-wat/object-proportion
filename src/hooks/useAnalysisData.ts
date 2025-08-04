@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ColorSettings } from '../types';
+import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings } from '../types';
 import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateOutsideDistance, isPointInRotatedBounds } from '../utils/geometry';
 
 export function useAnalysisData() {
@@ -7,22 +7,25 @@ export function useAnalysisData() {
     parentRegion: null,
     childRegions: [],
     gridSettings: {
-      type: '16x16',
       visible: true
+    },
+    childGridSettings: {
+      visible: false
     },
     colorSettings: {
       parentColor: '#3b82f6',
       childColor: '#3b82f6',
       gridColor: '#ffffff',
-      gridOpacity: 0.5
+      gridOpacity: 0.5,
+      childGridColor: '#ffffff',
+      childGridOpacity: 0.3
     },
     imageInfo: null
   });
 
   const updateChildRegionData = useCallback((
     child: ChildRegion, 
-    parent: ParentRegion, 
-    gridSettings: GridSettings
+    parent: ParentRegion
   ): ChildRegion => {
     const centerPoint = {
       x: child.bounds.x + child.bounds.width / 2,
@@ -30,9 +33,7 @@ export function useAnalysisData() {
     };
     
     const isInside = isPointInRotatedBounds(centerPoint, parent);
-    const gridSize = gridSettings.type === 'custom' ? 
-      (gridSettings.customSize || 16) : 
-      parseInt(gridSettings.type.split('x')[0]);
+    const gridSize = 16; // Fixed 16x16 grid
     
     const gridCoords = convertToGridCoordinates(centerPoint, parent, gridSize);
     const ratios = calculateChildRatios(child.bounds, parent);
@@ -66,7 +67,7 @@ export function useAnalysisData() {
       setAnalysisData(prev => ({
         ...prev,
         parentRegion: updatedRegion,
-        childRegions: prev.childRegions.map(child => updateChildRegionData(child, updatedRegion, prev.gridSettings))
+        childRegions: prev.childRegions.map(child => updateChildRegionData(child, updatedRegion))
       }));
     } else {
       setAnalysisData(prev => ({
@@ -81,7 +82,7 @@ export function useAnalysisData() {
     setAnalysisData(prev => {
       if (!prev.parentRegion) return prev;
       
-      const updatedRegion = updateChildRegionData(region, prev.parentRegion, prev.gridSettings);
+      const updatedRegion = updateChildRegionData(region, prev.parentRegion);
       return {
         ...prev,
         childRegions: [...prev.childRegions, updatedRegion]
@@ -93,7 +94,7 @@ export function useAnalysisData() {
     setAnalysisData(prev => {
       if (!prev.parentRegion) return prev;
       
-      const updatedRegion = updateChildRegionData(region, prev.parentRegion, prev.gridSettings);
+      const updatedRegion = updateChildRegionData(region, prev.parentRegion);
       return {
         ...prev,
         childRegions: prev.childRegions.map(child => 
@@ -124,10 +125,17 @@ export function useAnalysisData() {
       ...prev,
       gridSettings: settings,
       childRegions: prev.parentRegion ? 
-        prev.childRegions.map(child => updateChildRegionData(child, prev.parentRegion!, settings)) :
+        prev.childRegions.map(child => updateChildRegionData(child, prev.parentRegion!)) :
         prev.childRegions
     }));
   }, [updateChildRegionData]);
+
+  const handleChildGridSettingsChange = useCallback((settings: ChildGridSettings) => {
+    setAnalysisData(prev => ({
+      ...prev,
+      childGridSettings: settings
+    }));
+  }, []);
 
   const handleColorSettingsChange = useCallback((settings: ColorSettings) => {
     setAnalysisData(prev => ({
@@ -161,6 +169,7 @@ export function useAnalysisData() {
     handleChildRegionDelete,
     handleChildRegionRename,
     handleGridSettingsChange,
+    handleChildGridSettingsChange,
     handleColorSettingsChange,
     handleClearAll,
     setImageInfo,

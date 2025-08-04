@@ -39,9 +39,7 @@ export function GridOverlay({
     canvas.height = canvasSize.height;
     ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
-    const gridSize = gridSettings.type === 'custom' 
-      ? (gridSettings.customSize || 16) 
-      : parseInt(gridSettings.type.split('x')[0]);
+    const gridSize = 16; // Fixed 16x16 grid
 
     const cellWidth = parentRegion.width / gridSize;
     const cellHeight = parentRegion.height / gridSize;

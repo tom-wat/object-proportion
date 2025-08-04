@@ -1,10 +1,9 @@
-import type { ParentRegion, ChildRegion, GridSettings } from '../types';
+import type { ParentRegion, ChildRegion } from '../types';
 import { CoordinateDisplay } from './CoordinateDisplay';
 
 interface SidePanelProps {
   parentRegion: ParentRegion | null;
   childRegions: ChildRegion[];
-  gridSettings: GridSettings;
   onChildRegionSelect: (id: number) => void;
   onChildRegionDelete: (id: number) => void;
   onChildRegionRename: (id: number, name: string) => void;
@@ -17,7 +16,6 @@ interface SidePanelProps {
 export function SidePanel({
   parentRegion,
   childRegions,
-  gridSettings,
   onChildRegionSelect,
   onChildRegionDelete,
   onChildRegionRename,
@@ -202,7 +200,6 @@ export function SidePanel({
       <CoordinateDisplay
         parentRegion={parentRegion}
         selectedChild={selectedChild}
-        gridSettings={gridSettings}
       />
 
       {/* Instructions */}
