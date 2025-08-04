@@ -298,8 +298,8 @@ export function useCanvasDrawing() {
     }
 
     ctx.fillStyle = isSelected ? COLORS.SELECTED : childColor;
-    ctx.font = `${CANVAS_CONSTANTS.FONT_SIZE}px ${CANVAS_CONSTANTS.FONT_FAMILY}`;
-    ctx.fillText(region.id.toString(), region.bounds.x - 5, region.bounds.y - 5);
+    ctx.font = `${CANVAS_CONSTANTS.FONT_SIZE / zoom}px ${CANVAS_CONSTANTS.FONT_FAMILY}`;
+    ctx.fillText(region.name, region.bounds.x, region.bounds.y - 5 / zoom);
 
     ctx.restore();
   }, [getResizeHandles, drawHandle]);
