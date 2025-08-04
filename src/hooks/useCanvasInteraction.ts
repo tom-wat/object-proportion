@@ -13,6 +13,8 @@ interface UseCanvasInteractionProps {
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
   isParentSelected?: boolean;
+  onParentDeselect?: () => void;
+  onParentSelect?: () => void;
   onTemporaryDraw?: (x: number, y: number, width: number, height: number, isParent: boolean) => void;
   onRedraw: () => void;
   zoom?: number;
@@ -33,6 +35,8 @@ export function useCanvasInteraction({
   onChildRegionSelect,
   selectedChildId,
   isParentSelected,
+  onParentDeselect,
+  onParentSelect,
   onTemporaryDraw,
   onRedraw,
   zoom = 1,
@@ -50,6 +54,7 @@ export function useCanvasInteraction({
   const initialRotationRef = useRef<number>(0);
   const initialAngleRef = useRef<number>(0);
   const clickedChildIdRef = useRef<number | null>(null);
+  const clickedParentRef = useRef<boolean>(false);
 
   const getCanvasPoint = useCallback((event: MouseEvent, canvas: HTMLCanvasElement): Point => {
     const rect = canvas.getBoundingClientRect();
@@ -272,6 +277,19 @@ export function useCanvasInteraction({
         }
       }
       
+      // Check if clicking inside parent region for selection
+      if (parentRegion && isPointInRotatedBounds(point, parentRegion)) {
+        clickedParentRef.current = true;
+      } else {
+        clickedParentRef.current = false;
+        // Clicked outside parent region - deselect parent
+        if (parentRegion && onParentDeselect) {
+          onParentDeselect();
+          dragTypeRef.current = null;
+          return;
+        }
+      }
+      
       // Clicked on empty space, deselect child if any selected
       if (selectedChildId !== null) {
         onChildRegionSelect(-1);
@@ -391,7 +409,7 @@ export function useCanvasInteraction({
       
       dragTypeRef.current = 'new';
     }
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentRegionChange, onParentDeselect, onParentSelect]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);
@@ -555,8 +573,13 @@ export function useCanvasInteraction({
     if (dragTypeRef.current === 'new' && selectionMode === 'parent') {
       const width = Math.abs(dx);
       const height = Math.abs(dy);
+      const dragDistance = Math.sqrt(dx * dx + dy * dy);
       
-      if (width > CANVAS_CONSTANTS.MIN_REGION_SIZE && height > CANVAS_CONSTANTS.MIN_REGION_SIZE) {
+      // If drag distance is small and clicked inside parent region, select it
+      if (dragDistance < 5 && clickedParentRef.current && onParentSelect) {
+        onParentSelect();
+      } else if (width > CANVAS_CONSTANTS.MIN_REGION_SIZE && height > CANVAS_CONSTANTS.MIN_REGION_SIZE) {
+        // Create new parent region only if dragged significantly
         const x = dx < 0 ? point.x : startPointRef.current.x;
         const y = dy < 0 ? point.y : startPointRef.current.y;
         
@@ -605,8 +628,9 @@ export function useCanvasInteraction({
     dragTypeRef.current = null;
     selectedHandleRef.current = null;
     clickedChildIdRef.current = null;
+    clickedParentRef.current = false;
     onRedraw();
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onRedraw]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
     const mouseDownHandler = (e: MouseEvent) => handleMouseDown(e, canvas);

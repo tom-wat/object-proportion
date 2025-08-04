@@ -12,6 +12,8 @@ interface ImageCanvasProps {
   onChildRegionChange?: (region: ChildRegion) => void;
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
+  onParentDeselect?: () => void;
+  onParentSelect?: () => void;
   gridSettings: GridSettings;
   childGridSettings: ChildGridSettings;
   colorSettings: ColorSettings;
@@ -33,6 +35,8 @@ export function ImageCanvas({
   onChildRegionChange,
   onChildRegionSelect,
   selectedChildId,
+  onParentDeselect,
+  onParentSelect,
   imageFile,
   cachedImage,
   isParentSelected,
@@ -49,6 +53,8 @@ export function ImageCanvas({
     onChildRegionSelect,
     selectedChildId,
     isParentSelected,
+    onParentDeselect,
+    onParentSelect,
     colorSettings,
     gridSettings,
     childGridSettings

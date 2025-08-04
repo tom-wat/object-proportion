@@ -15,6 +15,8 @@ interface UseImageCanvasProps {
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
   isParentSelected?: boolean;
+  onParentDeselect?: () => void;
+  onParentSelect?: () => void;
   colorSettings?: ColorSettings;
   gridSettings?: { visible: boolean };
   childGridSettings?: ChildGridSettings;
@@ -30,6 +32,8 @@ export function useImageCanvas({
   onChildRegionSelect,
   selectedChildId,
   isParentSelected,
+  onParentDeselect,
+  onParentSelect,
   colorSettings,
   gridSettings,
   childGridSettings
@@ -90,6 +94,8 @@ export function useImageCanvas({
     onChildRegionSelect,
     selectedChildId,
     isParentSelected,
+    onParentDeselect,
+    onParentSelect,
     onTemporaryDraw: handleTemporaryDraw,
     onRedraw: handleRedraw,
     zoom,

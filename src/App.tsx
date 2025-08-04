@@ -130,6 +130,8 @@ function App() {
               onChildRegionChange={handleChildRegionChange}
               onChildRegionSelect={handleChildRegionSelect}
               selectedChildId={selectedChildId}
+              onParentDeselect={handleParentDeselect}
+              onParentSelect={handleParentRegionSelect}
               imageFile={imageFile}
               cachedImage={cachedImage}
               isParentSelected={isParentSelected}
