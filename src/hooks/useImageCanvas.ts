@@ -121,7 +121,7 @@ export function useImageCanvas({
       zoomAtPoint(e.deltaY, canvasPoint);
     };
     
-    canvas.addEventListener('wheel', handleWheel);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
     
     return () => {
       cleanupInteraction();
@@ -135,6 +135,14 @@ export function useImageCanvas({
     if (canvas) {
       imageLoadedRef.current = false; // Reset flag when loading new image
       imageLoader.loadImage(file, canvas);
+    }
+  }, [imageLoader]);
+
+  const loadImageFromCached = useCallback((cachedImage: HTMLImageElement) => {
+    const canvas = canvasRef.current;
+    if (canvas && cachedImage) {
+      imageLoadedRef.current = false; // Reset flag when loading cached image
+      imageLoader.loadImageFromCached(cachedImage, canvas);
     }
   }, [imageLoader]);
 
@@ -168,6 +176,7 @@ export function useImageCanvas({
   return {
     canvasRef,
     loadImage,
+    loadImageFromCached,
     redraw: handleRedraw,
     getCanvasSize,
     zoom,

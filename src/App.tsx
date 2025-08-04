@@ -21,12 +21,12 @@ function App() {
     handleClearAll,
     setImageInfo,
   } = useAnalysisData();
-
   const {
     imageFile,
     imageLoaded,
     selectionMode,
     selectedChildId,
+    cachedImage,
     setSelectionMode,
     setSelectedChildId,
     handleImageLoad,
@@ -118,6 +118,7 @@ function App() {
               onChildRegionSelect={handleChildRegionSelect}
               selectedChildId={selectedChildId}
               imageFile={imageFile}
+              cachedImage={cachedImage}
               colorSettings={analysisData.colorSettings}
               className="h-full bg-white border border-gray-200 rounded"
             />

@@ -15,6 +15,7 @@ interface ImageCanvasProps {
   gridSettings: GridSettings;
   colorSettings: ColorSettings;
   imageFile: File | null;
+  cachedImage?: HTMLImageElement | null;
   className?: string;
 }
 
@@ -30,10 +31,11 @@ export function ImageCanvas({
   onChildRegionSelect,
   selectedChildId,
   imageFile,
+  cachedImage,
   className = ''
 }: ImageCanvasProps) {
   
-  const { canvasRef, loadImage, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
+  const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
     selectionMode,
     parentRegion,
     childRegions,
@@ -47,17 +49,20 @@ export function ImageCanvas({
   });
 
   React.useEffect(() => {
-    if (imageFile && typeof loadImage === 'function') {
+    if (cachedImage && loadImageFromCached) {
+      // Use cached image for better performance
+      loadImageFromCached(cachedImage);
+    } else if (imageFile && loadImage) {
+      // Fallback to loading from file
       loadImage(imageFile);
     }
-  }, [imageFile, loadImage]);
+  }, [imageFile, cachedImage, loadImage, loadImageFromCached]);
 
 
 
   return (
     <div className={`w-full h-full bg-gray-100 ${className}`}>
       <div className="w-full h-full flex justify-center items-center overflow-hidden relative">
-
 
         <canvas
           ref={canvasRef}
@@ -93,7 +98,6 @@ export function ImageCanvas({
             {Math.round(zoom * 100)}%
           </button>
         </div>
-
 
       </div>
     </div>

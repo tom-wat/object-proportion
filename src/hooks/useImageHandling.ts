@@ -10,11 +10,18 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('parent');
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+  const [cachedImage, setCachedImage] = useState<HTMLImageElement | null>(null);
+  const [cachedBlobUrl, setCachedBlobUrl] = useState<string | null>(null);
 
   const handleImageLoad = useCallback((file: File) => {
     if (!file || !(file instanceof File)) {
       console.error('Invalid file provided to handleImageLoad:', file);
       return;
+    }
+
+    // Clean up previous blob URL if exists
+    if (cachedBlobUrl) {
+      URL.revokeObjectURL(cachedBlobUrl);
     }
 
     const img = new Image();
@@ -27,28 +34,39 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
       setImageLoaded(true);
       setSelectionMode('parent');
       setImageFile(file);
+      setCachedImage(img);
     };
     img.onerror = (error) => {
       console.error('Failed to load image in App component:', error);
     };
     
     try {
-      img.src = URL.createObjectURL(file);
+      const blobUrl = URL.createObjectURL(file);
+      setCachedBlobUrl(blobUrl);
+      img.src = blobUrl;
     } catch (error) {
       console.error('Failed to create object URL in App component:', error);
     }
-  }, [onImageInfoSet]);
+  }, [onImageInfoSet, cachedBlobUrl]);
 
   const resetImageState = useCallback(() => {
     setSelectedChildId(null);
     setSelectionMode('parent');
-  }, []);
+    
+    // Clean up cached resources
+    if (cachedBlobUrl) {
+      URL.revokeObjectURL(cachedBlobUrl);
+      setCachedBlobUrl(null);
+    }
+    setCachedImage(null);
+  }, [cachedBlobUrl]);
 
   return {
     imageFile,
     imageLoaded,
     selectionMode,
     selectedChildId,
+    cachedImage,
     setSelectionMode,
     setSelectedChildId,
     handleImageLoad,
