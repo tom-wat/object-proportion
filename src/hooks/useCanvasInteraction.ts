@@ -134,12 +134,13 @@ export function useCanvasInteraction({
         }
       }
       
-      // Check if hovering over any child region
-      for (const child of childRegions) {
-        if (point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
-            point.y >= child.bounds.y && point.y <= child.bounds.y + child.bounds.height) {
-          cursor = child.id === selectedChildId ? 'move' : 'pointer';
-          break;
+      // Check if hovering over selected child region (move cursor only for selected child)
+      if (selectedChildId !== null) {
+        const selectedChild = childRegions.find(c => c.id === selectedChildId);
+        if (selectedChild && 
+            point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
+            point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height) {
+          cursor = 'move';
         }
       }
     }
@@ -225,42 +226,34 @@ export function useCanvasInteraction({
       
       dragTypeRef.current = 'new';
     } else if (selectionMode === 'child') {
-      // Check if clicking on existing child region for selection/resize
-      let foundChild = false;
-      
-      for (const child of childRegions) {
-        // Check for resize handles on selected child
-        if (child.id === selectedChildId && getHandleAtPoint) {
-          const handle = getHandleAtPoint(point, child.bounds, zoom);
-          if (handle) {
-            dragTypeRef.current = 'resize';
-            selectedHandleRef.current = handle;
+      // Only check for resize handles and move on already selected child
+      if (selectedChildId !== null) {
+        const selectedChild = childRegions.find(c => c.id === selectedChildId);
+        if (selectedChild) {
+          // Check for resize handles on selected child
+          if (getHandleAtPoint) {
+            const handle = getHandleAtPoint(point, selectedChild.bounds, zoom);
+            if (handle) {
+              dragTypeRef.current = 'resize';
+              selectedHandleRef.current = handle;
+              return;
+            }
+          }
+          
+          // Check if clicking inside selected child region for move
+          if (point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
+              point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height) {
+            dragTypeRef.current = 'move';
             return;
           }
         }
-        
-        // Check if clicking inside child region
-        if (point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
-            point.y >= child.bounds.y && point.y <= child.bounds.y + child.bounds.height) {
-          // Select this child
-          onChildRegionSelect(child.id);
-          foundChild = true;
-          
-          // If already selected, enable move
-          if (child.id === selectedChildId) {
-            dragTypeRef.current = 'move';
-          }
-          return;
-        }
       }
       
-      if (!foundChild) {
-        // Clicked on empty space - deselect and create new
-        if (selectedChildId !== null) {
-          onChildRegionSelect(-1);
-        }
-        dragTypeRef.current = 'new';
+      // Clicked on empty space - deselect and create new
+      if (selectedChildId !== null) {
+        onChildRegionSelect(-1);
       }
+      dragTypeRef.current = 'new';
     }
   }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, zoom, isParentSelected]);
 
@@ -312,7 +305,7 @@ export function useCanvasInteraction({
       if (onTemporaryDraw) {
         onTemporaryDraw(x, y, width, height, selectionMode === 'parent');
       }
-    } else if (dragTypeRef.current === 'move' && parentRegion) {
+    } else if (dragTypeRef.current === 'move' && selectionMode === 'parent' && parentRegion) {
       const newRegion = {
         ...parentRegion,
         x: parentRegion.x + dx,
@@ -320,6 +313,22 @@ export function useCanvasInteraction({
       };
       onParentRegionChange(newRegion);
       startPointRef.current = point;
+    } else if (dragTypeRef.current === 'move' && selectionMode === 'child' && selectedChildId !== null) {
+      const selectedChild = childRegions.find(c => c.id === selectedChildId);
+      if (selectedChild) {
+        const updatedChild = {
+          ...selectedChild,
+          bounds: {
+            ...selectedChild.bounds,
+            x: selectedChild.bounds.x + dx,
+            y: selectedChild.bounds.y + dy
+          }
+        };
+        if (onChildRegionChange) {
+          onChildRegionChange(updatedChild);
+        }
+        startPointRef.current = point;
+      }
     } else if (dragTypeRef.current === 'resize' && selectedHandleRef.current && calculateResize) {
       if (selectionMode === 'parent' && parentRegion) {
         const resized = calculateResize(
@@ -362,22 +371,6 @@ export function useCanvasInteraction({
           }
           startPointRef.current = point; // Update start point to prevent cumulative delta
         }
-      }
-    } else if (dragTypeRef.current === 'move' && selectionMode === 'child' && selectedChildId !== null) {
-      const selectedChild = childRegions.find(c => c.id === selectedChildId);
-      if (selectedChild) {
-        const updatedChild = {
-          ...selectedChild,
-          bounds: {
-            ...selectedChild.bounds,
-            x: selectedChild.bounds.x + dx,
-            y: selectedChild.bounds.y + dy
-          }
-        };
-        if (onChildRegionChange) {
-          onChildRegionChange(updatedChild);
-        }
-        startPointRef.current = point;
       }
     } else if (dragTypeRef.current === 'rotate' && parentRegion) {
       const centerX = parentRegion.x + parentRegion.width / 2;
