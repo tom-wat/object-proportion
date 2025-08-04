@@ -34,6 +34,7 @@ function App() {
     setIsParentSelected,
     handleImageLoad,
     handleParentRegionSelect,
+    handleParentDeselect,
     resetImageState,
   } = useImageHandling({
     onImageInfoSet: setImageInfo
@@ -55,8 +56,10 @@ function App() {
   // Keyboard shortcuts for better UX
   useKeyboardShortcuts({
     selectedChildId,
+    isParentSelected,
     onChildRegionDelete: handleChildRegionDelete,
     onChildRegionSelect: handleChildRegionSelect,
+    onParentDeselect: handleParentDeselect,
     enabled: imageLoaded
   });
 
@@ -125,6 +128,7 @@ function App() {
               selectedChildId={selectedChildId}
               imageFile={imageFile}
               cachedImage={cachedImage}
+              isParentSelected={isParentSelected}
               colorSettings={analysisData.colorSettings}
               className="h-full bg-white border border-gray-200 rounded"
             />

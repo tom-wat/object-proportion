@@ -2,15 +2,19 @@ import { useEffect, useCallback } from 'react';
 
 interface UseKeyboardShortcutsProps {
   selectedChildId: number | null;
+  isParentSelected?: boolean;
   onChildRegionDelete: (id: number) => void;
   onChildRegionSelect: (id: number) => void;
+  onParentDeselect?: () => void;
   enabled?: boolean;
 }
 
 export function useKeyboardShortcuts({
   selectedChildId,
+  isParentSelected,
   onChildRegionDelete,
   onChildRegionSelect,
+  onParentDeselect,
   enabled = true
 }: UseKeyboardShortcutsProps) {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -35,13 +39,18 @@ export function useKeyboardShortcuts({
         }
         break;
       case 'Escape':
+        event.preventDefault();
+        // Deselect child if selected
         if (selectedChildId !== null) {
-          event.preventDefault();
-          onChildRegionSelect(-1); // Deselect
+          onChildRegionSelect(-1);
+        }
+        // Deselect parent if selected
+        else if (isParentSelected && onParentDeselect) {
+          onParentDeselect();
         }
         break;
     }
-  }, [enabled, selectedChildId, onChildRegionDelete, onChildRegionSelect]);
+  }, [enabled, selectedChildId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onParentDeselect]);
 
   useEffect(() => {
     if (!enabled) return;

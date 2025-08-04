@@ -56,6 +56,10 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     setSelectionMode('parent');
   }, []);
 
+  const handleParentDeselect = useCallback(() => {
+    setIsParentSelected(false);
+  }, []);
+
   const resetImageState = useCallback(() => {
     setSelectedChildId(null);
     setIsParentSelected(false);
@@ -81,6 +85,7 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     setIsParentSelected,
     handleImageLoad,
     handleParentRegionSelect,
+    handleParentDeselect,
     resetImageState,
   };
 }

@@ -12,6 +12,7 @@ interface UseCanvasInteractionProps {
   onChildRegionChange?: (region: ChildRegion) => void;
   onChildRegionSelect: (id: number) => void;
   selectedChildId: number | null;
+  isParentSelected?: boolean;
   onTemporaryDraw?: (x: number, y: number, width: number, height: number, isParent: boolean) => void;
   onRedraw: () => void;
   zoom?: number;
@@ -31,6 +32,7 @@ export function useCanvasInteraction({
   onChildRegionChange,
   onChildRegionSelect,
   selectedChildId,
+  isParentSelected,
   onTemporaryDraw,
   onRedraw,
   zoom = 1,
@@ -74,7 +76,7 @@ export function useCanvasInteraction({
     
     let cursor = 'crosshair'; // default cursor
     
-    if (selectionMode === 'parent' && parentRegion) {
+    if (selectionMode === 'parent' && parentRegion && isParentSelected) {
       const centerX = parentRegion.x + parentRegion.width / 2;
       const centerY = parentRegion.y + parentRegion.height / 2;
       
@@ -143,7 +145,7 @@ export function useCanvasInteraction({
     }
     
     onCursorChange(cursor);
-  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, zoom, onCursorChange]);
+  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, zoom, onCursorChange, isParentSelected]);
 
   const handleMouseDown = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     
@@ -168,7 +170,7 @@ export function useCanvasInteraction({
     }
 
     if (selectionMode === 'parent') {
-      if (parentRegion) {
+      if (parentRegion && isParentSelected) {
         const centerX = parentRegion.x + parentRegion.width / 2;
         const centerY = parentRegion.y + parentRegion.height / 2;
         
@@ -260,7 +262,7 @@ export function useCanvasInteraction({
         dragTypeRef.current = 'new';
       }
     }
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, zoom]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, zoom, isParentSelected]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);

@@ -205,7 +205,7 @@ export function useCanvasDrawing() {
     return { x, y, width, height };
   }, []);
 
-  const drawParentRegion = useCallback((ctx: CanvasRenderingContext2D, region: ParentRegion, colorSettings?: ColorSettings, isSelected: boolean = false) => {
+  const drawParentRegion = useCallback((ctx: CanvasRenderingContext2D, region: ParentRegion, colorSettings?: ColorSettings, isSelected: boolean = false, zoom: number = 1) => {
     const parentColor = colorSettings?.parentColor || COLORS.PRIMARY;
     ctx.save();
     
@@ -218,7 +218,7 @@ export function useCanvasDrawing() {
     }
 
     ctx.strokeStyle = isSelected ? COLORS.SELECTED : parentColor;
-    ctx.lineWidth = isSelected ? CANVAS_CONSTANTS.LINE_WIDTH + 1 : CANVAS_CONSTANTS.LINE_WIDTH;
+    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
     ctx.strokeRect(region.x, region.y, region.width, region.height);
 
     // Add selection highlight
@@ -227,32 +227,35 @@ export function useCanvasDrawing() {
       ctx.fillRect(region.x, region.y, region.width, region.height);
     }
 
-    ctx.fillStyle = isSelected ? COLORS.SELECTED : parentColor;
-    
-    // Draw resize handles (using non-rotated coordinates since they are already calculated with rotation)
-    const resizeHandles = getResizeHandles(region, 0); // Use 0 rotation since we're already in rotated context
-    resizeHandles.forEach(handle => {
-      drawHandle(ctx, handle.x, handle.y);
-    });
+    // Only draw handles when selected
+    if (isSelected) {
+      ctx.fillStyle = COLORS.SELECTED;
+      
+      // Draw resize handles (using non-rotated coordinates since they are already calculated with rotation)
+      const resizeHandles = getResizeHandles(region, 0); // Use 0 rotation since we're already in rotated context
+      resizeHandles.forEach(handle => {
+        drawHandle(ctx, handle.x, handle.y);
+      });
 
-    // Draw rotation handle and line in the same coordinate system
-    const rotationHandleY = region.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
-    ctx.beginPath();
-    ctx.arc(region.x + region.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(region.x + region.width/2, region.y);
-    ctx.lineTo(region.x + region.width/2, rotationHandleY);
-    ctx.stroke();
+      // Draw rotation handle and line in the same coordinate system
+      const rotationHandleY = region.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+      ctx.beginPath();
+      ctx.arc(region.x + region.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.moveTo(region.x + region.width/2, region.y);
+      ctx.lineTo(region.x + region.width/2, rotationHandleY);
+      ctx.stroke();
+    }
 
     ctx.restore();
   }, [drawHandle, getResizeHandles]);
 
-  const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings) => {
+  const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings, zoom: number = 1) => {
     const childColor = colorSettings?.childColor || COLORS.PRIMARY;
     ctx.strokeStyle = isSelected ? COLORS.SELECTED : childColor;
-    ctx.lineWidth = isSelected ? CANVAS_CONSTANTS.LINE_WIDTH + 1 : CANVAS_CONSTANTS.LINE_WIDTH;
+    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
     ctx.strokeRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
 
     // Add selection highlight
@@ -282,10 +285,11 @@ export function useCanvasDrawing() {
     y: number,
     width: number,
     height: number,
-    _isParent?: boolean // eslint-disable-line @typescript-eslint/no-unused-vars
+    _isParent?: boolean,
+    zoom: number = 1
   ) => {
     ctx.strokeStyle = COLORS.PRIMARY;
-    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH;
+    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
     ctx.setLineDash(CANVAS_CONSTANTS.DASH_PATTERN);
     ctx.strokeRect(x, y, width, height);
     ctx.setLineDash([]);
@@ -408,13 +412,13 @@ export function useCanvasDrawing() {
     
     // Draw parent region third
     if (parentRegion) {
-      drawParentRegion(ctx, parentRegion, colorSettings, isParentSelected);
+      drawParentRegion(ctx, parentRegion, colorSettings, isParentSelected, zoom);
     }
 
     // Draw child regions last
     childRegions.forEach((region, index) => {
       const isSelected = selectedChildId === region.id;
-      drawChildRegion(ctx, region, index, isSelected, colorSettings);
+      drawChildRegion(ctx, region, index, isSelected, colorSettings, zoom);
     });
 
     // Restore context state

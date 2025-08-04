@@ -73,7 +73,7 @@ export function useImageCanvas({
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
-      drawing.drawTemporaryRegion(ctx, x, y, width, height, isParent);
+      drawing.drawTemporaryRegion(ctx, x, y, width, height, isParent, zoom);
       ctx.restore();
     }
   }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, isParentSelected]);
@@ -87,6 +87,7 @@ export function useImageCanvas({
     onChildRegionChange,
     onChildRegionSelect,
     selectedChildId,
+    isParentSelected,
     onTemporaryDraw: handleTemporaryDraw,
     onRedraw: handleRedraw,
     zoom,
