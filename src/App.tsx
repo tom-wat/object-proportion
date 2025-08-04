@@ -36,7 +36,6 @@ function App() {
     handleImageLoad,
     handleParentRegionSelect,
     handleParentDeselect,
-    resetImageState,
   } = useImageHandling({
     onImageInfoSet: setImageInfo
   });
@@ -66,8 +65,11 @@ function App() {
 
   const handleClearAllWithReset = useCallback(() => {
     handleClearAll();
-    resetImageState();
-  }, [handleClearAll, resetImageState]);
+    // Reset only selection states, keep image cache
+    setSelectedChildId(null);
+    setIsParentSelected(false);
+    setSelectionMode('parent');
+  }, [handleClearAll, setSelectedChildId, setIsParentSelected, setSelectionMode]);
 
   // Auto-switch to parent mode if child mode is selected but no parent region exists
   useEffect(() => {

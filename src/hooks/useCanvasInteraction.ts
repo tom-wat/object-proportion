@@ -285,8 +285,6 @@ export function useCanvasInteraction({
         // Clicked outside parent region - deselect parent
         if (parentRegion && onParentDeselect) {
           onParentDeselect();
-          dragTypeRef.current = null;
-          return;
         }
       }
       
@@ -409,7 +407,7 @@ export function useCanvasInteraction({
       
       dragTypeRef.current = 'new';
     }
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentRegionChange, onParentDeselect, onParentSelect]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);
