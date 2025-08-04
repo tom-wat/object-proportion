@@ -9,6 +9,8 @@ interface SidePanelProps {
   onChildRegionDelete: (id: number) => void;
   onChildRegionRename: (id: number, name: string) => void;
   selectedChildId: number | null;
+  onParentRegionSelect?: () => void;
+  isParentSelected?: boolean;
   className?: string;
 }
 
@@ -20,6 +22,8 @@ export function SidePanel({
   onChildRegionDelete,
   onChildRegionRename,
   selectedChildId,
+  onParentRegionSelect,
+  isParentSelected,
   className = ''
 }: SidePanelProps) {
   const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
@@ -29,7 +33,14 @@ export function SidePanel({
       <div>
         <h3 className="text-sm font-medium text-gray-900 mb-3">Parent Region</h3>
         {parentRegion ? (
-          <div className="bg-white rounded p-3 border border-gray-200">
+          <div 
+            className={`bg-white rounded p-3 border cursor-pointer transition-colors ${
+              isParentSelected 
+                ? 'border-blue-400 bg-blue-50' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={onParentRegionSelect}
+          >
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-500">Ratio:</span>

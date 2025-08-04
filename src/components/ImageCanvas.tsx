@@ -16,6 +16,7 @@ interface ImageCanvasProps {
   colorSettings: ColorSettings;
   imageFile: File | null;
   cachedImage?: HTMLImageElement | null;
+  isParentSelected?: boolean;
   className?: string;
 }
 
@@ -32,6 +33,7 @@ export function ImageCanvas({
   selectedChildId,
   imageFile,
   cachedImage,
+  isParentSelected,
   className = ''
 }: ImageCanvasProps) {
   
@@ -44,6 +46,7 @@ export function ImageCanvas({
     onChildRegionChange,
     onChildRegionSelect,
     selectedChildId,
+    isParentSelected,
     colorSettings,
     gridSettings
   });

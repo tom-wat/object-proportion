@@ -21,15 +21,19 @@ function App() {
     handleClearAll,
     setImageInfo,
   } = useAnalysisData();
+
   const {
     imageFile,
     imageLoaded,
     selectionMode,
     selectedChildId,
+    isParentSelected,
     cachedImage,
     setSelectionMode,
     setSelectedChildId,
+    setIsParentSelected,
     handleImageLoad,
+    handleParentRegionSelect,
     resetImageState,
   } = useImageHandling({
     onImageInfoSet: setImageInfo
@@ -43,8 +47,10 @@ function App() {
       setSelectedChildId(null); // Deselect
     } else {
       setSelectedChildId(id);
+      setIsParentSelected(false); // Deselect parent when child is selected
+      setSelectionMode('child'); // Switch to child mode when child is selected
     }
-  }, [setSelectedChildId]);
+  }, [setSelectedChildId, setIsParentSelected, setSelectionMode]);
 
   // Keyboard shortcuts for better UX
   useKeyboardShortcuts({
@@ -135,6 +141,8 @@ function App() {
             onChildRegionDelete={handleChildRegionDelete}
             onChildRegionRename={handleChildRegionRename}
             selectedChildId={selectedChildId}
+            onParentRegionSelect={handleParentRegionSelect}
+            isParentSelected={isParentSelected}
             className="w-80 h-full overflow-y-auto"
           />
         )}

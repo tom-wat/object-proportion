@@ -10,6 +10,7 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('parent');
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+  const [isParentSelected, setIsParentSelected] = useState(false);
   const [cachedImage, setCachedImage] = useState<HTMLImageElement | null>(null);
   const [cachedBlobUrl, setCachedBlobUrl] = useState<string | null>(null);
 
@@ -49,8 +50,15 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     }
   }, [onImageInfoSet, cachedBlobUrl]);
 
+  const handleParentRegionSelect = useCallback(() => {
+    setIsParentSelected(true);
+    setSelectedChildId(null);
+    setSelectionMode('parent');
+  }, []);
+
   const resetImageState = useCallback(() => {
     setSelectedChildId(null);
+    setIsParentSelected(false);
     setSelectionMode('parent');
     
     // Clean up cached resources
@@ -66,10 +74,13 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     imageLoaded,
     selectionMode,
     selectedChildId,
+    isParentSelected,
     cachedImage,
     setSelectionMode,
     setSelectedChildId,
+    setIsParentSelected,
     handleImageLoad,
+    handleParentRegionSelect,
     resetImageState,
   };
 }

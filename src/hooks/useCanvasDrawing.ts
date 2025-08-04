@@ -205,7 +205,7 @@ export function useCanvasDrawing() {
     return { x, y, width, height };
   }, []);
 
-  const drawParentRegion = useCallback((ctx: CanvasRenderingContext2D, region: ParentRegion, colorSettings?: ColorSettings) => {
+  const drawParentRegion = useCallback((ctx: CanvasRenderingContext2D, region: ParentRegion, colorSettings?: ColorSettings, isSelected: boolean = false) => {
     const parentColor = colorSettings?.parentColor || COLORS.PRIMARY;
     ctx.save();
     
@@ -217,11 +217,17 @@ export function useCanvasDrawing() {
       ctx.translate(-centerX, -centerY);
     }
 
-    ctx.strokeStyle = parentColor;
-    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH;
+    ctx.strokeStyle = isSelected ? COLORS.SELECTED : parentColor;
+    ctx.lineWidth = isSelected ? CANVAS_CONSTANTS.LINE_WIDTH + 1 : CANVAS_CONSTANTS.LINE_WIDTH;
     ctx.strokeRect(region.x, region.y, region.width, region.height);
 
-    ctx.fillStyle = parentColor;
+    // Add selection highlight
+    if (isSelected) {
+      ctx.fillStyle = COLORS.SELECTED + '20'; // Add transparency
+      ctx.fillRect(region.x, region.y, region.width, region.height);
+    }
+
+    ctx.fillStyle = isSelected ? COLORS.SELECTED : parentColor;
     
     // Draw resize handles (using non-rotated coordinates since they are already calculated with rotation)
     const resizeHandles = getResizeHandles(region, 0); // Use 0 rotation since we're already in rotated context
@@ -376,7 +382,8 @@ export function useCanvasDrawing() {
     pan: { x: number; y: number } = { x: 0, y: 0 },
     selectedChildId: number | null = null,
     colorSettings?: ColorSettings,
-    gridSettings?: { visible: boolean; type: string; customSize?: number }
+    gridSettings?: { visible: boolean; type: string; customSize?: number },
+    isParentSelected: boolean = false
   ) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -401,7 +408,7 @@ export function useCanvasDrawing() {
     
     // Draw parent region third
     if (parentRegion) {
-      drawParentRegion(ctx, parentRegion, colorSettings);
+      drawParentRegion(ctx, parentRegion, colorSettings, isParentSelected);
     }
 
     // Draw child regions last
