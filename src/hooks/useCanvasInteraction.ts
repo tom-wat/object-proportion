@@ -49,6 +49,7 @@ export function useCanvasInteraction({
   const selectedHandleRef = useRef<ResizeHandleInfo | null>(null);
   const initialRotationRef = useRef<number>(0);
   const initialAngleRef = useRef<number>(0);
+  const clickedChildIdRef = useRef<number | null>(null);
 
   const getCanvasPoint = useCallback((event: MouseEvent, canvas: HTMLCanvasElement): Point => {
     const rect = canvas.getBoundingClientRect();
@@ -108,7 +109,7 @@ export function useCanvasInteraction({
       
       // Check resize handles - use simple cursor
       if (getHandleAtPoint) {
-        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, zoom, 0);
+        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0);
         if (handle) {
           cursor = 'pointer'; // Resize handle cursor
           onCursorChange(cursor);
@@ -156,7 +157,7 @@ export function useCanvasInteraction({
           
           // Check resize handles - use simple cursor
           if (getHandleAtPoint) {
-            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, zoom, 0);
+            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0);
             if (handle) {
               cursor = 'pointer'; // Resize handle cursor
               onCursorChange(cursor);
@@ -198,7 +199,7 @@ export function useCanvasInteraction({
     }
     
     onCursorChange(cursor);
-  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, zoom, onCursorChange, isParentSelected]);
+  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, onCursorChange, isParentSelected]);
 
   const handleMouseDown = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     
@@ -257,7 +258,7 @@ export function useCanvasInteraction({
 
         // Check for resize handles using local coordinate system
         if (getHandleAtPoint) {
-          const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, zoom, 0);
+          const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0);
           if (handle) {
             dragTypeRef.current = 'resize';
             selectedHandleRef.current = handle;
@@ -315,7 +316,7 @@ export function useCanvasInteraction({
 
           // Check for resize handles using local coordinate system
           if (getHandleAtPoint) {
-            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, zoom, 0);
+            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0);
             if (handle) {
               dragTypeRef.current = 'resize';
               selectedHandleRef.current = handle;
@@ -349,13 +350,48 @@ export function useCanvasInteraction({
         }
       }
       
-      // Clicked on empty space - deselect and create new
-      if (selectedChildId !== null) {
-        onChildRegionSelect(-1);
+      // Check if clicking inside any child region for selection
+      let clickedInsideChild = false;
+      for (const child of childRegions) {
+        let isInside = false;
+        
+        if (child.rotation !== 0) {
+          // For rotated child regions, use rotated bounds check
+          const centerX = child.bounds.x + child.bounds.width / 2;
+          const centerY = child.bounds.y + child.bounds.height / 2;
+          const cos = Math.cos(-child.rotation);
+          const sin = Math.sin(-child.rotation);
+          const dx = point.x - centerX;
+          const dy = point.y - centerY;
+          const rotatedX = centerX + dx * cos - dy * sin;
+          const rotatedY = centerY + dx * sin + dy * cos;
+          
+          isInside = rotatedX >= child.bounds.x && rotatedX <= child.bounds.x + child.bounds.width &&
+                     rotatedY >= child.bounds.y && rotatedY <= child.bounds.y + child.bounds.height;
+        } else {
+          // Simple bounds check for non-rotated child
+          isInside = point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
+                     point.y >= child.bounds.y && point.y <= child.bounds.y + child.bounds.height;
+        }
+        
+        if (isInside) {
+          clickedChildIdRef.current = child.id;
+          clickedInsideChild = true;
+          break;
+        }
       }
+      
+      if (!clickedInsideChild) {
+        clickedChildIdRef.current = null;
+        // Clicked on empty space - deselect and create new
+        if (selectedChildId !== null) {
+          onChildRegionSelect(-1);
+        }
+      }
+      
       dragTypeRef.current = 'new';
     }
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, zoom, isParentSelected]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);
@@ -535,8 +571,13 @@ export function useCanvasInteraction({
     } else if (dragTypeRef.current === 'new' && selectionMode === 'child') {
       const width = Math.abs(dx);
       const height = Math.abs(dy);
+      const dragDistance = Math.sqrt(dx * dx + dy * dy);
       
-      if (width > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE && height > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE) {
+      // If drag distance is small and clicked inside a child region, select it
+      if (dragDistance < 5 && clickedChildIdRef.current !== null) {
+        onChildRegionSelect(clickedChildIdRef.current);
+      } else if (width > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE && height > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE) {
+        // Create new child region only if dragged significantly
         const x = dx < 0 ? point.x : startPointRef.current.x;
         const y = dy < 0 ? point.y : startPointRef.current.y;
         
@@ -563,8 +604,9 @@ export function useCanvasInteraction({
     isDrawingRef.current = false;
     dragTypeRef.current = null;
     selectedHandleRef.current = null;
+    clickedChildIdRef.current = null;
     onRedraw();
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onRedraw]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onRedraw]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
     const mouseDownHandler = (e: MouseEvent) => handleMouseDown(e, canvas);

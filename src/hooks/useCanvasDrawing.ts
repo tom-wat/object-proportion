@@ -85,7 +85,6 @@ export function useCanvasDrawing() {
   const getHandleAtPoint = useCallback((
     point: { x: number; y: number },
     region: { x: number; y: number; width: number; height: number },
-    zoom: number = 1,
     rotation: number = 0
   ): ResizeHandleInfo | null => {
     const handles = getResizeHandles(region, rotation);

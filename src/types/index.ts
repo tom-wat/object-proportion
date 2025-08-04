@@ -25,6 +25,7 @@ export interface ChildRegion {
     pixel: Point;
   };
   bounds: Bounds;
+  rotation: number;
   ratios: {
     areaRatio: number;
     widthRatio: number;
