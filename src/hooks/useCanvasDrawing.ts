@@ -89,7 +89,7 @@ export function useCanvasDrawing() {
     rotation: number = 0
   ): ResizeHandleInfo | null => {
     const handles = getResizeHandles(region, rotation);
-    const tolerance = (CANVAS_CONSTANTS.HANDLE_SIZE / 2) / zoom;
+    const tolerance = CANVAS_CONSTANTS.HANDLE_SIZE / 2;
     
     for (const handle of handles) {
       const distance = Math.sqrt(
@@ -254,6 +254,17 @@ export function useCanvasDrawing() {
 
   const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings, zoom: number = 1) => {
     const childColor = colorSettings?.childColor || COLORS.PRIMARY;
+    ctx.save();
+    
+    // Apply rotation if needed
+    if (region.rotation !== 0) {
+      const centerX = region.bounds.x + region.bounds.width / 2;
+      const centerY = region.bounds.y + region.bounds.height / 2;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(region.rotation);
+      ctx.translate(-centerX, -centerY);
+    }
+
     ctx.strokeStyle = isSelected ? COLORS.SELECTED : childColor;
     ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
     ctx.strokeRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
@@ -264,19 +275,31 @@ export function useCanvasDrawing() {
       ctx.fillRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
     }
 
-    // Draw resize handles for selected child
+    // Draw resize handles for selected child (using non-rotated coordinates since they are already calculated with rotation)
     if (isSelected) {
-      ctx.fillStyle = isSelected ? COLORS.SELECTED : childColor;
-      const resizeHandles = getResizeHandles(region.bounds);
+      ctx.fillStyle = COLORS.SELECTED;
+      const resizeHandles = getResizeHandles(region.bounds, 0); // Use 0 rotation since we're already in rotated context
       resizeHandles.forEach(handle => {
         drawHandle(ctx, handle.x, handle.y);
       });
+
+      // Draw rotation handle and line in the same coordinate system
+      const rotationHandleY = region.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+      ctx.beginPath();
+      ctx.arc(region.bounds.x + region.bounds.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.moveTo(region.bounds.x + region.bounds.width/2, region.bounds.y);
+      ctx.lineTo(region.bounds.x + region.bounds.width/2, rotationHandleY);
+      ctx.stroke();
     }
 
     ctx.fillStyle = isSelected ? COLORS.SELECTED : childColor;
     ctx.font = `${CANVAS_CONSTANTS.FONT_SIZE}px ${CANVAS_CONSTANTS.FONT_FAMILY}`;
     ctx.fillText(region.id.toString(), region.bounds.x - 5, region.bounds.y - 5);
 
+    ctx.restore();
   }, [getResizeHandles, drawHandle]);
 
   const drawTemporaryRegion = useCallback((
@@ -308,6 +331,15 @@ export function useCanvasDrawing() {
     const cellHeight = childRegion.bounds.height / gridSize;
 
     ctx.save();
+    
+    // Apply rotation if needed
+    if (childRegion.rotation !== 0) {
+      const centerX = childRegion.bounds.x + childRegion.bounds.width / 2;
+      const centerY = childRegion.bounds.y + childRegion.bounds.height / 2;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(childRegion.rotation);
+      ctx.translate(-centerX, -centerY);
+    }
 
     // Set grid style
     const hexToRgb = (hex: string) => {

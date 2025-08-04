@@ -110,7 +110,7 @@ export function useCanvasInteraction({
       if (getHandleAtPoint) {
         const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, zoom, 0);
         if (handle) {
-          cursor = 'move'; // Simple unified cursor for all resize handles
+          cursor = 'pointer'; // Resize handle cursor
           onCursorChange(cursor);
           return;
         }
@@ -121,15 +121,47 @@ export function useCanvasInteraction({
         cursor = 'move';
       }
     } else if (selectionMode === 'child') {
-      // Check selected child resize handles first
+      // Check selected child rotation and resize handles first
       if (selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
-        if (selectedChild && getHandleAtPoint) {
-          const handle = getHandleAtPoint(point, selectedChild.bounds, zoom);
-          if (handle) {
-            cursor = 'move'; // Simple unified cursor for child resize handles
+        if (selectedChild) {
+          const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
+          const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
+          
+          // Check rotation handle (transform point to local coordinate system)
+          let localX = point.x;
+          let localY = point.y;
+          
+          if (selectedChild.rotation !== 0) {
+            // Apply inverse rotation to point
+            const cos = Math.cos(-selectedChild.rotation);
+            const sin = Math.sin(-selectedChild.rotation);
+            const dx = point.x - centerX;
+            const dy = point.y - centerY;
+            localX = centerX + dx * cos - dy * sin;
+            localY = centerY + dx * sin + dy * cos;
+          }
+          
+          const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+          const distToRotHandle = Math.sqrt(
+            Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) + 
+            Math.pow(localY - handleY, 2)
+          );
+          
+          if (distToRotHandle <= 10) {
+            cursor = 'grab';
             onCursorChange(cursor);
             return;
+          }
+          
+          // Check resize handles - use simple cursor
+          if (getHandleAtPoint) {
+            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, zoom, 0);
+            if (handle) {
+              cursor = 'pointer'; // Resize handle cursor
+              onCursorChange(cursor);
+              return;
+            }
           }
         }
       }
@@ -137,10 +169,30 @@ export function useCanvasInteraction({
       // Check if hovering over selected child region (move cursor only for selected child)
       if (selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
-        if (selectedChild && 
-            point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
-            point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height) {
-          cursor = 'move';
+        if (selectedChild) {
+          // Check if inside region for move (using rotated bounds check)
+          if (selectedChild.rotation !== 0) {
+            // For rotated child regions, use a more sophisticated bounds check
+            const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
+            const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
+            const cos = Math.cos(-selectedChild.rotation);
+            const sin = Math.sin(-selectedChild.rotation);
+            const dx = point.x - centerX;
+            const dy = point.y - centerY;
+            const rotatedX = centerX + dx * cos - dy * sin;
+            const rotatedY = centerY + dx * sin + dy * cos;
+            
+            if (rotatedX >= selectedChild.bounds.x && rotatedX <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                rotatedY >= selectedChild.bounds.y && rotatedY <= selectedChild.bounds.y + selectedChild.bounds.height) {
+              cursor = 'move';
+            }
+          } else {
+            // Simple bounds check for non-rotated child
+            if (point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height) {
+              cursor = 'move';
+            }
+          }
         }
       }
     }
@@ -226,13 +278,44 @@ export function useCanvasInteraction({
       
       dragTypeRef.current = 'new';
     } else if (selectionMode === 'child') {
-      // Only check for resize handles and move on already selected child
+      // Only check for rotation, resize handles and move on already selected child
       if (selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
         if (selectedChild) {
-          // Check for resize handles on selected child
+          const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
+          const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
+          
+          // Check rotation handle using local coordinates
+          let localX = point.x;
+          let localY = point.y;
+          
+          if (selectedChild.rotation !== 0) {
+            // Apply inverse rotation to point
+            const cos = Math.cos(-selectedChild.rotation);
+            const sin = Math.sin(-selectedChild.rotation);
+            const dx = point.x - centerX;
+            const dy = point.y - centerY;
+            localX = centerX + dx * cos - dy * sin;
+            localY = centerY + dx * sin + dy * cos;
+          }
+          
+          const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+          const distToRotHandle = Math.sqrt(
+            Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) + 
+            Math.pow(localY - handleY, 2)
+          );
+          
+          if (distToRotHandle <= 10) {
+            dragTypeRef.current = 'rotate';
+            // Store initial rotation and angle for relative calculation
+            initialRotationRef.current = selectedChild.rotation;
+            initialAngleRef.current = Math.atan2(point.y - centerY, point.x - centerX);
+            return;
+          }
+
+          // Check for resize handles using local coordinate system
           if (getHandleAtPoint) {
-            const handle = getHandleAtPoint(point, selectedChild.bounds, zoom);
+            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, zoom, 0);
             if (handle) {
               dragTypeRef.current = 'resize';
               selectedHandleRef.current = handle;
@@ -240,11 +323,28 @@ export function useCanvasInteraction({
             }
           }
           
-          // Check if clicking inside selected child region for move
-          if (point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
-              point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height) {
-            dragTypeRef.current = 'move';
-            return;
+          // Check if clicking inside selected child region for move (using rotated bounds check)
+          if (selectedChild.rotation !== 0) {
+            // For rotated child regions, use a more sophisticated bounds check
+            const cos = Math.cos(-selectedChild.rotation);
+            const sin = Math.sin(-selectedChild.rotation);
+            const dx = point.x - centerX;
+            const dy = point.y - centerY;
+            const rotatedX = centerX + dx * cos - dy * sin;
+            const rotatedY = centerY + dx * sin + dy * cos;
+            
+            if (rotatedX >= selectedChild.bounds.x && rotatedX <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                rotatedY >= selectedChild.bounds.y && rotatedY <= selectedChild.bounds.y + selectedChild.bounds.height) {
+              dragTypeRef.current = 'move';
+              return;
+            }
+          } else {
+            // Simple bounds check for non-rotated child
+            if (point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height) {
+              dragTypeRef.current = 'move';
+              return;
+            }
           }
         }
       }
@@ -372,7 +472,7 @@ export function useCanvasInteraction({
           startPointRef.current = point; // Update start point to prevent cumulative delta
         }
       }
-    } else if (dragTypeRef.current === 'rotate' && parentRegion) {
+    } else if (dragTypeRef.current === 'rotate' && selectionMode === 'parent' && parentRegion) {
       const centerX = parentRegion.x + parentRegion.width / 2;
       const centerY = parentRegion.y + parentRegion.height / 2;
       const currentAngle = Math.atan2(point.y - centerY, point.x - centerX);
@@ -386,6 +486,26 @@ export function useCanvasInteraction({
         rotation: newAngle
       };
       onParentRegionChange(newRegion);
+    } else if (dragTypeRef.current === 'rotate' && selectionMode === 'child' && selectedChildId !== null) {
+      const selectedChild = childRegions.find(c => c.id === selectedChildId);
+      if (selectedChild) {
+        const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
+        const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
+        const currentAngle = Math.atan2(point.y - centerY, point.x - centerX);
+        
+        // Simple relative rotation
+        const angleDelta = currentAngle - initialAngleRef.current;
+        const newAngle = initialRotationRef.current + angleDelta;
+
+        const updatedChild = {
+          ...selectedChild,
+          rotation: newAngle
+        };
+        
+        if (onChildRegionChange) {
+          onChildRegionChange(updatedChild);
+        }
+      }
     }
   }, [getCanvasPoint, onRedraw, onTemporaryDraw, selectionMode, parentRegion, childRegions, selectedChildId, onParentRegionChange, onChildRegionChange, onPanChange, pan, calculateResize, updateCursor]);
 
@@ -429,6 +549,7 @@ export function useCanvasInteraction({
             pixel: { x: x + width/2, y: y + height/2 }
           },
           bounds: { x, y, width, height },
+          rotation: 0,
           ratios: {
             areaRatio: 0,
             widthRatio: 0,
