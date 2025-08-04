@@ -95,13 +95,13 @@ export function useCanvasInteraction({
         localY = centerY + dx * sin + dy * cos;
       }
       
-      const handleY = parentRegion.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+      const handleY = parentRegion.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
       const distToRotHandle = Math.sqrt(
         Math.pow(localX - (parentRegion.x + parentRegion.width/2), 2) + 
         Math.pow(localY - handleY, 2)
       );
       
-      if (distToRotHandle <= 10) {
+      if (distToRotHandle <= 10 / zoom) {
         cursor = 'grab';
         onCursorChange(cursor);
         return;
@@ -109,7 +109,7 @@ export function useCanvasInteraction({
       
       // Check resize handles - use simple cursor
       if (getHandleAtPoint) {
-        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0);
+        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0, zoom);
         if (handle) {
           cursor = 'pointer'; // Resize handle cursor
           onCursorChange(cursor);
@@ -143,13 +143,13 @@ export function useCanvasInteraction({
             localY = centerY + dx * sin + dy * cos;
           }
           
-          const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+          const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
           const distToRotHandle = Math.sqrt(
             Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) + 
             Math.pow(localY - handleY, 2)
           );
           
-          if (distToRotHandle <= 10) {
+          if (distToRotHandle <= 10 / zoom) {
             cursor = 'grab';
             onCursorChange(cursor);
             return;
@@ -157,7 +157,7 @@ export function useCanvasInteraction({
           
           // Check resize handles - use simple cursor
           if (getHandleAtPoint) {
-            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0);
+            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0, zoom);
             if (handle) {
               cursor = 'pointer'; // Resize handle cursor
               onCursorChange(cursor);
@@ -199,7 +199,7 @@ export function useCanvasInteraction({
     }
     
     onCursorChange(cursor);
-  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, onCursorChange, isParentSelected]);
+  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, onCursorChange, isParentSelected, zoom]);
 
   const handleMouseDown = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     
@@ -242,13 +242,13 @@ export function useCanvasInteraction({
           localY = centerY + dx * sin + dy * cos;
         }
         
-        const handleY = parentRegion.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+        const handleY = parentRegion.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
         const distToRotHandle = Math.sqrt(
           Math.pow(localX - (parentRegion.x + parentRegion.width/2), 2) + 
           Math.pow(localY - handleY, 2)
         );
         
-        if (distToRotHandle <= 10) {
+        if (distToRotHandle <= 10 / zoom) {
           dragTypeRef.current = 'rotate';
           // Store initial rotation and angle for relative calculation
           initialRotationRef.current = parentRegion.rotation;
@@ -258,7 +258,7 @@ export function useCanvasInteraction({
 
         // Check for resize handles using local coordinate system
         if (getHandleAtPoint) {
-          const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0);
+          const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0, zoom);
           if (handle) {
             dragTypeRef.current = 'resize';
             selectedHandleRef.current = handle;
@@ -300,13 +300,13 @@ export function useCanvasInteraction({
             localY = centerY + dx * sin + dy * cos;
           }
           
-          const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+          const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
           const distToRotHandle = Math.sqrt(
             Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) + 
             Math.pow(localY - handleY, 2)
           );
           
-          if (distToRotHandle <= 10) {
+          if (distToRotHandle <= 10 / zoom) {
             dragTypeRef.current = 'rotate';
             // Store initial rotation and angle for relative calculation
             initialRotationRef.current = selectedChild.rotation;
@@ -316,7 +316,7 @@ export function useCanvasInteraction({
 
           // Check for resize handles using local coordinate system
           if (getHandleAtPoint) {
-            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0);
+            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0, zoom);
             if (handle) {
               dragTypeRef.current = 'resize';
               selectedHandleRef.current = handle;
@@ -391,7 +391,7 @@ export function useCanvasInteraction({
       
       dragTypeRef.current = 'new';
     }
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);

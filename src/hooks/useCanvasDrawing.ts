@@ -44,9 +44,11 @@ export function useCanvasDrawing() {
     ctx: CanvasRenderingContext2D, 
     x: number, 
     y: number, 
-    size: number = CANVAS_CONSTANTS.HANDLE_SIZE
+    size: number = CANVAS_CONSTANTS.HANDLE_SIZE,
+    zoom: number = 1
   ) => {
-    ctx.fillRect(x - size/2, y - size/2, size, size);
+    const adjustedSize = size / zoom;
+    ctx.fillRect(x - adjustedSize/2, y - adjustedSize/2, adjustedSize, adjustedSize);
   }, []);
   const getResizeHandles = useCallback((region: { x: number; y: number; width: number; height: number }, rotation: number = 0): ResizeHandleInfo[] => {
     const { x, y, width, height } = region;
@@ -85,10 +87,11 @@ export function useCanvasDrawing() {
   const getHandleAtPoint = useCallback((
     point: { x: number; y: number },
     region: { x: number; y: number; width: number; height: number },
-    rotation: number = 0
+    rotation: number = 0,
+    zoom: number = 1
   ): ResizeHandleInfo | null => {
     const handles = getResizeHandles(region, rotation);
-    const tolerance = CANVAS_CONSTANTS.HANDLE_SIZE / 2;
+    const tolerance = (CANVAS_CONSTANTS.HANDLE_SIZE / 2) / zoom;
     
     for (const handle of handles) {
       const distance = Math.sqrt(
@@ -233,13 +236,13 @@ export function useCanvasDrawing() {
       // Draw resize handles (using non-rotated coordinates since they are already calculated with rotation)
       const resizeHandles = getResizeHandles(region, 0); // Use 0 rotation since we're already in rotated context
       resizeHandles.forEach(handle => {
-        drawHandle(ctx, handle.x, handle.y);
+        drawHandle(ctx, handle.x, handle.y, CANVAS_CONSTANTS.HANDLE_SIZE, zoom);
       });
 
       // Draw rotation handle and line in the same coordinate system
-      const rotationHandleY = region.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+      const rotationHandleY = region.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
       ctx.beginPath();
-      ctx.arc(region.x + region.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE, 0, 2 * Math.PI);
+      ctx.arc(region.x + region.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE / zoom, 0, 2 * Math.PI);
       ctx.fill();
       
       ctx.beginPath();
@@ -279,13 +282,13 @@ export function useCanvasDrawing() {
       ctx.fillStyle = COLORS.SELECTED;
       const resizeHandles = getResizeHandles(region.bounds, 0); // Use 0 rotation since we're already in rotated context
       resizeHandles.forEach(handle => {
-        drawHandle(ctx, handle.x, handle.y);
+        drawHandle(ctx, handle.x, handle.y, CANVAS_CONSTANTS.HANDLE_SIZE, zoom);
       });
 
       // Draw rotation handle and line in the same coordinate system
-      const rotationHandleY = region.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE;
+      const rotationHandleY = region.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
       ctx.beginPath();
-      ctx.arc(region.bounds.x + region.bounds.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE, 0, 2 * Math.PI);
+      ctx.arc(region.bounds.x + region.bounds.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE / zoom, 0, 2 * Math.PI);
       ctx.fill();
       
       ctx.beginPath();
