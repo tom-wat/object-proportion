@@ -14,6 +14,7 @@ interface ImageCanvasProps {
   selectedChildId: number | null;
   onParentDeselect?: () => void;
   onParentSelect?: () => void;
+  onSelectionModeChange?: (mode: SelectionMode) => void;
   gridSettings: GridSettings;
   childGridSettings: ChildGridSettings;
   colorSettings: ColorSettings;
@@ -40,6 +41,7 @@ export function ImageCanvas({
   selectedChildId,
   onParentDeselect,
   onParentSelect,
+  onSelectionModeChange,
   points,
   selectedPointId,
   onPointAdd,
@@ -61,6 +63,7 @@ export function ImageCanvas({
     isParentSelected,
     onParentDeselect,
     onParentSelect,
+    onSelectionModeChange,
     points,
     selectedPointId,
     onPointAdd,

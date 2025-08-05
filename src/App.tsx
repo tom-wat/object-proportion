@@ -229,6 +229,7 @@ function App() {
               selectedChildId={selectedChildId}
               onParentDeselect={handleParentDeselect}
               onParentSelect={handleParentRegionSelect}
+              onSelectionModeChange={setSelectionMode}
               points={analysisData.points}
               selectedPointId={selectedPointId}
               onPointAdd={handlePointAdd}
