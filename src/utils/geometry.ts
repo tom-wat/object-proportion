@@ -179,29 +179,51 @@ export function calculateChildRatios(child: Bounds, parent: ParentRegion) {
 }
 
 
-export function calculateEdgePositions(child: Bounds, parent: ParentRegion, gridSize: number = 16): {
+export function calculateEdgePositions(
+  child: Bounds, 
+  parent: ParentRegion, 
+  gridSize: number = 16,
+  childRotation: number = 0
+): {
   left: number;
   right: number;
   top: number;
   bottom: number;
 } {
-  // Child boundaries
-  const childLeft = child.x;
-  const childRight = child.x + child.width;
-  const childTop = child.y;
-  const childBottom = child.y + child.height;
+  // Calculate the four corners of the child region
+  let corners = [
+    { x: child.x, y: child.y },                           // top-left
+    { x: child.x + child.width, y: child.y },             // top-right
+    { x: child.x + child.width, y: child.y + child.height }, // bottom-right
+    { x: child.x, y: child.y + child.height }             // bottom-left
+  ];
   
-  // Convert each edge to grid coordinates
-  const leftGridPos = convertToGridCoordinates({x: childLeft, y: 0}, parent, gridSize);
-  const rightGridPos = convertToGridCoordinates({x: childRight, y: 0}, parent, gridSize);
-  const topGridPos = convertToGridCoordinates({x: 0, y: childTop}, parent, gridSize);
-  const bottomGridPos = convertToGridCoordinates({x: 0, y: childBottom}, parent, gridSize);
+  // If child region is rotated, apply rotation to corners
+  if (childRotation !== 0) {
+    const childCenter = {
+      x: child.x + child.width / 2,
+      y: child.y + child.height / 2
+    };
+    
+    corners = corners.map(corner => 
+      rotatePoint(corner, childCenter, childRotation)
+    );
+  }
+  
+  // Convert all corners to grid coordinates
+  const gridCorners = corners.map(corner => 
+    convertToGridCoordinates(corner, parent, gridSize)
+  );
+  
+  // Find the extreme values for each edge
+  const xValues = gridCorners.map(corner => corner.x);
+  const yValues = gridCorners.map(corner => corner.y);
   
   return {
-    left: leftGridPos.x,
-    right: rightGridPos.x,
-    top: topGridPos.y,
-    bottom: bottomGridPos.y
+    left: Math.min(...xValues),    // leftmost x coordinate
+    right: Math.max(...xValues),   // rightmost x coordinate
+    top: Math.max(...yValues),     // topmost y coordinate (remember y is inverted)
+    bottom: Math.min(...yValues)   // bottommost y coordinate
   };
 }
 

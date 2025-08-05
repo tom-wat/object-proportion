@@ -306,6 +306,13 @@ export function SidePanel({
                       {(region.ratios.heightRatio * 100).toFixed(1)}%
                     </span>
                   </div>
+                  
+                  <div className="flex justify-between">
+                    <span>Rotation:</span>
+                    <span className="font-mono">
+                      {Math.round(region.rotation * 180 / Math.PI)}°
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

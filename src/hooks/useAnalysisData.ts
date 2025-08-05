@@ -246,7 +246,7 @@ export function useAnalysisData() {
     const gridCoords = convertToGridCoordinates(centerPoint, parent, gridSize);
     const ratios = calculateChildRatios(child.bounds, parent);
     
-    const edgePositions = calculateEdgePositions(child.bounds, parent, gridSize);
+    const edgePositions = calculateEdgePositions(child.bounds, parent, gridSize, child.rotation);
     const gridDimensions = calculateGridDimensions(child.bounds, parent, gridSize);
     
     const updatedChild: ChildRegion = {
