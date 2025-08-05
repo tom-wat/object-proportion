@@ -549,11 +549,6 @@ export function useCanvasDrawing() {
       drawGrid(ctx, parentRegion, colorSettings.gridColor, colorSettings.gridOpacity || 0.7, zoom);
     }
     
-    // Draw parent region third
-    if (parentRegion) {
-      drawParentRegion(ctx, parentRegion, colorSettings, isParentSelected, zoom);
-    }
-
     // Draw child grids first (behind child regions)
     if (childGridSettings?.visible && colorSettings?.childGridColor && colorSettings.childGridOpacity !== undefined) {
       childRegions.forEach((region) => {
@@ -561,11 +556,31 @@ export function useCanvasDrawing() {
       });
     }
 
-    // Draw child regions last
-    childRegions.forEach((region, index) => {
-      const isSelected = selectedChildId === region.id;
-      drawChildRegion(ctx, region, index, isSelected, colorSettings, zoom);
+    // Layer order control: Draw selected region on top with proper separation
+    const selectedChild = childRegions.find(region => region.id === selectedChildId);
+    
+    // Strategy: Separate background and foreground drawing completely
+    
+    // 1. Draw parent region in background layer only if not selected
+    if (parentRegion && !isParentSelected) {
+      drawParentRegion(ctx, parentRegion, colorSettings, false, zoom);
+    }
+
+    // 2. Draw only non-selected child regions in background layer
+    const unselectedChildren = childRegions.filter(region => region.id !== selectedChildId);
+    unselectedChildren.forEach((region, index) => {
+      drawChildRegion(ctx, region, index, false, colorSettings, zoom);
     });
+    
+    // 3. Draw selected region on top (completely separate from background)
+    if (selectedChild) {
+      // Selected child region always on top with selection highlight
+      const selectedIndex = childRegions.findIndex(region => region.id === selectedChildId);
+      drawChildRegion(ctx, selectedChild, selectedIndex, true, colorSettings, zoom);
+    } else if (parentRegion && isParentSelected) {
+      // Selected parent region on top with selection highlight
+      drawParentRegion(ctx, parentRegion, colorSettings, true, zoom);
+    }
 
     // Draw points on top of everything
     if (points.length > 0 && colorSettings) {

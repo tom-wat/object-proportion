@@ -39,7 +39,7 @@ export function useCanvasInteraction({
   isParentSelected,
   onParentDeselect,
   onParentSelect,
-  onSelectionModeChange,
+  // onSelectionModeChange, // Currently unused due to mode restrictions
   onPointAdd,
   onTemporaryDraw,
   onRedraw,
@@ -328,15 +328,10 @@ export function useCanvasInteraction({
       }
     }
 
-    // Second priority: Check if clicking on any existing region for auto-switching modes
+    // Second priority: Mode-restricted region selection
     
-    // Check parent region clicks
-    if (parentRegion && isPointInRotatedBounds(point, parentRegion)) {
-      // Switch to parent mode if not already
-      if (selectionMode !== 'parent' && onSelectionModeChange) {
-        onSelectionModeChange('parent');
-      }
-      
+    // In parent mode: Only check parent region clicks
+    if (selectionMode === 'parent' && parentRegion && isPointInRotatedBounds(point, parentRegion)) {
       // If parent is selected, check for move interaction
       if (isParentSelected) {
         dragTypeRef.current = 'move';
@@ -349,51 +344,86 @@ export function useCanvasInteraction({
       }
     }
     
-    // Check child region clicks
-    let clickedChild: ChildRegion | null = null;
-    for (const child of childRegions) {
-      let pointInChild = false;
+    // In child mode: Only check child region clicks with selection priority
+    if (selectionMode === 'child') {
+      let clickedChild: ChildRegion | null = null;
       
-      if (child.rotation !== 0) {
-        // For rotated child regions, use rotated bounds check
-        const centerX = child.bounds.x + child.bounds.width / 2;
-        const centerY = child.bounds.y + child.bounds.height / 2;
-        const cos = Math.cos(-child.rotation);
-        const sin = Math.sin(-child.rotation);
-        const dx = point.x - centerX;
-        const dy = point.y - centerY;
-        const rotatedX = centerX + dx * cos - dy * sin;
-        const rotatedY = centerY + dx * sin + dy * cos;
-        
-        pointInChild = rotatedX >= child.bounds.x && rotatedX <= child.bounds.x + child.bounds.width &&
-                   rotatedY >= child.bounds.y && rotatedY <= child.bounds.y + child.bounds.height;
-      } else {
-        // Simple bounds check for non-rotated child
-        pointInChild = point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
-                   point.y >= child.bounds.y && point.y <= child.bounds.y + child.bounds.height;
+      // First, check if clicking on the currently selected child (highest priority)
+      if (selectedChildId !== null) {
+        const selectedChild = childRegions.find(c => c.id === selectedChildId);
+        if (selectedChild) {
+          let pointInSelectedChild = false;
+          
+          if (selectedChild.rotation !== 0) {
+            // For rotated child regions, use rotated bounds check
+            const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
+            const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
+            const cos = Math.cos(-selectedChild.rotation);
+            const sin = Math.sin(-selectedChild.rotation);
+            const dx = point.x - centerX;
+            const dy = point.y - centerY;
+            const rotatedX = centerX + dx * cos - dy * sin;
+            const rotatedY = centerY + dx * sin + dy * cos;
+            
+            pointInSelectedChild = rotatedX >= selectedChild.bounds.x && rotatedX <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                         rotatedY >= selectedChild.bounds.y && rotatedY <= selectedChild.bounds.y + selectedChild.bounds.height;
+          } else {
+            // Simple bounds check for non-rotated child
+            pointInSelectedChild = point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                         point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height;
+          }
+          
+          if (pointInSelectedChild) {
+            clickedChild = selectedChild;
+          }
+        }
       }
       
-      if (pointInChild) {
-        clickedChild = child;
-        break;
-      }
-    }
-    
-    if (clickedChild) {
-      // Switch to child mode if not already
-      if (selectionMode !== 'child' && onSelectionModeChange) {
-        onSelectionModeChange('child');
+      // If not clicking on selected child, check other children
+      if (!clickedChild) {
+        for (const child of childRegions) {
+          // Skip already selected child (already checked above)
+          if (child.id === selectedChildId) continue;
+          
+          let pointInChild = false;
+          
+          if (child.rotation !== 0) {
+            // For rotated child regions, use rotated bounds check
+            const centerX = child.bounds.x + child.bounds.width / 2;
+            const centerY = child.bounds.y + child.bounds.height / 2;
+            const cos = Math.cos(-child.rotation);
+            const sin = Math.sin(-child.rotation);
+            const dx = point.x - centerX;
+            const dy = point.y - centerY;
+            const rotatedX = centerX + dx * cos - dy * sin;
+            const rotatedY = centerY + dx * sin + dy * cos;
+            
+            pointInChild = rotatedX >= child.bounds.x && rotatedX <= child.bounds.x + child.bounds.width &&
+                       rotatedY >= child.bounds.y && rotatedY <= child.bounds.y + child.bounds.height;
+          } else {
+            // Simple bounds check for non-rotated child
+            pointInChild = point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
+                       point.y >= child.bounds.y && point.y <= child.bounds.y + child.bounds.height;
+          }
+          
+          if (pointInChild) {
+            clickedChild = child;
+            break;
+          }
+        }
       }
       
-      // If this child is already selected, handle move interaction
-      if (selectedChildId === clickedChild.id) {
-        dragTypeRef.current = 'move';
-        return;
-      } else {
-        // Different child clicked, mark for selection
-        clickedChildIdRef.current = clickedChild.id;
-        dragTypeRef.current = 'new';
-        return;
+      if (clickedChild) {
+        // If this child is already selected, handle move interaction
+        if (selectedChildId === clickedChild.id) {
+          dragTypeRef.current = 'move';
+          return;
+        } else {
+          // Different child clicked, mark for selection
+          clickedChildIdRef.current = clickedChild.id;
+          dragTypeRef.current = 'new';
+          return;
+        }
       }
     }
     
@@ -406,7 +436,7 @@ export function useCanvasInteraction({
     }
     
     dragTypeRef.current = 'new';
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect, onSelectionModeChange]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);
