@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint } from '../types';
+import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, Point } from '../types';
 import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateOutsideDistance, isPointInRotatedBounds, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
 
 // Helper function to update point coordinates based on child region changes
@@ -416,6 +416,15 @@ export function useAnalysisData() {
     }));
   }, []);
 
+  const handlePointUpdate = useCallback((id: number, newCoordinates: { pixel: Point; grid: Point }) => {
+    setAnalysisData(prev => ({
+      ...prev,
+      points: prev.points.map(point => 
+        point.id === id ? { ...point, coordinates: newCoordinates } : point
+      )
+    }));
+  }, []);
+
   const handleClearAll = useCallback(() => {
     setAnalysisData(prev => ({
       ...prev,
@@ -448,6 +457,7 @@ export function useAnalysisData() {
     handlePointAdd,
     handlePointDelete,
     handlePointRename,
+    handlePointUpdate,
     handleClearAll,
     setImageInfo,
   };

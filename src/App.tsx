@@ -7,6 +7,7 @@ import { useAnalysisData } from './hooks/useAnalysisData';
 import { useImageHandling } from './hooks/useImageHandling';
 import { useExport } from './hooks/useExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { snapToNearestEdge, convertToPixelCoordinates } from './utils/geometry';
 
 function App() {
   const {
@@ -22,6 +23,7 @@ function App() {
     handlePointAdd,
     handlePointDelete,
     handlePointRename,
+    handlePointUpdate,
     handleClearAll,
     setImageInfo,
   } = useAnalysisData();
@@ -79,6 +81,45 @@ function App() {
     setIsParentSelected(false);
     setSelectionMode('parent');
   }, [handleClearAll, setSelectedChildId, setIsParentSelected, setSelectionMode]);
+
+  // Handle point snap to nearest edge
+  const handlePointSnapToEdge = useCallback((pointId: number) => {
+    const point = analysisData.points.find(p => p.id === pointId);
+    if (!point) return;
+
+    // Get the appropriate parent region for coordinate conversion
+    let parentRegion = analysisData.parentRegion;
+    
+    if (point.parentRegionId !== undefined) {
+      // Point belongs to a child region
+      const childRegion = analysisData.childRegions.find(c => c.id === point.parentRegionId);
+      if (childRegion) {
+        parentRegion = {
+          x: childRegion.bounds.x,
+          y: childRegion.bounds.y,
+          width: childRegion.bounds.width,
+          height: childRegion.bounds.height,
+          rotation: childRegion.rotation,
+          aspectRatio: '',
+          aspectRatioDecimal: 0
+        };
+      }
+    }
+
+    if (!parentRegion) return;
+
+    // Snap grid coordinates to nearest edge
+    const snappedGridCoords = snapToNearestEdge(point.coordinates.grid);
+    
+    // Convert back to pixel coordinates
+    const snappedPixelCoords = convertToPixelCoordinates(snappedGridCoords, parentRegion, 16);
+
+    // Update the point
+    handlePointUpdate(pointId, {
+      pixel: snappedPixelCoords,
+      grid: snappedGridCoords
+    });
+  }, [analysisData.points, analysisData.parentRegion, analysisData.childRegions, handlePointUpdate]);
 
   // Auto-switch to parent mode if child mode is selected but no parent region exists
   useEffect(() => {
@@ -171,6 +212,7 @@ function App() {
             onPointSelect={handlePointSelect}
             onPointDelete={handlePointDelete}
             onPointRename={handlePointRename}
+            onPointSnapToEdge={handlePointSnapToEdge}
             className="w-80 h-full overflow-y-auto"
           />
         )}

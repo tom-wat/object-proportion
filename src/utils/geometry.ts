@@ -72,6 +72,67 @@ export function convertToGridCoordinates(
   };
 }
 
+/**
+ * Snap a point to the nearest frame edge
+ * @param gridPoint Current grid coordinates of the point
+ * @returns New grid coordinates snapped to nearest edge
+ */
+export function snapToNearestEdge(gridPoint: Point): Point {
+  const distances = {
+    top: Math.abs(gridPoint.y - 8),      // Distance to top edge (y = 8)
+    bottom: Math.abs(gridPoint.y - (-8)), // Distance to bottom edge (y = -8)
+    left: Math.abs(gridPoint.x - (-8)),   // Distance to left edge (x = -8)
+    right: Math.abs(gridPoint.x - 8)      // Distance to right edge (x = 8)
+  };
+
+  // Find the edge with minimum distance
+  const minDistance = Math.min(...Object.values(distances));
+  
+  if (distances.top === minDistance) {
+    return { x: gridPoint.x, y: 8 };      // Snap to top
+  } else if (distances.bottom === minDistance) {
+    return { x: gridPoint.x, y: -8 };     // Snap to bottom
+  } else if (distances.left === minDistance) {
+    return { x: -8, y: gridPoint.y };     // Snap to left
+  } else {
+    return { x: 8, y: gridPoint.y };      // Snap to right
+  }
+}
+
+/**
+ * Convert grid coordinates back to pixel coordinates
+ * @param gridPoint Grid coordinates
+ * @param parent Parent region
+ * @param gridSize Grid size (default 16)
+ * @returns Pixel coordinates
+ */
+export function convertToPixelCoordinates(
+  gridPoint: Point,
+  parent: ParentRegion,
+  gridSize: number = 16
+): Point {
+  const center = {
+    x: parent.x + parent.width / 2,
+    y: parent.y + parent.height / 2
+  };
+
+  const relativeX = (gridPoint.x / gridSize) * parent.width;
+  const relativeY = (-gridPoint.y / gridSize) * parent.height; // Negate Y to convert back
+
+  if (parent.rotation !== 0) {
+    const rotated = rotatePoint({ x: relativeX, y: relativeY }, { x: 0, y: 0 }, parent.rotation);
+    return {
+      x: center.x + rotated.x,
+      y: center.y + rotated.y
+    };
+  }
+
+  return {
+    x: center.x + relativeX,
+    y: center.y + relativeY
+  };
+}
+
 export function calculateChildRatios(child: Bounds, parent: ParentRegion) {
   const childArea = child.width * child.height;
   const parentArea = parent.width * parent.height;

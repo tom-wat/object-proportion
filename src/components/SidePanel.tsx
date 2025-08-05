@@ -1,5 +1,6 @@
 import type { ParentRegion, ChildRegion, RegionPoint } from '../types';
 import { CoordinateDisplay } from './CoordinateDisplay';
+import { Magnet, Trash2 } from 'lucide-react';
 
 interface SidePanelProps {
   parentRegion: ParentRegion | null;
@@ -15,6 +16,7 @@ interface SidePanelProps {
   onPointSelect?: (id: number | null) => void;
   onPointDelete?: (id: number) => void;
   onPointRename?: (id: number, name: string) => void;
+  onPointSnapToEdge?: (id: number) => void;
   className?: string;
 }
 
@@ -32,6 +34,7 @@ export function SidePanel({
   onPointSelect,
   onPointDelete,
   onPointRename,
+  onPointSnapToEdge,
   className = ''
 }: SidePanelProps) {
   const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
@@ -106,15 +109,28 @@ export function SidePanel({
                     className="text-xs font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 rounded px-1"
                   />
                   
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPointDelete?.(point.id);
-                    }}
-                    className="text-red-400 hover:text-red-600 text-xs"
-                  >
-                    ×
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPointSnapToEdge?.(point.id);
+                      }}
+                      className="text-gray-700 hover:text-blue-600 text-xs px-1 py-0.5 rounded border border-gray-300 hover:border-blue-300"
+                      title="Snap to nearest edge"
+                    >
+                      <Magnet size={12} />
+                    </button>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPointDelete?.(point.id);
+                      }}
+                      className="text-gray-700 hover:text-red-600 text-xs px-1 py-0.5 rounded border border-gray-300 hover:border-red-300"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-xs space-y-1 text-gray-500">
@@ -176,9 +192,9 @@ export function SidePanel({
                         e.stopPropagation();
                         onChildRegionDelete(region.id);
                       }}
-                      className="text-red-400 hover:text-red-600 text-xs"
+                      className="text-gray-700 hover:text-red-600 text-xs px-1 py-0.5 rounded border border-gray-300 hover:border-red-300"
                     >
-                      ×
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 </div>
