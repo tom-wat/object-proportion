@@ -176,14 +176,11 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
-          <h1 className="text-xl font-medium text-gray-900">
+      <header className="bg-white border-b border-gray-100">
+        <div className="px-6 py-3">
+          <h1 className="text-lg font-semibold text-gray-800">
             Object Proportion
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Analyze object proportions and positions in images
-          </p>
         </div>
       </header>
 
@@ -207,7 +204,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-150px)]">
+      <div className="flex h-[calc(100vh-120px)]">
         {/* Side Panel - moved to left */}
         {imageLoaded && (
           <SidePanel
@@ -227,12 +224,12 @@ function App() {
             onPointSnapToEdge={handlePointSnapToEdge}
             onPointSnapToCorner={handlePointSnapToCorner}
             onPointRestore={handlePointRestore}
-            className="w-80 h-full overflow-y-auto"
+            className="w-72 h-full overflow-y-auto border-r border-gray-100 p-6"
           />
         )}
 
-        {/* Canvas Area - moved to right */}
-        <div className="flex-1 p-4">
+        {/* Canvas Area */}
+        <div className="flex-1 p-6">
           {!imageLoaded ? (
             <ImageUploader
               onImageLoad={handleImageLoad}
@@ -260,7 +257,7 @@ function App() {
               cachedImage={cachedImage}
               isParentSelected={isParentSelected}
               colorSettings={analysisData.colorSettings}
-              className="h-full bg-white border border-gray-200 rounded"
+              className="h-full bg-white border border-gray-100 rounded-lg shadow-sm"
             />
           )}
         </div>

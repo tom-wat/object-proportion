@@ -32,183 +32,192 @@ export function Toolbar({
   childCount
 }: ToolbarProps) {
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-3">
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Selection Mode */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Mode:</span>
-          <div className="flex bg-gray-100 rounded p-1">
-            <button
-              onClick={() => onSelectionModeChange('parent')}
-              className={`px-2 py-1 text-sm rounded transition-colors ${
-                selectionMode === 'parent'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Parent
-            </button>
-            <button
-              onClick={() => onSelectionModeChange('child')}
-              className={`px-2 py-1 text-sm rounded transition-colors ${
-                selectionMode === 'child'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-              disabled={!hasParentRegion}
-            >
-              Child
-            </button>
+    <div className="bg-white border-b border-gray-100">
+      <div className="px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-6">
+          {/* Left Section: Mode, Grid Controls & Colors */}
+          <div className="flex items-center gap-6">
+            {/* Selection Mode */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600">Mode</span>
+              <div className="flex bg-gray-50 rounded-lg p-0.5">
+                <button
+                  onClick={() => onSelectionModeChange('parent')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                    selectionMode === 'parent'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Parent
+                </button>
+                <button
+                  onClick={() => onSelectionModeChange('child')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                    selectionMode === 'child'
+                      ? 'bg-green-500 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  disabled={!hasParentRegion}
+                >
+                  Child
+                </button>
+              </div>
+            </div>
+
+            {/* Grid Controls */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Parent Grid</span>
+                <button
+                  onClick={() => onGridSettingsChange({ ...gridSettings, visible: !gridSettings.visible })}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                    gridSettings.visible
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {gridSettings.visible ? 'ON' : 'OFF'}
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Child Grid</span>
+                <button
+                  onClick={() => onChildGridSettingsChange({ ...childGridSettings, visible: !childGridSettings.visible })}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                    childGridSettings.visible
+                      ? 'bg-green-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  disabled={childCount === 0}
+                >
+                  {childGridSettings.visible ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            </div>
+
+            {/* Color Settings */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600">Colors</span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Regions</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="color"
+                      value={colorSettings.parentColor}
+                      onChange={(e) => onColorSettingsChange({
+                        ...colorSettings,
+                        parentColor: e.target.value
+                      })}
+                      className="w-6 h-6 rounded border-0 cursor-pointer"
+                      title="Parent Region Color"
+                    />
+                    <input
+                      type="color"
+                      value={colorSettings.childColor}
+                      onChange={(e) => onColorSettingsChange({
+                        ...colorSettings,
+                        childColor: e.target.value
+                      })}
+                      className="w-6 h-6 rounded border-0 cursor-pointer"
+                      title="Child Region Color"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Grids</span>
+                  <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="color"
+                        value={colorSettings.gridColor}
+                        onChange={(e) => onColorSettingsChange({
+                          ...colorSettings,
+                          gridColor: e.target.value
+                        })}
+                        className="w-6 h-6 rounded border-0 cursor-pointer"
+                        title="Parent Grid Color"
+                      />
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={colorSettings.gridOpacity}
+                        onChange={(e) => onColorSettingsChange({
+                          ...colorSettings,
+                          gridOpacity: parseFloat(e.target.value)
+                        })}
+                        className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                        title="Parent Grid Opacity"
+                      />
+                      <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.gridOpacity * 100)}%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="color"
+                        value={colorSettings.childGridColor}
+                        onChange={(e) => onColorSettingsChange({
+                          ...colorSettings,
+                          childGridColor: e.target.value
+                        })}
+                        className="w-6 h-6 rounded border-0 cursor-pointer"
+                        title="Child Grid Color"
+                      />
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={colorSettings.childGridOpacity}
+                        onChange={(e) => onColorSettingsChange({
+                          ...colorSettings,
+                          childGridOpacity: parseFloat(e.target.value)
+                        })}
+                        className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                        title="Child Grid Opacity"
+                      />
+                      <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childGridOpacity * 100)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Parent Grid Settings */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Parent Grid (16×16):</span>
-          <button
-            onClick={() => onGridSettingsChange({ ...gridSettings, visible: !gridSettings.visible })}
-            className={`px-2 py-1 text-sm rounded border transition-colors ${
-              gridSettings.visible
-                ? 'bg-blue-500 text-white border-blue-500'
-                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            {gridSettings.visible ? 'ON' : 'OFF'}
-          </button>
-        </div>
 
-        {/* Child Grid Settings */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Child Grid (16×16):</span>
-          <button
-            onClick={() => onChildGridSettingsChange({ ...childGridSettings, visible: !childGridSettings.visible })}
-            className={`px-2 py-1 text-sm rounded border transition-colors ${
-              childGridSettings.visible
-                ? 'bg-green-500 text-white border-green-500'
-                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-            }`}
-            disabled={childCount === 0}
-          >
-            {childGridSettings.visible ? 'ON' : 'OFF'}
-          </button>
-        </div>
 
-        {/* Color Settings */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-gray-700">Colors:</span>
-          <div className="flex items-center space-x-1">
-            <label className="text-xs text-gray-500">Parent:</label>
-            <input
-              type="color"
-              value={colorSettings.parentColor}
-              onChange={(e) => onColorSettingsChange({
-                ...colorSettings,
-                parentColor: e.target.value
-              })}
-              className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
-              title="Parent Region Color"
-            />
+          {/* Right Section: Actions & Status */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onExportJSON}
+                disabled={!hasParentRegion && childCount === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+              >
+                JSON
+              </button>
+              <button
+                onClick={onExportCSV}
+                disabled={childCount === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-green-50 hover:text-green-700 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+              >
+                CSV
+              </button>
+              <button
+                onClick={onClearAll}
+                disabled={!hasParentRegion && childCount === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-red-50 hover:text-red-700 hover:border-red-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+              >
+                Clear
+              </button>
+            </div>
+            
+            <div className="text-sm text-gray-400 border-l border-gray-200 pl-4">
+              {hasParentRegion ? '1' : '0'} parent • {childCount} children
+            </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <label className="text-xs text-gray-500">Child:</label>
-            <input
-              type="color"
-              value={colorSettings.childColor}
-              onChange={(e) => onColorSettingsChange({
-                ...colorSettings,
-                childColor: e.target.value
-              })}
-              className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
-              title="Child Region Color"
-            />
-          </div>
-          <div className="flex items-center space-x-1">
-            <label className="text-xs text-gray-500">Parent Grid:</label>
-            <input
-              type="color"
-              value={colorSettings.gridColor}
-              onChange={(e) => onColorSettingsChange({
-                ...colorSettings,
-                gridColor: e.target.value
-              })}
-              className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
-              title="Parent Grid Color"
-            />
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={colorSettings.gridOpacity}
-              onChange={(e) => onColorSettingsChange({
-                ...colorSettings,
-                gridOpacity: parseFloat(e.target.value)
-              })}
-              className="w-12 h-4 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              title="Parent Grid Opacity"
-            />
-            <span className="text-xs text-gray-500">{Math.round(colorSettings.gridOpacity * 100)}%</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <label className="text-xs text-gray-500">Child Grid:</label>
-            <input
-              type="color"
-              value={colorSettings.childGridColor}
-              onChange={(e) => onColorSettingsChange({
-                ...colorSettings,
-                childGridColor: e.target.value
-              })}
-              className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
-              title="Child Grid Color"
-            />
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={colorSettings.childGridOpacity}
-              onChange={(e) => onColorSettingsChange({
-                ...colorSettings,
-                childGridOpacity: parseFloat(e.target.value)
-              })}
-              className="w-12 h-4 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              title="Child Grid Opacity"
-            />
-            <span className="text-xs text-gray-500">{Math.round(colorSettings.childGridOpacity * 100)}%</span>
-          </div>
-        </div>
-
-        {/* Export Buttons */}
-        <div className="flex items-center space-x-2 ml-auto">
-          <span className="text-sm font-medium text-gray-700">Export:</span>
-          <button
-            onClick={onExportJSON}
-            disabled={!hasParentRegion && childCount === 0}
-            className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            JSON
-          </button>
-          <button
-            onClick={onExportCSV}
-            disabled={childCount === 0}
-            className="px-2 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            CSV
-          </button>
-        </div>
-
-        {/* Clear Button */}
-        <button
-          onClick={onClearAll}
-          disabled={!hasParentRegion && childCount === 0}
-          className="px-2 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-        >
-          Clear
-        </button>
-
-        {/* Status */}
-        <div className="text-sm text-gray-500">
-          Parent: {hasParentRegion ? '1' : '0'} | Child: {childCount}
         </div>
       </div>
     </div>

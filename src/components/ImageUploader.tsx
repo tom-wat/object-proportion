@@ -46,10 +46,10 @@ export function ImageUploader({ onImageLoad, className = '' }: ImageUploaderProp
     <div className={className}>
       <div
         className={`
-          w-full h-full min-h-96 border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer flex flex-col items-center justify-center
+          w-full h-full min-h-96 border-2 border-dashed rounded-xl p-16 text-center transition-all cursor-pointer flex flex-col items-center justify-center
           ${isDragOver 
-            ? 'border-blue-400 bg-blue-50' 
-            : 'border-gray-300 hover:border-gray-400'
+            ? 'border-blue-300 bg-blue-50/50' 
+            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/30'
           }
         `}
         onDrop={handleDrop}
@@ -58,7 +58,7 @@ export function ImageUploader({ onImageLoad, className = '' }: ImageUploaderProp
         onClick={() => document.getElementById('file-input')?.click()}
       >
         <svg 
-          className="w-16 h-16 text-gray-400 mb-6" 
+          className="w-12 h-12 text-gray-300 mb-4" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -66,19 +66,19 @@ export function ImageUploader({ onImageLoad, className = '' }: ImageUploaderProp
           <path 
             strokeLinecap="round" 
             strokeLinejoin="round" 
-            strokeWidth={2} 
+            strokeWidth={1.5} 
             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" 
           />
         </svg>
         
-        <div className="space-y-3">
-          <p className="text-lg font-medium text-gray-700">
+        <div className="space-y-2">
+          <p className="text-base font-medium text-gray-700">
             Drop image here
           </p>
           <p className="text-sm text-gray-500">
             or click to select file
           </p>
-          <div className="text-sm text-gray-400 pt-2">
+          <div className="text-xs text-gray-400 pt-1">
             JPEG, PNG, GIF, WebP (max 10MB)
           </div>
         </div>
