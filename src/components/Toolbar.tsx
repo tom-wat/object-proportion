@@ -9,6 +9,7 @@ interface ToolbarProps {
   onChildGridSettingsChange: (settings: ChildGridSettings) => void;
   colorSettings: ColorSettings;
   onColorSettingsChange: (settings: ColorSettings) => void;
+  onExportPNG: () => void;
   onExportJSON: () => void;
   onExportCSV: () => void;
   onClearAll: () => void;
@@ -25,6 +26,7 @@ export function Toolbar({
   onChildGridSettingsChange,
   colorSettings,
   onColorSettingsChange,
+  onExportPNG,
   onExportJSON,
   onExportCSV,
   onClearAll,
@@ -191,6 +193,13 @@ export function Toolbar({
           {/* Right Section: Actions & Status */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
+              <button
+                onClick={onExportPNG}
+                disabled={!hasParentRegion && childCount === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+              >
+                PNG
+              </button>
               <button
                 onClick={onExportJSON}
                 disabled={!hasParentRegion && childCount === 0}

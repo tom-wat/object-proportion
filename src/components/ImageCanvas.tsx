@@ -25,6 +25,7 @@ interface ImageCanvasProps {
   cachedImage?: HTMLImageElement | null;
   isParentSelected?: boolean;
   className?: string;
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
 export function ImageCanvas({
@@ -48,7 +49,8 @@ export function ImageCanvas({
   imageFile,
   cachedImage,
   isParentSelected,
-  className = ''
+  className = '',
+  canvasRef: externalCanvasRef
 }: ImageCanvasProps) {
   
   const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
@@ -69,7 +71,8 @@ export function ImageCanvas({
     onPointAdd,
     colorSettings,
     gridSettings,
-    childGridSettings
+    childGridSettings,
+    externalCanvasRef
   });
 
   React.useEffect(() => {

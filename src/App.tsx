@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ImageUploader } from './components/ImageUploader';
 import { ImageCanvas } from './components/ImageCanvas';
 import { Toolbar } from './components/Toolbar';
@@ -10,6 +10,8 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { snapToNearestEdge, snapToNearestCorner, convertToPixelCoordinates } from './utils/geometry';
 
 function App() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
   const {
     analysisData,
     handleParentRegionChange,
@@ -48,7 +50,7 @@ function App() {
     onImageInfoSet: setImageInfo
   });
 
-  const { handleExportJSON, handleExportCSV } = useExport({ analysisData });
+  const { handleExportJSON, handleExportCSV, handleExportPNG } = useExport({ analysisData, canvasRef });
 
   // Handle child region selection with deselection support
   const handleChildRegionSelect = useCallback((id: number) => {
@@ -195,6 +197,7 @@ function App() {
           onChildGridSettingsChange={handleChildGridSettingsChange}
           colorSettings={analysisData.colorSettings}
           onColorSettingsChange={handleColorSettingsChange}
+          onExportPNG={handleExportPNG}
           onExportJSON={handleExportJSON}
           onExportCSV={handleExportCSV}
           onClearAll={handleClearAllWithReset}
@@ -257,6 +260,7 @@ function App() {
               cachedImage={cachedImage}
               isParentSelected={isParentSelected}
               colorSettings={analysisData.colorSettings}
+              canvasRef={canvasRef}
               className="h-full bg-white border border-gray-100 rounded-lg shadow-sm"
             />
           )}

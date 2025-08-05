@@ -24,6 +24,7 @@ interface UseImageCanvasProps {
   colorSettings?: ColorSettings;
   gridSettings?: { visible: boolean };
   childGridSettings?: ChildGridSettings;
+  externalCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
 export function useImageCanvas({
@@ -44,9 +45,11 @@ export function useImageCanvas({
   onPointAdd,
   colorSettings,
   gridSettings,
-  childGridSettings
+  childGridSettings,
+  externalCanvasRef
 }: UseImageCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const internalCanvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = externalCanvasRef || internalCanvasRef;
   const imageLoadedRef = useRef(false);
   
   const handleCursorChange = useCallback((cursor: string) => {

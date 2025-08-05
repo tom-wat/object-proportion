@@ -4,9 +4,10 @@ import { exportToJSON, exportToCSV, copyToClipboard, downloadFile } from '../uti
 
 interface UseExportProps {
   analysisData: AnalysisData;
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
-export function useExport({ analysisData }: UseExportProps) {
+export function useExport({ analysisData, canvasRef }: UseExportProps) {
   const handleExportJSON = useCallback(async () => {
     const json = exportToJSON(analysisData);
     try {
@@ -29,8 +30,39 @@ export function useExport({ analysisData }: UseExportProps) {
     }
   }, [analysisData]);
 
+  const handleExportPNG = useCallback(() => {
+    if (!canvasRef?.current) {
+      alert('Canvas not available for export');
+      return;
+    }
+
+    try {
+      // Convert canvas to blob
+      canvasRef.current.toBlob((blob) => {
+        if (!blob) {
+          alert('Failed to export PNG');
+          return;
+        }
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `analysis-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    } catch (error) {
+      console.error('Failed to export PNG:', error);
+      alert('Failed to export PNG');
+    }
+  }, [canvasRef]);
+
   return {
     handleExportJSON,
     handleExportCSV,
+    handleExportPNG,
   };
 }
