@@ -129,6 +129,27 @@ export function SidePanel({
                     </span>
                   </div>
 
+                  {region.edgePositions && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Left Edge (X):</span>
+                        <span className="font-mono">{region.edgePositions.left.toFixed(1)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Right Edge (X):</span>
+                        <span className="font-mono">{region.edgePositions.right.toFixed(1)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Top Edge (Y):</span>
+                        <span className="font-mono">{region.edgePositions.top.toFixed(1)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Bottom Edge (Y):</span>
+                        <span className="font-mono">{region.edgePositions.bottom.toFixed(1)}</span>
+                      </div>
+                    </>
+                  )}
+
                   {region.isInside && (
                     <>
                       <div className="flex justify-between">
@@ -139,50 +160,72 @@ export function SidePanel({
                       </div>
                       
                       <div className="flex justify-between">
-                        <span>Width:</span>
+                        <span>Grid Width:</span>
                         <span className="font-mono">
-                          {(region.ratios.widthRatio * 100).toFixed(1)}%
+                          {region.gridDimensions?.gridWidth.toFixed(1)} units
                         </span>
                       </div>
                       
                       <div className="flex justify-between">
-                        <span>Height:</span>
+                        <span>Grid Height:</span>
                         <span className="font-mono">
-                          {(region.ratios.heightRatio * 100).toFixed(1)}%
+                          {region.gridDimensions?.gridHeight.toFixed(1)} units
                         </span>
                       </div>
                     </>
                   )}
 
-                  {!region.isInside && region.outsideInfo && (
+                  {!region.isInside && (
                     <>
-                      <div className="flex justify-between">
-                        <span>Edge Distance:</span>
-                        <span className="font-mono">
-                          {region.outsideInfo.distance}px
-                        </span>
-                      </div>
+                      {region.gridDimensions && (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Grid Width:</span>
+                            <span className="font-mono">
+                              {region.gridDimensions.gridWidth.toFixed(1)} units
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span>Grid Height:</span>
+                            <span className="font-mono">
+                              {region.gridDimensions.gridHeight.toFixed(1)} units
+                            </span>
+                          </div>
+                        </>
+                      )}
+
+                      {region.outsideInfo && (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Edge Distance:</span>
+                            <span className="font-mono">
+                              {region.outsideInfo.distance}px
+                            </span>
+                          </div>
                       
-                      <div className="flex justify-between">
-                        <span>Center Distance:</span>
-                        <span className="font-mono">
-                          {region.outsideInfo.centerDistance}px
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span>Direction:</span>
-                        <span className="font-mono">
-                          {region.outsideInfo.direction}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span>Closest Edge:</span>
-                        <span className="font-mono">
-                          {region.outsideInfo.shortestEdge}
-                        </span>
-                      </div>
+                          <div className="flex justify-between">
+                            <span>Center Distance:</span>
+                            <span className="font-mono">
+                              {region.outsideInfo.centerDistance}px
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span>Direction:</span>
+                            <span className="font-mono">
+                              {region.outsideInfo.direction}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span>Closest Edge:</span>
+                            <span className="font-mono">
+                              {region.outsideInfo.shortestEdge}
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                 </div>

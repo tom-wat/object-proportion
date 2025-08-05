@@ -31,12 +31,22 @@ export interface ChildRegion {
     widthRatio: number;
     heightRatio: number;
   };
+  gridDimensions?: {
+    gridWidth: number;
+    gridHeight: number;
+  };
   outsideInfo?: {
     distance: number;
     centerDistance: number;
     direction: string;
     angle: number;
     shortestEdge: string;
+  };
+  edgePositions?: {
+    left: number;   // x grid coordinate of left edge
+    right: number;  // x grid coordinate of right edge
+    top: number;    // y grid coordinate of top edge
+    bottom: number; // y grid coordinate of bottom edge
   };
 }
 

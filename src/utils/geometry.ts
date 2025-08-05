@@ -62,13 +62,13 @@ export function convertToGridCoordinates(
     const rotated = rotatePoint({ x: relativeX, y: relativeY }, { x: 0, y: 0 }, -parent.rotation);
     return {
       x: Math.round((rotated.x / (parent.width / gridSize)) * 10) / 10,
-      y: Math.round((rotated.y / (parent.height / gridSize)) * 10) / 10
+      y: Math.round((-rotated.y / (parent.height / gridSize)) * 10) / 10  // Negate Y to make upward positive
     };
   }
   
   return {
     x: Math.round((relativeX / (parent.width / gridSize)) * 10) / 10,
-    y: Math.round((relativeY / (parent.height / gridSize)) * 10) / 10
+    y: Math.round((-relativeY / (parent.height / gridSize)) * 10) / 10  // Negate Y to make upward positive
   };
 }
 
@@ -183,6 +183,46 @@ function calculateShortestBoundaryDistance(child: Bounds, parent: ParentRegion):
   }
   
   return distances.length > 0 ? Math.min(...distances) : 0;
+}
+
+export function calculateEdgePositions(child: Bounds, parent: ParentRegion, gridSize: number = 16): {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+} {
+  // Child boundaries
+  const childLeft = child.x;
+  const childRight = child.x + child.width;
+  const childTop = child.y;
+  const childBottom = child.y + child.height;
+  
+  // Convert each edge to grid coordinates
+  const leftGridPos = convertToGridCoordinates({x: childLeft, y: 0}, parent, gridSize);
+  const rightGridPos = convertToGridCoordinates({x: childRight, y: 0}, parent, gridSize);
+  const topGridPos = convertToGridCoordinates({x: 0, y: childTop}, parent, gridSize);
+  const bottomGridPos = convertToGridCoordinates({x: 0, y: childBottom}, parent, gridSize);
+  
+  return {
+    left: leftGridPos.x,
+    right: rightGridPos.x,
+    top: topGridPos.y,
+    bottom: bottomGridPos.y
+  };
+}
+
+export function calculateGridDimensions(child: Bounds, parent: ParentRegion, gridSize: number = 16): {
+  gridWidth: number;
+  gridHeight: number;
+} {
+  // Calculate how many grid units the child spans in each direction
+  const gridUnitWidth = parent.width / gridSize;
+  const gridUnitHeight = parent.height / gridSize;
+  
+  return {
+    gridWidth: Math.round((child.width / gridUnitWidth) * 10) / 10,
+    gridHeight: Math.round((child.height / gridUnitHeight) * 10) / 10
+  };
 }
 
 function getClosestEdge(child: Bounds, parent: ParentRegion): string {

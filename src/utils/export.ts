@@ -12,8 +12,9 @@ export function exportToCSV(data: AnalysisData): string {
   const headers = [
     'ID', 'Name', 'IsInside', 'GridX', 'GridY', 'PixelX', 'PixelY',
     'BoundsX', 'BoundsY', 'Width', 'Height', 
-    'AreaRatio', 'WidthRatio', 'HeightRatio',
-    'OutsideDistance', 'OutsideDirection', 'OutsideAngle'
+    'AreaRatio', 'GridWidth', 'GridHeight',
+    'OutsideDistance', 'OutsideDirection', 'OutsideAngle',
+    'LeftEdgeX', 'RightEdgeX', 'TopEdgeY', 'BottomEdgeY'
   ];
 
   const rows = data.childRegions.map((child: ChildRegion) => [
@@ -29,11 +30,15 @@ export function exportToCSV(data: AnalysisData): string {
     child.bounds.width,
     child.bounds.height,
     child.ratios.areaRatio,
-    child.ratios.widthRatio,
-    child.ratios.heightRatio,
+    child.gridDimensions?.gridWidth || '',
+    child.gridDimensions?.gridHeight || '',
     child.outsideInfo?.distance || '',
     child.outsideInfo?.direction || '',
-    child.outsideInfo?.angle || ''
+    child.outsideInfo?.angle || '',
+    child.edgePositions?.left || '',
+    child.edgePositions?.right || '',
+    child.edgePositions?.top || '',
+    child.edgePositions?.bottom || ''
   ]);
 
   return [headers, ...rows].map(row => row.join(',')).join('\n');

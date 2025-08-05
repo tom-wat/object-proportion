@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings } from '../types';
-import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateOutsideDistance, isPointInRotatedBounds } from '../utils/geometry';
+import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateOutsideDistance, isPointInRotatedBounds, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
 
 export function useAnalysisData() {
   const [analysisData, setAnalysisData] = useState<AnalysisData>({
@@ -38,6 +38,9 @@ export function useAnalysisData() {
     const gridCoords = convertToGridCoordinates(centerPoint, parent, gridSize);
     const ratios = calculateChildRatios(child.bounds, parent);
     
+    const edgePositions = calculateEdgePositions(child.bounds, parent, gridSize);
+    const gridDimensions = calculateGridDimensions(child.bounds, parent, gridSize);
+    
     const updatedChild: ChildRegion = {
       ...child,
       isInside,
@@ -45,7 +48,9 @@ export function useAnalysisData() {
         grid: gridCoords,
         pixel: centerPoint
       },
-      ratios
+      ratios,
+      edgePositions,
+      gridDimensions
     };
 
     if (!isInside) {
