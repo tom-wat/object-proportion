@@ -19,7 +19,6 @@ export interface ParentRegion extends Bounds {
 export interface ChildRegion {
   id: number;
   name: string;
-  isInside: boolean;
   centerCoordinates: {
     grid: Point;
     pixel: Point;
@@ -34,13 +33,6 @@ export interface ChildRegion {
   gridDimensions?: {
     gridWidth: number;
     gridHeight: number;
-  };
-  outsideInfo?: {
-    distance: number;
-    centerDistance: number;
-    direction: string;
-    angle: number;
-    shortestEdge: string;
   };
   edgePositions?: {
     left: number;   // x grid coordinate of left edge

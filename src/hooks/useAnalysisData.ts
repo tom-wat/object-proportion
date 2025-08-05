@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, Point } from '../types';
-import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateOutsideDistance, isPointInRotatedBounds, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
+import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
 
 // Helper function to update point coordinates based on child region changes
 const updatePointCoordinatesForChildChange = (
@@ -241,7 +241,6 @@ export function useAnalysisData() {
       y: child.bounds.y + child.bounds.height / 2
     };
     
-    const isInside = isPointInRotatedBounds(centerPoint, parent);
     const gridSize = 16; // Fixed 16x16 grid
     
     const gridCoords = convertToGridCoordinates(centerPoint, parent, gridSize);
@@ -252,7 +251,6 @@ export function useAnalysisData() {
     
     const updatedChild: ChildRegion = {
       ...child,
-      isInside,
       centerCoordinates: {
         grid: gridCoords,
         pixel: centerPoint
@@ -262,9 +260,6 @@ export function useAnalysisData() {
       gridDimensions
     };
 
-    if (!isInside) {
-      updatedChild.outsideInfo = calculateOutsideDistance(child.bounds, parent);
-    }
 
     return updatedChild;
   }, []);

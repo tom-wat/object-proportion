@@ -63,15 +63,7 @@ export function CoordinateDisplay({
               </span>
             </div>
 
-            {selectedChild.isInside ? (
-              <div className="text-green-600 text-xs">
-                ✓ Inside parent region
-              </div>
-            ) : (
-              <div className="text-orange-600 text-xs">
-                ⚠ Outside parent region
-              </div>
-            )}
+
           </>
         )}
       </div>

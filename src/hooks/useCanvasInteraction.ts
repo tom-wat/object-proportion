@@ -373,7 +373,7 @@ export function useCanvasInteraction({
       // Check if clicking inside any child region for selection
       let clickedInsideChild = false;
       for (const child of childRegions) {
-        let isInside = false;
+        let pointInChild = false;
         
         if (child.rotation !== 0) {
           // For rotated child regions, use rotated bounds check
@@ -386,15 +386,15 @@ export function useCanvasInteraction({
           const rotatedX = centerX + dx * cos - dy * sin;
           const rotatedY = centerY + dx * sin + dy * cos;
           
-          isInside = rotatedX >= child.bounds.x && rotatedX <= child.bounds.x + child.bounds.width &&
+          pointInChild = rotatedX >= child.bounds.x && rotatedX <= child.bounds.x + child.bounds.width &&
                      rotatedY >= child.bounds.y && rotatedY <= child.bounds.y + child.bounds.height;
         } else {
           // Simple bounds check for non-rotated child
-          isInside = point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
+          pointInChild = point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
                      point.y >= child.bounds.y && point.y <= child.bounds.y + child.bounds.height;
         }
         
-        if (isInside) {
+        if (pointInChild) {
           clickedChildIdRef.current = child.id;
           clickedInsideChild = true;
           break;
@@ -609,7 +609,6 @@ export function useCanvasInteraction({
         const newChild: ChildRegion = {
           id: childRegions.length + 1,
           name: `Region ${childRegions.length + 1}`,
-          isInside: parentRegion ? isPointInRotatedBounds({ x: x + width/2, y: y + height/2 }, parentRegion) : false,
           centerCoordinates: {
             grid: { x: 0, y: 0 },
             pixel: { x: x + width/2, y: y + height/2 }
