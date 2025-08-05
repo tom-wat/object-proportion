@@ -51,11 +51,16 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     }
   }, [onImageInfoSet, cachedBlobUrl]);
 
+  const handlePointDeselect = useCallback(() => {
+    setSelectedPointId(null);
+  }, []);
+
   const handleParentRegionSelect = useCallback(() => {
     setIsParentSelected(true);
     setSelectedChildId(null);
     setSelectionMode('parent');
-  }, []);
+    handlePointDeselect();
+  }, [handlePointDeselect]);
 
   const handleParentDeselect = useCallback(() => {
     setIsParentSelected(false);
@@ -68,10 +73,6 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
       setSelectedChildId(null);
       setIsParentSelected(false);
     }
-  }, []);
-
-  const handlePointDeselect = useCallback(() => {
-    setSelectedPointId(null);
   }, []);
 
   const resetImageState = useCallback(() => {

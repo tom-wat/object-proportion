@@ -702,7 +702,7 @@ export function useCanvasInteraction({
           const gridCoords = convertToGridCoordinates(point, targetRegion, 16);
           
           const newPoint: Omit<RegionPoint, 'id'> = {
-            name: `Point ${Date.now()}`, // Simple unique name
+            name: '', // Will be set by handlePointAdd
             parentRegionId,
             coordinates: {
               pixel: point,

@@ -7,7 +7,7 @@ import { useAnalysisData } from './hooks/useAnalysisData';
 import { useImageHandling } from './hooks/useImageHandling';
 import { useExport } from './hooks/useExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { snapToNearestEdge, convertToPixelCoordinates } from './utils/geometry';
+import { snapToNearestEdge, snapToNearestCorner, convertToPixelCoordinates } from './utils/geometry';
 
 function App() {
   const {
@@ -57,9 +57,10 @@ function App() {
     } else {
       setSelectedChildId(id);
       setIsParentSelected(false); // Deselect parent when child is selected
+      handlePointDeselect(); // Deselect point when child is selected
       setSelectionMode('child'); // Switch to child mode when child is selected
     }
-  }, [setSelectedChildId, setIsParentSelected, setSelectionMode]);
+  }, [setSelectedChildId, setIsParentSelected, setSelectionMode, handlePointDeselect]);
 
   // Keyboard shortcuts for better UX
   useKeyboardShortcuts({
@@ -120,6 +121,50 @@ function App() {
       grid: snappedGridCoords
     });
   }, [analysisData.points, analysisData.parentRegion, analysisData.childRegions, handlePointUpdate]);
+
+  // Handle point snap to nearest corner
+  const handlePointSnapToCorner = useCallback((pointId: number) => {
+    const point = analysisData.points.find(p => p.id === pointId);
+    if (!point) return;
+
+    // Get the appropriate parent region for coordinate conversion
+    let parentRegion = analysisData.parentRegion;
+    
+    if (point.parentRegionId !== undefined) {
+      // Point belongs to a child region
+      const childRegion = analysisData.childRegions.find(c => c.id === point.parentRegionId);
+      if (childRegion) {
+        parentRegion = {
+          x: childRegion.bounds.x,
+          y: childRegion.bounds.y,
+          width: childRegion.bounds.width,
+          height: childRegion.bounds.height,
+          rotation: childRegion.rotation,
+          aspectRatio: '',
+          aspectRatioDecimal: 0
+        };
+      }
+    }
+
+    if (!parentRegion) return;
+
+    // Snap grid coordinates to nearest corner
+    const snappedGridCoords = snapToNearestCorner(point.coordinates.grid);
+    
+    // Convert back to pixel coordinates
+    const snappedPixelCoords = convertToPixelCoordinates(snappedGridCoords, parentRegion, 16);
+
+    // Update the point
+    handlePointUpdate(pointId, {
+      pixel: snappedPixelCoords,
+      grid: snappedGridCoords
+    });
+  }, [analysisData.points, analysisData.parentRegion, analysisData.childRegions, handlePointUpdate]);
+
+  // Handle point restore to original position
+  const handlePointRestore = useCallback((pointId: number, coordinates: { pixel: { x: number; y: number }; grid: { x: number; y: number } }) => {
+    handlePointUpdate(pointId, coordinates);
+  }, [handlePointUpdate]);
 
   // Auto-switch to parent mode if child mode is selected but no parent region exists
   useEffect(() => {
@@ -213,6 +258,8 @@ function App() {
             onPointDelete={handlePointDelete}
             onPointRename={handlePointRename}
             onPointSnapToEdge={handlePointSnapToEdge}
+            onPointSnapToCorner={handlePointSnapToCorner}
+            onPointRestore={handlePointRestore}
             className="w-80 h-full overflow-y-auto"
           />
         )}

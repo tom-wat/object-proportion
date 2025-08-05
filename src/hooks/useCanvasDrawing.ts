@@ -490,19 +490,21 @@ export function useCanvasDrawing() {
       
       const isSelected = selectedPointId === point.id;
       
-      // Use selection color if selected, otherwise frame color
+      // Use selection color if selected, otherwise frame color based on region type
       if (isSelected) {
         ctx.fillStyle = '#ef4444'; // Red for selected
         ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 2 / zoom; // Thicker border for selected
       } else {
-        ctx.fillStyle = colorSettings.parentColor;
-        ctx.strokeStyle = colorSettings.parentColor;
+        // Use child color for child region points, parent color for parent region points
+        const pointColor = point.parentRegionId !== undefined ? colorSettings.childColor : colorSettings.parentColor;
+        ctx.fillStyle = pointColor;
+        ctx.strokeStyle = pointColor;
         ctx.lineWidth = 1 / zoom;
       }
       
-      // Draw point as 4px diameter circle (or 6px if selected)
-      const radius = isSelected ? 3 / zoom : 2 / zoom; // Larger if selected
+      // Draw point as 6px diameter circle
+      const radius = 3 / zoom; // Same size for both selected and deselected
       ctx.beginPath();
       ctx.arc(point.coordinates.pixel.x, point.coordinates.pixel.y, radius, 0, 2 * Math.PI);
       ctx.fill();

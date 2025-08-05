@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { ParentRegion, ChildRegion, RegionPoint } from '../types';
 import { CoordinateDisplay } from './CoordinateDisplay';
 import { Magnet, Trash2 } from 'lucide-react';
@@ -17,6 +18,8 @@ interface SidePanelProps {
   onPointDelete?: (id: number) => void;
   onPointRename?: (id: number, name: string) => void;
   onPointSnapToEdge?: (id: number) => void;
+  onPointSnapToCorner?: (id: number) => void;
+  onPointRestore?: (id: number, coordinates: { pixel: { x: number; y: number }; grid: { x: number; y: number } }) => void;
   className?: string;
 }
 
@@ -35,9 +38,48 @@ export function SidePanel({
   onPointDelete,
   onPointRename,
   onPointSnapToEdge,
+  onPointSnapToCorner,
+  onPointRestore,
   className = ''
 }: SidePanelProps) {
   const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
+  
+  // Store point states: 0=original, 1=edge, 2=corner
+  const pointStateRef = useRef<{ [key: number]: number }>({});
+  // Store original coordinates when first clicked
+  const originalCoordsRef = useRef<{ [key: number]: { pixel: { x: number; y: number }; grid: { x: number; y: number } } }>({});
+  
+  const handleMagnetClick = (pointId: number) => {
+    const currentPoint = points.find(p => p.id === pointId);
+    if (!currentPoint) return;
+    
+    // Initialize state if not exists
+    if (!(pointId in pointStateRef.current)) {
+      pointStateRef.current[pointId] = 0;
+      // Store original coordinates
+      originalCoordsRef.current[pointId] = {
+        pixel: { ...currentPoint.coordinates.pixel },
+        grid: { ...currentPoint.coordinates.grid }
+      };
+    }
+    
+    // Cycle through states: original -> edge -> corner -> original
+    const currentState = pointStateRef.current[pointId];
+    const nextState = (currentState + 1) % 3;
+    pointStateRef.current[pointId] = nextState;
+    
+    switch (nextState) {
+      case 0: // Back to original position
+        onPointRestore?.(pointId, originalCoordsRef.current[pointId]);
+        break;
+      case 1: // Move to edge
+        onPointSnapToEdge?.(pointId);
+        break;
+      case 2: // Move to corner
+        onPointSnapToCorner?.(pointId);
+        break;
+    }
+  };
   return (
     <div className={`bg-gray-50 border-l border-gray-200 p-4 space-y-6 ${className}`}>
       {/* Parent Region Info */}
@@ -113,10 +155,10 @@ export function SidePanel({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onPointSnapToEdge?.(point.id);
+                        handleMagnetClick(point.id);
                       }}
                       className="text-gray-700 hover:text-blue-600 text-xs px-1 py-0.5 rounded border border-gray-300 hover:border-blue-300"
-                      title="Snap to nearest edge"
+                      title="Cycle: Original → Edge → Corner → Original"
                     >
                       <Magnet size={12} />
                     </button>

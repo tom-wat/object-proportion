@@ -393,9 +393,10 @@ export function useAnalysisData() {
   const handlePointAdd = useCallback((point: Omit<RegionPoint, 'id'>) => {
     setAnalysisData(prev => {
       const newId = Math.max(0, ...prev.points.map(p => p.id)) + 1;
+      const pointName = point.name || `Point ${newId}`; // Use sequential ID for naming
       return {
         ...prev,
-        points: [...prev.points, { ...point, id: newId }]
+        points: [...prev.points, { ...point, id: newId, name: pointName }]
       };
     });
   }, []);
