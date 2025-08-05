@@ -172,6 +172,20 @@ export function SidePanel({
                           {region.gridDimensions?.gridHeight.toFixed(1)} units
                         </span>
                       </div>
+                      
+                      <div className="flex justify-between">
+                        <span>Width Ratio:</span>
+                        <span className="font-mono">
+                          {(region.ratios.widthRatio * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span>Height Ratio:</span>
+                        <span className="font-mono">
+                          {(region.ratios.heightRatio * 100).toFixed(1)}%
+                        </span>
+                      </div>
                     </>
                   )}
 
@@ -190,6 +204,20 @@ export function SidePanel({
                             <span>Grid Height:</span>
                             <span className="font-mono">
                               {region.gridDimensions.gridHeight.toFixed(1)} units
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span>Width Ratio:</span>
+                            <span className="font-mono">
+                              {(region.ratios.widthRatio * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span>Height Ratio:</span>
+                            <span className="font-mono">
+                              {(region.ratios.heightRatio * 100).toFixed(1)}%
                             </span>
                           </div>
                         </>
