@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
-import type { Point, ParentRegion, ChildRegion, SelectionMode, ResizeHandle, ResizeHandleInfo } from '../types';
-import { isPointInRotatedBounds } from '../utils/geometry';
+import type { Point, ParentRegion, ChildRegion, SelectionMode, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
+import { isPointInRotatedBounds, convertToGridCoordinates } from '../utils/geometry';
 import { CANVAS_CONSTANTS } from '../utils/constants';
 
 interface UseCanvasInteractionProps {
@@ -15,6 +15,7 @@ interface UseCanvasInteractionProps {
   isParentSelected?: boolean;
   onParentDeselect?: () => void;
   onParentSelect?: () => void;
+  onPointAdd?: (point: Omit<RegionPoint, 'id'>) => void;
   onTemporaryDraw?: (x: number, y: number, width: number, height: number, isParent: boolean) => void;
   onRedraw: () => void;
   zoom?: number;
@@ -37,6 +38,7 @@ export function useCanvasInteraction({
   isParentSelected,
   onParentDeselect,
   onParentSelect,
+  onPointAdd,
   onTemporaryDraw,
   onRedraw,
   zoom = 1,
@@ -55,6 +57,8 @@ export function useCanvasInteraction({
   const initialAngleRef = useRef<number>(0);
   const clickedChildIdRef = useRef<number | null>(null);
   const clickedParentRef = useRef<boolean>(false);
+  const lastClickTimeRef = useRef<number>(0);
+  const lastClickPointRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const getCanvasPoint = useCallback((event: MouseEvent, canvas: HTMLCanvasElement): Point => {
     const rect = canvas.getBoundingClientRect();
@@ -622,13 +626,102 @@ export function useCanvasInteraction({
       }
     }
 
+    // Handle double-click for point creation
+    const dragDistance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Check for double-click (only on small drag distance)
+    if (dragDistance < 5 && onPointAdd) {
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastClickTimeRef.current;
+      const distanceFromLastClick = Math.sqrt(
+        Math.pow(point.x - lastClickPointRef.current.x, 2) + 
+        Math.pow(point.y - lastClickPointRef.current.y, 2)
+      );
+      
+      // Update last click info
+      lastClickTimeRef.current = currentTime;
+      lastClickPointRef.current = { x: point.x, y: point.y };
+      
+      // Double-click detected (within 500ms and 10px distance)
+      if (timeDiff < 500 && distanceFromLastClick < 10) {
+        // Determine which region the point belongs to
+        let targetRegion: ParentRegion | null = null;
+        let parentRegionId: number | undefined = undefined;
+        
+        // Check if point is inside selected parent region
+        if (parentRegion && isParentSelected && isPointInRotatedBounds(point, parentRegion)) {
+          targetRegion = parentRegion;
+          parentRegionId = undefined; // null indicates parent region point
+        }
+        // Check if point is inside selected child region
+        else if (selectedChildId !== null) {
+          const selectedChild = childRegions.find(c => c.id === selectedChildId);
+          if (selectedChild) {
+            let isInsideChild = false;
+            
+            if (selectedChild.rotation !== 0) {
+              // For rotated child regions
+              const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
+              const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
+              const cos = Math.cos(-selectedChild.rotation);
+              const sin = Math.sin(-selectedChild.rotation);
+              const dx_local = point.x - centerX;
+              const dy_local = point.y - centerY;
+              const rotatedX = centerX + dx_local * cos - dy_local * sin;
+              const rotatedY = centerY + dx_local * sin + dy_local * cos;
+              
+              isInsideChild = rotatedX >= selectedChild.bounds.x && 
+                             rotatedX <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                             rotatedY >= selectedChild.bounds.y && 
+                             rotatedY <= selectedChild.bounds.y + selectedChild.bounds.height;
+            } else {
+              // Simple bounds check for non-rotated child
+              isInsideChild = point.x >= selectedChild.bounds.x && 
+                             point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
+                             point.y >= selectedChild.bounds.y && 
+                             point.y <= selectedChild.bounds.y + selectedChild.bounds.height;
+            }
+            
+            if (isInsideChild) {
+              targetRegion = {
+                x: selectedChild.bounds.x,
+                y: selectedChild.bounds.y,
+                width: selectedChild.bounds.width,
+                height: selectedChild.bounds.height,
+                rotation: selectedChild.rotation,
+                aspectRatio: '',
+                aspectRatioDecimal: 0
+              };
+              parentRegionId = selectedChildId;
+            }
+          }
+        }
+        
+        // Create point if we have a target region
+        if (targetRegion) {
+          const gridCoords = convertToGridCoordinates(point, targetRegion, 16);
+          
+          const newPoint: Omit<RegionPoint, 'id'> = {
+            name: `Point ${Date.now()}`, // Simple unique name
+            parentRegionId,
+            coordinates: {
+              pixel: point,
+              grid: gridCoords
+            }
+          };
+          
+          onPointAdd(newPoint);
+        }
+      }
+    }
+
     isDrawingRef.current = false;
     dragTypeRef.current = null;
     selectedHandleRef.current = null;
     clickedChildIdRef.current = null;
     clickedParentRef.current = false;
     onRedraw();
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
     const mouseDownHandler = (e: MouseEvent) => handleMouseDown(e, canvas);

@@ -1,4 +1,4 @@
-import type { ParentRegion, ChildRegion } from '../types';
+import type { ParentRegion, ChildRegion, RegionPoint } from '../types';
 import { CoordinateDisplay } from './CoordinateDisplay';
 
 interface SidePanelProps {
@@ -10,6 +10,11 @@ interface SidePanelProps {
   selectedChildId: number | null;
   onParentRegionSelect?: () => void;
   isParentSelected?: boolean;
+  points: RegionPoint[];
+  selectedPointId?: number | null;
+  onPointSelect?: (id: number | null) => void;
+  onPointDelete?: (id: number) => void;
+  onPointRename?: (id: number, name: string) => void;
   className?: string;
 }
 
@@ -22,6 +27,11 @@ export function SidePanel({
   selectedChildId,
   onParentRegionSelect,
   isParentSelected,
+  points,
+  selectedPointId,
+  onPointSelect,
+  onPointDelete,
+  onPointRename,
   className = ''
 }: SidePanelProps) {
   const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
@@ -68,6 +78,65 @@ export function SidePanel({
           </div>
         )}
       </div>
+
+      {/* Points List */}
+      {points.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 mb-3">
+            Points ({points.length})
+          </h3>
+          
+          <div className="space-y-2">
+            {points.map((point) => (
+              <div
+                key={point.id}
+                className={`bg-white rounded p-2 border cursor-pointer transition-colors ${
+                  selectedPointId === point.id
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => onPointSelect?.(point.id)}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <input
+                    type="text"
+                    value={point.name}
+                    onChange={(e) => onPointRename?.(point.id, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 rounded px-1"
+                  />
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPointDelete?.(point.id);
+                    }}
+                    className="text-red-400 hover:text-red-600 text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="text-xs space-y-1 text-gray-500">
+                  <div className="flex justify-between">
+                    <span>Grid Position:</span>
+                    <span className="font-mono">
+                      ({point.coordinates.grid.x.toFixed(1)}, {point.coordinates.grid.y.toFixed(1)})
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span>Region:</span>
+                    <span className="font-mono">
+                      {point.parentRegionId ? `Child ${point.parentRegionId}` : 'Parent'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Child Regions List */}
       <div>
@@ -279,6 +348,7 @@ export function SidePanel({
         <ul className="text-xs text-blue-700 space-y-1">
           <li>• Parent: Drag to draw rectangle</li>
           <li>• Child: Drag inside parent region</li>
+          <li>• Points: Double-click inside region</li>
           <li>• Rotate: Use top handle</li>
           <li>• Resize: Corner handles</li>
           <li>• Move: Drag inside region</li>

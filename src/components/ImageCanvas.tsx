@@ -1,5 +1,5 @@
 import React from 'react';
-import type { SelectionMode, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings } from '../types';
+import type { SelectionMode, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint } from '../types';
 import { useImageCanvas } from '../hooks/useImageCanvas';
 
 
@@ -17,6 +17,9 @@ interface ImageCanvasProps {
   gridSettings: GridSettings;
   childGridSettings: ChildGridSettings;
   colorSettings: ColorSettings;
+  points: RegionPoint[];
+  selectedPointId?: number | null;
+  onPointAdd: (point: Omit<RegionPoint, 'id'>) => void;
   imageFile: File | null;
   cachedImage?: HTMLImageElement | null;
   isParentSelected?: boolean;
@@ -37,6 +40,9 @@ export function ImageCanvas({
   selectedChildId,
   onParentDeselect,
   onParentSelect,
+  points,
+  selectedPointId,
+  onPointAdd,
   imageFile,
   cachedImage,
   isParentSelected,
@@ -55,6 +61,9 @@ export function ImageCanvas({
     isParentSelected,
     onParentDeselect,
     onParentSelect,
+    points,
+    selectedPointId,
+    onPointAdd,
     colorSettings,
     gridSettings,
     childGridSettings

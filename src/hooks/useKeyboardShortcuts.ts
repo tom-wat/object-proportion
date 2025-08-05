@@ -2,18 +2,24 @@ import { useEffect, useCallback } from 'react';
 
 interface UseKeyboardShortcutsProps {
   selectedChildId: number | null;
+  selectedPointId?: number | null;
   isParentSelected?: boolean;
   onChildRegionDelete: (id: number) => void;
   onChildRegionSelect: (id: number) => void;
+  onPointDelete?: (id: number) => void;
+  onPointDeselect?: () => void;
   onParentDeselect?: () => void;
   enabled?: boolean;
 }
 
 export function useKeyboardShortcuts({
   selectedChildId,
+  selectedPointId,
   isParentSelected,
   onChildRegionDelete,
   onChildRegionSelect,
+  onPointDelete,
+  onPointDeselect,
   onParentDeselect,
   enabled = true
 }: UseKeyboardShortcutsProps) {
@@ -33,15 +39,22 @@ export function useKeyboardShortcuts({
     switch (event.key) {
       case 'Delete':
       case 'Backspace':
-        if (selectedChildId !== null) {
+        if (selectedPointId !== null && selectedPointId !== undefined && onPointDelete) {
+          event.preventDefault();
+          onPointDelete(selectedPointId);
+        } else if (selectedChildId !== null) {
           event.preventDefault();
           onChildRegionDelete(selectedChildId);
         }
         break;
       case 'Escape':
         event.preventDefault();
+        // Deselect point if selected
+        if (selectedPointId !== null && selectedPointId !== undefined && onPointDeselect) {
+          onPointDeselect();
+        }
         // Deselect child if selected
-        if (selectedChildId !== null) {
+        else if (selectedChildId !== null) {
           onChildRegionSelect(-1);
         }
         // Deselect parent if selected
@@ -50,7 +63,7 @@ export function useKeyboardShortcuts({
         }
         break;
     }
-  }, [enabled, selectedChildId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onParentDeselect]);
+  }, [enabled, selectedChildId, selectedPointId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onPointDelete, onPointDeselect, onParentDeselect]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -50,6 +50,16 @@ export interface ChildRegion {
   };
 }
 
+export interface RegionPoint {
+  id: number;
+  name: string;
+  parentRegionId?: number; // Which region this point belongs to (null for parent region points)
+  coordinates: {
+    pixel: Point;
+    grid: Point;
+  };
+}
+
 export interface GridSettings {
   visible: boolean;
 }
@@ -70,6 +80,7 @@ export interface ColorSettings {
 export interface AnalysisData {
   parentRegion: ParentRegion | null;
   childRegions: ChildRegion[];
+  points: RegionPoint[];
   gridSettings: GridSettings;
   childGridSettings: ChildGridSettings;
   colorSettings: ColorSettings;

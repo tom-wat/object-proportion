@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import type { ParentRegion, ChildRegion, ColorSettings, ResizeHandle, ResizeHandleInfo } from '../types';
+import type { ParentRegion, ChildRegion, ColorSettings, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
 
 export function useCanvasDrawing() {
@@ -478,6 +478,40 @@ export function useCanvasDrawing() {
     ctx.restore();
   }, []);
 
+  const drawPoints = useCallback((
+    ctx: CanvasRenderingContext2D, 
+    points: RegionPoint[], 
+    colorSettings: ColorSettings,
+    selectedPointId: number | null = null,
+    zoom: number = 1
+  ) => {
+    points.forEach(point => {
+      ctx.save();
+      
+      const isSelected = selectedPointId === point.id;
+      
+      // Use selection color if selected, otherwise frame color
+      if (isSelected) {
+        ctx.fillStyle = '#ef4444'; // Red for selected
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2 / zoom; // Thicker border for selected
+      } else {
+        ctx.fillStyle = colorSettings.parentColor;
+        ctx.strokeStyle = colorSettings.parentColor;
+        ctx.lineWidth = 1 / zoom;
+      }
+      
+      // Draw point as 4px diameter circle (or 6px if selected)
+      const radius = isSelected ? 3 / zoom : 2 / zoom; // Larger if selected
+      ctx.beginPath();
+      ctx.arc(point.coordinates.pixel.x, point.coordinates.pixel.y, radius, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      
+      ctx.restore();
+    });
+  }, []);
+
   const redraw = useCallback((
     canvas: HTMLCanvasElement,
     parentRegion: ParentRegion | null,
@@ -488,7 +522,9 @@ export function useCanvasDrawing() {
     colorSettings?: ColorSettings,
     gridSettings?: { visible: boolean },
     childGridSettings?: { visible: boolean },
-    isParentSelected: boolean = false
+    isParentSelected: boolean = false,
+    points: RegionPoint[] = [],
+    selectedPointId: number | null = null
   ) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -529,9 +565,14 @@ export function useCanvasDrawing() {
       drawChildRegion(ctx, region, index, isSelected, colorSettings, zoom);
     });
 
+    // Draw points on top of everything
+    if (points.length > 0 && colorSettings) {
+      drawPoints(ctx, points, colorSettings, selectedPointId, zoom);
+    }
+
     // Restore context state
     ctx.restore();
-  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid]);
+  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid, drawPoints]);
 
   const setImage = useCallback((image: HTMLImageElement) => {
     imageRef.current = image;
@@ -543,6 +584,7 @@ export function useCanvasDrawing() {
     drawChildRegion,
     drawChildGrid,
     drawTemporaryRegion,
+    drawPoints,
     redraw,
     setImage,
     getResizeHandles,

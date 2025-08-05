@@ -19,6 +19,9 @@ function App() {
     handleGridSettingsChange,
     handleChildGridSettingsChange,
     handleColorSettingsChange,
+    handlePointAdd,
+    handlePointDelete,
+    handlePointRename,
     handleClearAll,
     setImageInfo,
   } = useAnalysisData();
@@ -28,6 +31,7 @@ function App() {
     imageLoaded,
     selectionMode,
     selectedChildId,
+    selectedPointId,
     isParentSelected,
     cachedImage,
     setSelectionMode,
@@ -36,6 +40,8 @@ function App() {
     handleImageLoad,
     handleParentRegionSelect,
     handleParentDeselect,
+    handlePointSelect,
+    handlePointDeselect,
   } = useImageHandling({
     onImageInfoSet: setImageInfo
   });
@@ -56,9 +62,12 @@ function App() {
   // Keyboard shortcuts for better UX
   useKeyboardShortcuts({
     selectedChildId,
+    selectedPointId,
     isParentSelected,
     onChildRegionDelete: handleChildRegionDelete,
     onChildRegionSelect: handleChildRegionSelect,
+    onPointDelete: handlePointDelete,
+    onPointDeselect: handlePointDeselect,
     onParentDeselect: handleParentDeselect,
     enabled: imageLoaded
   });
@@ -134,6 +143,9 @@ function App() {
               selectedChildId={selectedChildId}
               onParentDeselect={handleParentDeselect}
               onParentSelect={handleParentRegionSelect}
+              points={analysisData.points}
+              selectedPointId={selectedPointId}
+              onPointAdd={handlePointAdd}
               imageFile={imageFile}
               cachedImage={cachedImage}
               isParentSelected={isParentSelected}
@@ -154,6 +166,11 @@ function App() {
             selectedChildId={selectedChildId}
             onParentRegionSelect={handleParentRegionSelect}
             isParentSelected={isParentSelected}
+            points={analysisData.points}
+            selectedPointId={selectedPointId}
+            onPointSelect={handlePointSelect}
+            onPointDelete={handlePointDelete}
+            onPointRename={handlePointRename}
             className="w-80 h-full overflow-y-auto"
           />
         )}

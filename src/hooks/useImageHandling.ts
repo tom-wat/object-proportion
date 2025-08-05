@@ -10,6 +10,7 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('parent');
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+  const [selectedPointId, setSelectedPointId] = useState<number | null>(null);
   const [isParentSelected, setIsParentSelected] = useState(false);
   const [cachedImage, setCachedImage] = useState<HTMLImageElement | null>(null);
   const [cachedBlobUrl, setCachedBlobUrl] = useState<string | null>(null);
@@ -60,8 +61,22 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     setIsParentSelected(false);
   }, []);
 
+  const handlePointSelect = useCallback((id: number | null) => {
+    setSelectedPointId(id);
+    // Deselect other selections when selecting a point
+    if (id !== null) {
+      setSelectedChildId(null);
+      setIsParentSelected(false);
+    }
+  }, []);
+
+  const handlePointDeselect = useCallback(() => {
+    setSelectedPointId(null);
+  }, []);
+
   const resetImageState = useCallback(() => {
     setSelectedChildId(null);
+    setSelectedPointId(null);
     setIsParentSelected(false);
     setSelectionMode('parent');
     
@@ -78,14 +93,18 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     imageLoaded,
     selectionMode,
     selectedChildId,
+    selectedPointId,
     isParentSelected,
     cachedImage,
     setSelectionMode,
     setSelectedChildId,
+    setSelectedPointId,
     setIsParentSelected,
     handleImageLoad,
     handleParentRegionSelect,
     handleParentDeselect,
+    handlePointSelect,
+    handlePointDeselect,
     resetImageState,
   };
 }
