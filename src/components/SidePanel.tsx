@@ -81,7 +81,7 @@ export function SidePanel({
     }
   };
   return (
-    <div className={`bg-gray-50 border-l border-gray-200 p-4 space-y-6 ${className}`}>
+    <div className={`bg-gray-50 border-r border-gray-200 p-4 space-y-6 ${className}`}>
       {/* Parent Region Info */}
       <div>
         <h3 className="text-sm font-medium text-gray-900 mb-3">Parent Region</h3>
@@ -116,6 +116,76 @@ export function SidePanel({
                 </span>
               </div>
             </div>
+            
+            {/* Parent Region Points */}
+            {(() => {
+              const parentPoints = points.filter(point => point.parentRegionId === undefined);
+              return parentPoints.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="text-xs font-medium text-gray-700 mb-2">
+                    Points ({parentPoints.length})
+                  </div>
+                  <div className="space-y-2">
+                    {parentPoints.map((point) => (
+                      <div
+                        key={point.id}
+                        className={`bg-gray-50 rounded p-2 border cursor-pointer transition-colors ${
+                          selectedPointId === point.id
+                            ? 'border-blue-400 bg-blue-50'
+                            : 'border-gray-100 hover:border-gray-200'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPointSelect?.(point.id);
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <input
+                            type="text"
+                            value={point.name}
+                            onChange={(e) => onPointRename?.(point.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 rounded px-1 flex-1"
+                          />
+                          
+                          <div className="flex items-center space-x-1 ml-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMagnetClick(point.id);
+                              }}
+                              className="text-gray-600 hover:text-blue-600 text-xs px-1 py-0.5 rounded border border-gray-200 hover:border-blue-300"
+                              title="Cycle: Original → Edge → Corner → Original"
+                            >
+                              <Magnet size={10} />
+                            </button>
+                            
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onPointDelete?.(point.id);
+                              }}
+                              className="text-gray-600 hover:text-red-600 text-xs px-1 py-0.5 rounded border border-gray-200 hover:border-red-300"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-gray-500">
+                          <div className="flex justify-between">
+                            <span>Grid:</span>
+                            <span className="font-mono">
+                              ({point.coordinates.grid.x.toFixed(1)}, {point.coordinates.grid.y.toFixed(1)})
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="text-gray-500 text-xs">
@@ -124,77 +194,6 @@ export function SidePanel({
         )}
       </div>
 
-      {/* Points List */}
-      {points.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3">
-            Points ({points.length})
-          </h3>
-          
-          <div className="space-y-2">
-            {points.map((point) => (
-              <div
-                key={point.id}
-                className={`bg-white rounded p-2 border cursor-pointer transition-colors ${
-                  selectedPointId === point.id
-                    ? 'border-blue-400 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => onPointSelect?.(point.id)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <input
-                    type="text"
-                    value={point.name}
-                    onChange={(e) => onPointRename?.(point.id, e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 rounded px-1"
-                  />
-                  
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMagnetClick(point.id);
-                      }}
-                      className="text-gray-700 hover:text-blue-600 text-xs px-1 py-0.5 rounded border border-gray-300 hover:border-blue-300"
-                      title="Cycle: Original → Edge → Corner → Original"
-                    >
-                      <Magnet size={12} />
-                    </button>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPointDelete?.(point.id);
-                      }}
-                      className="text-gray-700 hover:text-red-600 text-xs px-1 py-0.5 rounded border border-gray-300 hover:border-red-300"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="text-xs space-y-1 text-gray-500">
-                  <div className="flex justify-between">
-                    <span>Grid Position:</span>
-                    <span className="font-mono">
-                      ({point.coordinates.grid.x.toFixed(1)}, {point.coordinates.grid.y.toFixed(1)})
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span>Region:</span>
-                    <span className="font-mono">
-                      {point.parentRegionId ? `Child ${point.parentRegionId}` : 'Parent'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Child Regions List */}
       <div>
@@ -244,12 +243,6 @@ export function SidePanel({
                     </span>
                   </div>
                   
-                  <div className="flex justify-between">
-                    <span>Size:</span>
-                    <span className="font-mono">
-                      {Math.round(region.bounds.width)} × {Math.round(region.bounds.height)}
-                    </span>
-                  </div>
 
                   {region.edgePositions && (
                     <>
@@ -272,12 +265,6 @@ export function SidePanel({
                     </>
                   )}
 
-                  <div className="flex justify-between">
-                    <span>Area:</span>
-                    <span className="font-mono">
-                      {(region.ratios.areaRatio * 100).toFixed(1)}%
-                    </span>
-                  </div>
                   
                   <div className="flex justify-between">
                     <span>Grid Width:</span>
@@ -314,6 +301,76 @@ export function SidePanel({
                     </span>
                   </div>
                 </div>
+
+                {/* Child Region Points */}
+                {(() => {
+                  const childPoints = points.filter(point => point.parentRegionId === region.id);
+                  return childPoints.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="text-xs font-medium text-gray-700 mb-2">
+                        Points ({childPoints.length})
+                      </div>
+                      <div className="space-y-2">
+                        {childPoints.map((point) => (
+                          <div
+                            key={point.id}
+                            className={`bg-gray-50 rounded p-2 border cursor-pointer transition-colors ${
+                              selectedPointId === point.id
+                                ? 'border-blue-400 bg-blue-50'
+                                : 'border-gray-100 hover:border-gray-200'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onPointSelect?.(point.id);
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <input
+                                type="text"
+                                value={point.name}
+                                onChange={(e) => onPointRename?.(point.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-blue-300 rounded px-1 flex-1"
+                              />
+                              
+                              <div className="flex items-center space-x-1 ml-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMagnetClick(point.id);
+                                  }}
+                                  className="text-gray-600 hover:text-blue-600 text-xs px-1 py-0.5 rounded border border-gray-200 hover:border-blue-300"
+                                  title="Cycle: Original → Edge → Corner → Original"
+                                >
+                                  <Magnet size={10} />
+                                </button>
+                                
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onPointDelete?.(point.id);
+                                  }}
+                                  className="text-gray-600 hover:text-red-600 text-xs px-1 py-0.5 rounded border border-gray-200 hover:border-red-300"
+                                >
+                                  <Trash2 size={10} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="text-xs text-gray-500">
+                              <div className="flex justify-between">
+                                <span>Grid:</span>
+                                <span className="font-mono">
+                                  ({point.coordinates.grid.x.toFixed(1)}, {point.coordinates.grid.y.toFixed(1)})
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -340,6 +397,7 @@ export function SidePanel({
           <li>• Rotate: Use top handle</li>
           <li>• Resize: Corner handles</li>
           <li>• Move: Drag inside region</li>
+          <li>• Pan: Shift + drag</li>
         </ul>
       </div>
     </div>

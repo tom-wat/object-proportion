@@ -208,7 +208,30 @@ function App() {
 
       {/* Main Content */}
       <div className="flex h-[calc(100vh-150px)]">
-        {/* Canvas Area */}
+        {/* Side Panel - moved to left */}
+        {imageLoaded && (
+          <SidePanel
+            parentRegion={analysisData.parentRegion}
+            childRegions={analysisData.childRegions}
+            onChildRegionSelect={handleChildRegionSelect}
+            onChildRegionDelete={handleChildRegionDelete}
+            onChildRegionRename={handleChildRegionRename}
+            selectedChildId={selectedChildId}
+            onParentRegionSelect={handleParentRegionSelect}
+            isParentSelected={isParentSelected}
+            points={analysisData.points}
+            selectedPointId={selectedPointId}
+            onPointSelect={handlePointSelect}
+            onPointDelete={handlePointDelete}
+            onPointRename={handlePointRename}
+            onPointSnapToEdge={handlePointSnapToEdge}
+            onPointSnapToCorner={handlePointSnapToCorner}
+            onPointRestore={handlePointRestore}
+            className="w-80 h-full overflow-y-auto"
+          />
+        )}
+
+        {/* Canvas Area - moved to right */}
         <div className="flex-1 p-4">
           {!imageLoaded ? (
             <ImageUploader
@@ -241,29 +264,6 @@ function App() {
             />
           )}
         </div>
-
-        {/* Side Panel */}
-        {imageLoaded && (
-          <SidePanel
-            parentRegion={analysisData.parentRegion}
-            childRegions={analysisData.childRegions}
-            onChildRegionSelect={handleChildRegionSelect}
-            onChildRegionDelete={handleChildRegionDelete}
-            onChildRegionRename={handleChildRegionRename}
-            selectedChildId={selectedChildId}
-            onParentRegionSelect={handleParentRegionSelect}
-            isParentSelected={isParentSelected}
-            points={analysisData.points}
-            selectedPointId={selectedPointId}
-            onPointSelect={handlePointSelect}
-            onPointDelete={handlePointDelete}
-            onPointRename={handlePointRename}
-            onPointSnapToEdge={handlePointSnapToEdge}
-            onPointSnapToCorner={handlePointSnapToCorner}
-            onPointRestore={handlePointRestore}
-            className="w-80 h-full overflow-y-auto"
-          />
-        )}
       </div>
     </div>
   );
