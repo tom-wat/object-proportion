@@ -101,7 +101,7 @@ export function SidePanel({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Decimal:</span>
-                <span className="font-mono">{parentRegion.aspectRatioDecimal.toFixed(3)}</span>
+                <span className="font-mono">{parentRegion.aspectRatioDecimal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Size:</span>
@@ -283,14 +283,14 @@ export function SidePanel({
                   <div className="flex justify-between">
                     <span>Width Ratio:</span>
                     <span className="font-mono">
-                      {(region.ratios.widthRatio * 100).toFixed(1)}%
+                      {Math.round(region.ratios.widthRatio * 100)}%
                     </span>
                   </div>
                   
                   <div className="flex justify-between">
                     <span>Height Ratio:</span>
                     <span className="font-mono">
-                      {(region.ratios.heightRatio * 100).toFixed(1)}%
+                      {Math.round(region.ratios.heightRatio * 100)}%
                     </span>
                   </div>
                   
