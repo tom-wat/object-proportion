@@ -6,6 +6,7 @@ import { SidePanel } from './components/SidePanel';
 import { useAnalysisData } from './hooks/useAnalysisData';
 import { useImageHandling } from './hooks/useImageHandling';
 import { useExport } from './hooks/useExport';
+import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { snapToNearestEdge, snapToNearestCorner, convertToPixelCoordinates } from './utils/geometry';
 
@@ -51,6 +52,7 @@ function App() {
   });
 
   const { handleExportJSON, handleExportCSV, handleExportPNG } = useExport({ analysisData, canvasRef });
+  const { exportPanelAsImage, exportSingleRegion } = usePanelExport();
 
   // Handle child region selection with deselection support
   const handleChildRegionSelect = useCallback((id: number) => {
@@ -84,6 +86,18 @@ function App() {
     setIsParentSelected(false);
     setSelectionMode('parent');
   }, [handleClearAll, setSelectedChildId, setIsParentSelected, setSelectionMode]);
+
+  const handleExportPanel = useCallback(() => {
+    exportPanelAsImage('side-panel-export', `panel-data-${Date.now()}.png`);
+  }, [exportPanelAsImage]);
+
+  const handleExportParentRegion = useCallback(() => {
+    exportSingleRegion('side-panel-export', 'parent', undefined, `parent-region-${Date.now()}.png`);
+  }, [exportSingleRegion]);
+
+  const handleExportChildRegion = useCallback((regionId: number, regionName: string) => {
+    exportSingleRegion('side-panel-export', 'child', regionId, `child-region-${regionName}-${Date.now()}.png`);
+  }, [exportSingleRegion]);
 
   // Handle point snap to nearest edge
   const handlePointSnapToEdge = useCallback((pointId: number) => {
@@ -200,6 +214,7 @@ function App() {
           onExportPNG={handleExportPNG}
           onExportJSON={handleExportJSON}
           onExportCSV={handleExportCSV}
+          onExportPanel={handleExportPanel}
           onClearAll={handleClearAllWithReset}
           hasParentRegion={!!analysisData.parentRegion}
           childCount={analysisData.childRegions.length}
@@ -227,6 +242,8 @@ function App() {
             onPointSnapToEdge={handlePointSnapToEdge}
             onPointSnapToCorner={handlePointSnapToCorner}
             onPointRestore={handlePointRestore}
+            onExportParentRegion={handleExportParentRegion}
+            onExportChildRegion={handleExportChildRegion}
             className="w-72 h-full overflow-y-auto border-r border-gray-100 p-6"
           />
         )}

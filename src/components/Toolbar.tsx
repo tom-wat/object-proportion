@@ -12,6 +12,7 @@ interface ToolbarProps {
   onExportPNG: () => void;
   onExportJSON: () => void;
   onExportCSV: () => void;
+  onExportPanel: () => void;
   onClearAll: () => void;
   hasParentRegion: boolean;
   childCount: number;
@@ -29,6 +30,7 @@ export function Toolbar({
   onExportPNG,
   onExportJSON,
   onExportCSV,
+  onExportPanel,
   onClearAll,
   hasParentRegion,
   childCount
@@ -193,6 +195,13 @@ export function Toolbar({
           {/* Right Section: Actions & Status */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
+              <button
+                onClick={onExportPanel}
+                disabled={!hasParentRegion && childCount === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+              >
+                Panel
+              </button>
               <button
                 onClick={onExportPNG}
                 disabled={!hasParentRegion && childCount === 0}

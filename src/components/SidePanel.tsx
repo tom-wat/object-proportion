@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import type { ParentRegion, ChildRegion, RegionPoint } from '../types';
 import { CoordinateDisplay } from './CoordinateDisplay';
-import { Magnet, Trash2 } from 'lucide-react';
+import { Magnet, Trash2, Download } from 'lucide-react';
 
 interface SidePanelProps {
   parentRegion: ParentRegion | null;
@@ -20,6 +20,8 @@ interface SidePanelProps {
   onPointSnapToEdge?: (id: number) => void;
   onPointSnapToCorner?: (id: number) => void;
   onPointRestore?: (id: number, coordinates: { pixel: { x: number; y: number }; grid: { x: number; y: number } }) => void;
+  onExportParentRegion?: () => void;
+  onExportChildRegion?: (regionId: number, regionName: string) => void;
   className?: string;
 }
 
@@ -40,6 +42,8 @@ export function SidePanel({
   onPointSnapToEdge,
   onPointSnapToCorner,
   onPointRestore,
+  onExportParentRegion,
+  onExportChildRegion,
   className = ''
 }: SidePanelProps) {
   const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
@@ -81,7 +85,7 @@ export function SidePanel({
     }
   };
   return (
-    <div className={`bg-gray-50 space-y-8 ${className}`}>
+    <div id="side-panel-export" className={`bg-gray-50 space-y-8 ${className}`}>
       {/* Parent Region Info */}
       <div>
         <h3 className="text-base font-semibold text-gray-800 mb-4">Parent Region</h3>
@@ -94,6 +98,21 @@ export function SidePanel({
             }`}
             onClick={onParentRegionSelect}
           >
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-800">Parent Info</h4>
+              {onExportParentRegion && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onExportParentRegion();
+                  }}
+                  className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-all flex-shrink-0"
+                  title="Export Parent Region"
+                >
+                  <Download size={14} />
+                </button>
+              )}
+            </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Ratio</span>
@@ -206,6 +225,7 @@ export function SidePanel({
             {childRegions.map((region) => (
               <div
                 key={region.id}
+                data-region-id={region.id}
                 className={`bg-white rounded-lg p-4 border cursor-pointer transition-all ${
                   selectedChildId === region.id
                     ? 'bg-green-50 ring-2 ring-green-200 border-transparent'
@@ -222,15 +242,29 @@ export function SidePanel({
                     className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-green-200 rounded-md py-1 flex-1"
                   />
                   
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChildRegionDelete(region.id);
-                    }}
-                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-all ml-2"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    {onExportChildRegion && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onExportChildRegion(region.id, region.name);
+                        }}
+                        className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-all"
+                        title={`Export ${region.name}`}
+                      >
+                        <Download size={14} />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChildRegionDelete(region.id);
+                      }}
+                      className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-sm space-y-2 text-gray-600">
@@ -378,13 +412,15 @@ export function SidePanel({
       </div>
 
       {/* Coordinate System */}
-      <CoordinateDisplay
-        parentRegion={parentRegion}
-        selectedChild={selectedChild}
-      />
+      <div className="panel-export-hide">
+        <CoordinateDisplay
+          parentRegion={parentRegion}
+          selectedChild={selectedChild}
+        />
+      </div>
 
       {/* Instructions */}
-      <div className="bg-blue-50 rounded-lg p-4">
+      <div className="panel-export-hide bg-blue-50 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-800 mb-3">Controls</h4>
         <ul className="text-sm text-blue-700 space-y-2">
           <li>• Parent: Drag to draw rectangle</li>
