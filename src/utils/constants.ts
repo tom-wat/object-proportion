@@ -14,9 +14,10 @@ export const CANVAS_CONSTANTS = {
 export const COLORS = {
   PRIMARY: '#3b82f6',
   CHILD_REGIONS: ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'],
+  CHILD: '#10b981',
   WARNING: '#f97316',
   SELECTED: '#2563eb',
-} as const;
+} as const;;
 
 export const SNAP_ANGLES = [
   0, 

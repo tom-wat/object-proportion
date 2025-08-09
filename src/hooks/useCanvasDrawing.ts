@@ -255,7 +255,7 @@ export function useCanvasDrawing() {
   }, [drawHandle, getResizeHandles]);
 
   const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings, zoom: number = 1) => {
-    const childColor = colorSettings?.childColor || COLORS.PRIMARY;
+    const childColor = colorSettings?.childColor || COLORS.CHILD;
     ctx.save();
     
     // Apply rotation if needed
