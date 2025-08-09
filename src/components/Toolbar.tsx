@@ -1,4 +1,5 @@
 import type { SelectionMode, GridSettings, ChildGridSettings, ColorSettings } from '../types';
+import { Download } from 'lucide-react';
 
 interface ToolbarProps {
   selectionMode: SelectionMode;
@@ -11,8 +12,6 @@ interface ToolbarProps {
   onColorSettingsChange: (settings: ColorSettings) => void;
   onExportPNG: () => void;
   onExportJSON: () => void;
-  onExportCSV: () => void;
-  onExportPanel: () => void;
   onClearAll: () => void;
   hasParentRegion: boolean;
   childCount: number;
@@ -29,8 +28,6 @@ export function Toolbar({
   onColorSettingsChange,
   onExportPNG,
   onExportJSON,
-  onExportCSV,
-  onExportPanel,
   onClearAll,
   hasParentRegion,
   childCount
@@ -196,32 +193,20 @@ export function Toolbar({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <button
-                onClick={onExportPanel}
-                disabled={!hasParentRegion && childCount === 0}
-                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
-              >
-                Panel
-              </button>
-              <button
                 onClick={onExportPNG}
                 disabled={!hasParentRegion && childCount === 0}
-                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
               >
+                <Download size={16} />
                 PNG
               </button>
               <button
                 onClick={onExportJSON}
                 disabled={!hasParentRegion && childCount === 0}
-                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
               >
+                <Download size={16} />
                 JSON
-              </button>
-              <button
-                onClick={onExportCSV}
-                disabled={childCount === 0}
-                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-green-50 hover:text-green-700 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
-              >
-                CSV
               </button>
               <button
                 onClick={onClearAll}

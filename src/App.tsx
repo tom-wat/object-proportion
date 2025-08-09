@@ -51,8 +51,8 @@ function App() {
     onImageInfoSet: setImageInfo
   });
 
-  const { handleExportJSON, handleExportCSV, handleExportPNG } = useExport({ analysisData, canvasRef });
-  const { exportPanelAsImage, exportSingleRegion } = usePanelExport();
+  const { handleExportJSON, handleExportPNG } = useExport({ analysisData, canvasRef });
+  const { exportSingleRegion } = usePanelExport();
 
   // Handle child region selection with deselection support
   const handleChildRegionSelect = useCallback((id: number) => {
@@ -87,9 +87,6 @@ function App() {
     setSelectionMode('parent');
   }, [handleClearAll, setSelectedChildId, setIsParentSelected, setSelectionMode]);
 
-  const handleExportPanel = useCallback(() => {
-    exportPanelAsImage('side-panel-export', `panel-data-${Date.now()}.png`);
-  }, [exportPanelAsImage]);
 
   const handleExportParentRegion = useCallback(() => {
     exportSingleRegion('side-panel-export', 'parent', undefined, `parent-region-${Date.now()}.png`);
@@ -213,8 +210,6 @@ function App() {
           onColorSettingsChange={handleColorSettingsChange}
           onExportPNG={handleExportPNG}
           onExportJSON={handleExportJSON}
-          onExportCSV={handleExportCSV}
-          onExportPanel={handleExportPanel}
           onClearAll={handleClearAllWithReset}
           hasParentRegion={!!analysisData.parentRegion}
           childCount={analysisData.childRegions.length}
