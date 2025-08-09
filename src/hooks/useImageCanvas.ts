@@ -26,6 +26,7 @@ interface UseImageCanvasProps {
   childGridSettings?: ChildGridSettings;
   externalCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
   imageRotation?: number;
+  isPanMode?: boolean;
 }
 
 export function useImageCanvas({
@@ -48,7 +49,8 @@ export function useImageCanvas({
   gridSettings,
   childGridSettings,
   externalCanvasRef,
-  imageRotation = 0
+  imageRotation = 0,
+  isPanMode = false
 }: UseImageCanvasProps) {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef = externalCanvasRef || internalCanvasRef;
@@ -118,7 +120,8 @@ export function useImageCanvas({
     onPanChange: setPan,
     getHandleAtPoint: drawing.getHandleAtPoint,
     calculateResize: drawing.calculateResize,
-    onCursorChange: handleCursorChange
+    onCursorChange: handleCursorChange,
+    isPanMode
   });
 
   useEffect(() => {

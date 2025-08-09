@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageUploader } from './components/ImageUploader';
 import { ImageCanvas } from './components/ImageCanvas';
 import { Toolbar } from './components/Toolbar';
@@ -31,7 +31,13 @@ function App() {
     handleClearAll,
     setImageInfo,
     handleImageRotationChange,
+    handleUndo,
+    handleRedo,
+    canUndo,
+    canRedo,
   } = useAnalysisData();
+
+  const [isPanMode, setIsPanMode] = useState(false);
 
   const {
     imageFile,
@@ -68,6 +74,21 @@ function App() {
     }
   }, [setSelectedChildId, setIsParentSelected, setSelectionMode, handlePointDeselect]);
 
+  // Handle mode switching with proper selection state clearing
+  const handleSelectionModeChange = useCallback((mode: 'parent' | 'child') => {
+    // Clear current selections when switching modes
+    if (mode === 'parent') {
+      // Switching to parent mode - deselect child
+      setSelectedChildId(null);
+    } else {
+      // Switching to child mode - deselect parent and points
+      setIsParentSelected(false);
+      handlePointDeselect();
+    }
+    
+    setSelectionMode(mode);
+  }, [setSelectedChildId, setIsParentSelected, handlePointDeselect, setSelectionMode]);
+
   // Keyboard shortcuts for better UX
   useKeyboardShortcuts({
     selectedChildId,
@@ -79,7 +100,8 @@ function App() {
     onPointDeselect: handlePointDeselect,
     onParentDeselect: handleParentDeselect,
     selectionMode,
-    onSelectionModeChange: setSelectionMode,
+    onSelectionModeChange: handleSelectionModeChange,
+    onPanModeChange: setIsPanMode,
     enabled: imageLoaded
   });
 
@@ -205,7 +227,7 @@ function App() {
       {imageLoaded && (
         <Toolbar
           selectionMode={selectionMode}
-          onSelectionModeChange={setSelectionMode}
+          onSelectionModeChange={handleSelectionModeChange}
           gridSettings={analysisData.gridSettings}
           onGridSettingsChange={handleGridSettingsChange}
           childGridSettings={analysisData.childGridSettings}
@@ -219,6 +241,10 @@ function App() {
           imageRotation={analysisData.imageRotation}
           onImageRotationChange={handleImageRotationChange}
           hasImage={imageLoaded}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
         />
       )}
 
@@ -272,7 +298,7 @@ function App() {
               selectedChildId={selectedChildId}
               onParentDeselect={handleParentDeselect}
               onParentSelect={handleParentRegionSelect}
-              onSelectionModeChange={setSelectionMode}
+              onSelectionModeChange={handleSelectionModeChange}
               points={analysisData.points}
               selectedPointId={selectedPointId}
               onPointAdd={handlePointAdd}
@@ -282,6 +308,7 @@ function App() {
               colorSettings={analysisData.colorSettings}
               imageRotation={analysisData.imageRotation}
               canvasRef={canvasRef}
+              isPanMode={isPanMode}
               className="h-full bg-white border border-gray-100 rounded-lg shadow-sm"
             />
           )}

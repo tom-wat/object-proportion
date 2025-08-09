@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useHistoryStack } from './useHistoryStack';
 import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, Point } from '../types';
 import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
 
@@ -233,6 +234,18 @@ export function useAnalysisData() {
     imageRotation: 0
   });
 
+  const { pushToHistory, undo, redo, canUndo, canRedo, clearHistory } = useHistoryStack();
+
+  // Helper function to update state with history
+  const updateStateWithHistory = useCallback((updater: (prev: AnalysisData) => AnalysisData, skipHistory = false) => {
+    setAnalysisData(prev => {
+      if (!skipHistory) {
+        pushToHistory(prev);
+      }
+      return updater(prev);
+    });
+  }, [pushToHistory]);
+
   const updateChildRegionData = useCallback((
     child: ChildRegion, 
     parent: ParentRegion
@@ -274,7 +287,10 @@ export function useAnalysisData() {
         aspectRatioDecimal: aspectRatio.decimal
       };
       
-      setAnalysisData(prev => {
+      updateStateWithHistory(prev => {
+        // If this is the first parent region (from empty state), 
+        // the empty state is automatically saved by updateStateWithHistory
+        
         // Update points coordinates if there was a previous parent region
         let updatedPoints = prev.points;
         if (prev.parentRegion) {
@@ -293,24 +309,24 @@ export function useAnalysisData() {
         };
       });
     } else {
-      setAnalysisData(prev => ({
+      updateStateWithHistory(prev => ({
         ...prev,
         parentRegion: null,
         childRegions: [],
         points: []
       }));
     }
-  }, [updateChildRegionData]);
+  }, [updateChildRegionData, updateStateWithHistory]);
 
   const handleParentRegionRename = useCallback((name: string) => {
-    setAnalysisData(prev => ({
+    updateStateWithHistory(prev => ({
       ...prev,
       parentRegion: prev.parentRegion ? { ...prev.parentRegion, name } : null
     }));
-  }, []);
+  }, [updateStateWithHistory]);
 
   const handleChildRegionAdd = useCallback((region: ChildRegion) => {
-    setAnalysisData(prev => {
+    updateStateWithHistory(prev => {
       if (!prev.parentRegion) return prev;
       
       const updatedRegion = updateChildRegionData(region, prev.parentRegion);
@@ -319,10 +335,10 @@ export function useAnalysisData() {
         childRegions: [...prev.childRegions, updatedRegion]
       };
     });
-  }, [updateChildRegionData]);
+  }, [updateChildRegionData, updateStateWithHistory]);
 
   const handleChildRegionChange = useCallback((region: ChildRegion) => {
-    setAnalysisData(prev => {
+    updateStateWithHistory(prev => {
       if (!prev.parentRegion) return prev;
       
       const updatedRegion = updateChildRegionData(region, prev.parentRegion);
@@ -348,24 +364,24 @@ export function useAnalysisData() {
         points: updatedPoints
       };
     });
-  }, [updateChildRegionData]);
+  }, [updateChildRegionData, updateStateWithHistory]);
 
   const handleChildRegionDelete = useCallback((id: number) => {
-    setAnalysisData(prev => ({
+    updateStateWithHistory(prev => ({
       ...prev,
       childRegions: prev.childRegions.filter(child => child.id !== id),
       points: prev.points.filter(point => point.parentRegionId !== id) // Remove points that belonged to this child region
     }));
-  }, []);
+  }, [updateStateWithHistory]);
 
   const handleChildRegionRename = useCallback((id: number, name: string) => {
-    setAnalysisData(prev => ({
+    updateStateWithHistory(prev => ({
       ...prev,
       childRegions: prev.childRegions.map(child => 
         child.id === id ? { ...child, name } : child
       )
     }));
-  }, []);
+  }, [updateStateWithHistory]);
 
   const handleGridSettingsChange = useCallback((settings: GridSettings) => {
     setAnalysisData(prev => ({
@@ -392,7 +408,7 @@ export function useAnalysisData() {
   }, []);
 
   const handlePointAdd = useCallback((point: Omit<RegionPoint, 'id'>) => {
-    setAnalysisData(prev => {
+    updateStateWithHistory(prev => {
       const newId = Math.max(0, ...prev.points.map(p => p.id)) + 1;
       const pointName = point.name || `Point ${newId}`; // Use sequential ID for naming
       return {
@@ -400,43 +416,44 @@ export function useAnalysisData() {
         points: [...prev.points, { ...point, id: newId, name: pointName }]
       };
     });
-  }, []);
+  }, [updateStateWithHistory]);
 
   const handlePointDelete = useCallback((id: number) => {
-    setAnalysisData(prev => ({
+    updateStateWithHistory(prev => ({
       ...prev,
       points: prev.points.filter(point => point.id !== id)
     }));
-  }, []);
+  }, [updateStateWithHistory]);
 
   const handlePointRename = useCallback((id: number, name: string) => {
-    setAnalysisData(prev => ({
+    updateStateWithHistory(prev => ({
       ...prev,
       points: prev.points.map(point => 
         point.id === id ? { ...point, name } : point
       )
     }));
-  }, []);
+  }, [updateStateWithHistory]);
 
   const handlePointUpdate = useCallback((id: number, newCoordinates: { pixel: Point; grid: Point }) => {
-    setAnalysisData(prev => ({
+    updateStateWithHistory(prev => ({
       ...prev,
       points: prev.points.map(point => 
         point.id === id ? { ...point, coordinates: newCoordinates } : point
       )
     }));
-  }, []);
+  }, [updateStateWithHistory]);
 
   const handleClearAll = useCallback(() => {
-    setAnalysisData(prev => ({
+    updateStateWithHistory(prev => ({
       ...prev,
       parentRegion: null,
       childRegions: [],
       points: [] // Clear all points when clearing all regions
     }));
-  }, []);
+  }, [updateStateWithHistory]);
 
   const setImageInfo = useCallback((imageInfo: AnalysisData['imageInfo']) => {
+    clearHistory(); // Clear history when loading new image
     setAnalysisData(prev => ({
       ...prev,
       imageInfo,
@@ -444,9 +461,10 @@ export function useAnalysisData() {
       childRegions: [],
       points: [] // Clear all points when new image is loaded
     }));
-  }, []);
+  }, [clearHistory]);
 
   const handleImageRotationChange = useCallback((rotation: number) => {
+    clearHistory(); // Clear history when rotating image
     setAnalysisData(prev => ({
       ...prev,
       imageRotation: rotation,
@@ -454,7 +472,24 @@ export function useAnalysisData() {
       childRegions: [],
       points: []
     }));
-  }, []);
+  }, [clearHistory]);
+
+  // Undo/Redo functions
+  const handleUndo = useCallback(() => {
+    const previousState = undo(analysisData);
+    if (previousState) {
+      // Use direct setAnalysisData to avoid adding undo operation to history
+      setAnalysisData(previousState);
+    }
+  }, [undo, analysisData]);
+
+  const handleRedo = useCallback(() => {
+    const nextState = redo(analysisData);
+    if (nextState) {
+      // Use direct setAnalysisData to avoid adding redo operation to history
+      setAnalysisData(nextState);
+    }
+  }, [redo, analysisData]);
 
   return {
     analysisData,
@@ -474,5 +509,9 @@ export function useAnalysisData() {
     handleClearAll,
     setImageInfo,
     handleImageRotationChange,
+    handleUndo,
+    handleRedo,
+    canUndo,
+    canRedo,
   };
 }

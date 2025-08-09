@@ -25,6 +25,7 @@ interface UseCanvasInteractionProps {
   getHandleAtPoint?: (point: { x: number; y: number }, region: { x: number; y: number; width: number; height: number }, zoom?: number, rotation?: number) => ResizeHandleInfo | null;
   calculateResize?: (originalRegion: { x: number; y: number; width: number; height: number }, handleType: ResizeHandle, deltaX: number, deltaY: number, minWidth?: number, minHeight?: number, rotation?: number) => { x: number; y: number; width: number; height: number };
   onCursorChange?: (cursor: string) => void;
+  isPanMode?: boolean;
 }
 
 export function useCanvasInteraction({
@@ -48,7 +49,8 @@ export function useCanvasInteraction({
   onPanChange,
   getHandleAtPoint,
   calculateResize,
-  onCursorChange
+  onCursorChange,
+  isPanMode = false
 }: UseCanvasInteractionProps) {
   const isDrawingRef = useRef(false);
   const startPointRef = useRef<Point>({ x: 0, y: 0 });
@@ -88,6 +90,12 @@ export function useCanvasInteraction({
 
   const updateCursor = useCallback((point: Point) => {
     if (!onCursorChange) return;
+    
+    // Pan mode takes priority
+    if (isPanMode) {
+      onCursorChange('grab');
+      return;
+    }
     
     let cursor = 'crosshair'; // default cursor
     
@@ -213,7 +221,7 @@ export function useCanvasInteraction({
     }
     
     onCursorChange(cursor);
-  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, onCursorChange, isParentSelected, zoom]);
+  }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, onCursorChange, isParentSelected, zoom, isPanMode]);
 
   const handleMouseDown = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     
@@ -221,8 +229,8 @@ export function useCanvasInteraction({
     isDrawingRef.current = true;
     startPointRef.current = point;
 
-    // Check for Shift+drag pan mode
-    if (event.shiftKey) {
+    // Check for Space+drag pan mode
+    if (isPanMode) {
       dragTypeRef.current = 'pan';
       // Store initial screen point for pan calculations
       const rect = canvas.getBoundingClientRect();
@@ -439,7 +447,7 @@ export function useCanvasInteraction({
     }
     
     dragTypeRef.current = 'new';
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect, isPanMode]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);

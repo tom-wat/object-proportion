@@ -1,6 +1,6 @@
 import type { SelectionMode, GridSettings, ChildGridSettings, ColorSettings } from '../types';
 
-import { Download } from 'lucide-react';
+import { Download, Undo, Redo } from 'lucide-react';
 
 interface ToolbarProps {
   selectionMode: SelectionMode;
@@ -18,6 +18,10 @@ interface ToolbarProps {
   imageRotation: number;
   onImageRotationChange: (rotation: number) => void;
   hasImage: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 export function Toolbar({
@@ -35,7 +39,11 @@ export function Toolbar({
   childCount,
   imageRotation,
   onImageRotationChange,
-  hasImage
+  hasImage,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo
 }: ToolbarProps) {
   return (
     <div className="bg-white border-b border-gray-100">
@@ -240,6 +248,26 @@ export function Toolbar({
               </div>
             )}
             
+            {/* Undo/Redo Buttons */}
+            <div className="flex items-center gap-1 border-r border-gray-200 pr-4">
+              <button
+                onClick={onUndo}
+                disabled={!canUndo}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed rounded transition-all"
+                title="Undo"
+              >
+                <Undo size={16} />
+              </button>
+              <button
+                onClick={onRedo}
+                disabled={!canRedo}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed rounded transition-all"
+                title="Redo"
+              >
+                <Redo size={16} />
+              </button>
+            </div>
+
             <div className="flex items-center gap-2">
               <button
                 onClick={onExportPNG}
@@ -259,9 +287,7 @@ export function Toolbar({
               </button>
             </div>
             
-            <div className="text-sm text-gray-400 border-l border-gray-200 pl-4">
-              {hasParentRegion ? '1' : '0'} parent • {childCount} children
-            </div>
+
           </div>
         </div>
       </div>

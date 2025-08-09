@@ -11,6 +11,7 @@ interface UseKeyboardShortcutsProps {
   onParentDeselect?: () => void;
   selectionMode?: 'parent' | 'child';
   onSelectionModeChange?: (mode: 'parent' | 'child') => void;
+  onPanModeChange?: (isPanMode: boolean) => void;
   enabled?: boolean;
 }
 
@@ -25,6 +26,7 @@ export function useKeyboardShortcuts({
   onParentDeselect,
   selectionMode,
   onSelectionModeChange,
+  onPanModeChange,
   enabled = true
 }: UseKeyboardShortcutsProps) {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -42,6 +44,13 @@ export function useKeyboardShortcuts({
 
     switch (event.key) {
       case ' ': // Spacebar
+        // Prevent page scrolling and other space behaviors
+        event.preventDefault();
+        if (onPanModeChange) {
+          onPanModeChange(true);
+        }
+        break;
+      case 'Shift':
         event.preventDefault();
         if (selectionMode && onSelectionModeChange) {
           // Toggle between parent and child modes
@@ -75,16 +84,30 @@ export function useKeyboardShortcuts({
         }
         break;
     }
-  }, [enabled, selectedChildId, selectedPointId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onPointDelete, onPointDeselect, onParentDeselect, selectionMode, onSelectionModeChange]);
+  }, [enabled, selectedChildId, selectedPointId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onPointDelete, onPointDeselect, onParentDeselect, selectionMode, onSelectionModeChange, onPanModeChange]);
+
+  const handleKeyUp = useCallback((event: KeyboardEvent) => {
+    if (!enabled) return;
+
+    switch (event.key) {
+      case ' ': // Spacebar
+        if (onPanModeChange) {
+          onPanModeChange(false);
+        }
+        break;
+    }
+  }, [enabled, onPanModeChange]);
 
   useEffect(() => {
     if (!enabled) return;
 
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleKeyDown, enabled]);
+  }, [handleKeyDown, handleKeyUp, enabled]);
 
   return {
     // Could expose additional shortcut info here if needed
