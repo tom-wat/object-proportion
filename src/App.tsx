@@ -78,6 +78,8 @@ function App() {
     onPointDelete: handlePointDelete,
     onPointDeselect: handlePointDeselect,
     onParentDeselect: handleParentDeselect,
+    selectionMode,
+    onSelectionModeChange: setSelectionMode,
     enabled: imageLoaded
   });
 

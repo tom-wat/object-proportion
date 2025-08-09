@@ -9,6 +9,8 @@ interface UseKeyboardShortcutsProps {
   onPointDelete?: (id: number) => void;
   onPointDeselect?: () => void;
   onParentDeselect?: () => void;
+  selectionMode?: 'parent' | 'child';
+  onSelectionModeChange?: (mode: 'parent' | 'child') => void;
   enabled?: boolean;
 }
 
@@ -21,6 +23,8 @@ export function useKeyboardShortcuts({
   onPointDelete,
   onPointDeselect,
   onParentDeselect,
+  selectionMode,
+  onSelectionModeChange,
   enabled = true
 }: UseKeyboardShortcutsProps) {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -37,6 +41,14 @@ export function useKeyboardShortcuts({
     }
 
     switch (event.key) {
+      case ' ': // Spacebar
+        event.preventDefault();
+        if (selectionMode && onSelectionModeChange) {
+          // Toggle between parent and child modes
+          const newMode = selectionMode === 'parent' ? 'child' : 'parent';
+          onSelectionModeChange(newMode);
+        }
+        break;
       case 'Delete':
       case 'Backspace':
         if (selectedPointId !== null && selectedPointId !== undefined && onPointDelete) {
@@ -63,7 +75,7 @@ export function useKeyboardShortcuts({
         }
         break;
     }
-  }, [enabled, selectedChildId, selectedPointId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onPointDelete, onPointDeselect, onParentDeselect]);
+  }, [enabled, selectedChildId, selectedPointId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onPointDelete, onPointDeselect, onParentDeselect, selectionMode, onSelectionModeChange]);
 
   useEffect(() => {
     if (!enabled) return;
