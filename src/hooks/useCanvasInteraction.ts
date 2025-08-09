@@ -75,9 +75,12 @@ export function useCanvasInteraction({
     const canvasX = screenX * scaleX;
     const canvasY = screenY * scaleY;
     
-    // Apply inverse zoom and pan transformations
+    // Apply inverse zoom and pan transformations only
     const x = (canvasX - pan.x) / zoom;
     const y = (canvasY - pan.y) / zoom;
+    
+    // Don't apply rotation transformation for mouse coordinates
+    // This keeps region creation coordinates aligned with visual display
     
     return { x, y };
   }, [zoom, pan]);

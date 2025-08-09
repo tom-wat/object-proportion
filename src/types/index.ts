@@ -11,6 +11,7 @@ export interface Size {
 export interface Bounds extends Point, Size {}
 
 export interface ParentRegion extends Bounds {
+  name?: string;
   rotation: number;
   aspectRatio: string;
   aspectRatioDecimal: number;
@@ -81,6 +82,7 @@ export interface AnalysisData {
     height: number;
     name: string;
   } | null;
+  imageRotation: number; // Rotation angle in radians (0, π/2, π, 3π/2)
 }
 
 export type SelectionMode = 'parent' | 'child';

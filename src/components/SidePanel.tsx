@@ -11,6 +11,7 @@ interface SidePanelProps {
   onChildRegionRename: (id: number, name: string) => void;
   selectedChildId: number | null;
   onParentRegionSelect?: () => void;
+  onParentRegionRename?: (name: string) => void;
   isParentSelected?: boolean;
   points: RegionPoint[];
   selectedPointId?: number | null;
@@ -22,6 +23,7 @@ interface SidePanelProps {
   onPointRestore?: (id: number, coordinates: { pixel: { x: number; y: number }; grid: { x: number; y: number } }) => void;
   onExportParentRegion?: () => void;
   onExportChildRegion?: (regionId: number, regionName: string) => void;
+  onClearAll?: () => void;
   className?: string;
 }
 
@@ -33,6 +35,7 @@ export function SidePanel({
   onChildRegionRename,
   selectedChildId,
   onParentRegionSelect,
+  onParentRegionRename,
   isParentSelected,
   points,
   selectedPointId,
@@ -44,6 +47,7 @@ export function SidePanel({
   onPointRestore,
   onExportParentRegion,
   onExportChildRegion,
+  onClearAll,
   className = ''
 }: SidePanelProps) {
   const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
@@ -84,6 +88,7 @@ export function SidePanel({
         break;
     }
   };
+
   return (
     <div id="side-panel-export" className={`bg-gray-50 space-y-8 ${className}`}>
       {/* Parent Region Info */}
@@ -99,19 +104,39 @@ export function SidePanel({
             onClick={onParentRegionSelect}
           >
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-gray-800">Parent Info</h4>
-              {onExportParentRegion && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onExportParentRegion();
-                  }}
-                  className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-all flex-shrink-0"
-                  title="Export Parent Region"
-                >
-                  <Download size={14} />
-                </button>
-              )}
+              <input
+                type="text"
+                value={parentRegion.name || "Parent Info"}
+                onChange={(e) => onParentRegionRename?.(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 rounded-md py-1 flex-1"
+              />
+              <div className="flex items-center gap-1 ml-1">
+                {onExportParentRegion && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onExportParentRegion();
+                    }}
+                    className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-all flex-shrink-0"
+                    title="Export Parent Region"
+                  >
+                    <Download size={14} />
+                  </button>
+                )}
+                {onClearAll && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClearAll();
+                    }}
+                    className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-all flex-shrink-0"
+                    title="Clear All Regions"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
@@ -167,7 +192,7 @@ export function SidePanel({
                             className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 rounded-md py-1 flex-1 min-w-0"
                           />
                           
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1 ml-1 flex-shrink-0">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -213,7 +238,6 @@ export function SidePanel({
         )}
       </div>
 
-
       {/* Child Regions List */}
       <div>
         <h3 className="text-base font-semibold text-gray-800 mb-4">
@@ -242,7 +266,7 @@ export function SidePanel({
                     className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-green-200 rounded-md py-1 flex-1"
                   />
                   
-                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                  <div className="flex items-center gap-1 ml-1 flex-shrink-0">
                     {onExportChildRegion && (
                       <button
                         onClick={(e) => {
@@ -363,7 +387,7 @@ export function SidePanel({
                                 className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 rounded-md py-1 flex-1 min-w-0"
                               />
                               
-                              <div className="flex items-center gap-1 flex-shrink-0">
+                              <div className="flex items-center gap-1 ml-1 flex-shrink-0">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();

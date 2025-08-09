@@ -16,6 +16,7 @@ function App() {
   const {
     analysisData,
     handleParentRegionChange,
+    handleParentRegionRename,
     handleChildRegionAdd,
     handleChildRegionChange,
     handleChildRegionDelete,
@@ -29,6 +30,7 @@ function App() {
     handlePointUpdate,
     handleClearAll,
     setImageInfo,
+    handleImageRotationChange,
   } = useAnalysisData();
 
   const {
@@ -210,9 +212,11 @@ function App() {
           onColorSettingsChange={handleColorSettingsChange}
           onExportPNG={handleExportPNG}
           onExportJSON={handleExportJSON}
-          onClearAll={handleClearAllWithReset}
           hasParentRegion={!!analysisData.parentRegion}
           childCount={analysisData.childRegions.length}
+          imageRotation={analysisData.imageRotation}
+          onImageRotationChange={handleImageRotationChange}
+          hasImage={imageLoaded}
         />
       )}
 
@@ -228,6 +232,7 @@ function App() {
             onChildRegionRename={handleChildRegionRename}
             selectedChildId={selectedChildId}
             onParentRegionSelect={handleParentRegionSelect}
+            onParentRegionRename={handleParentRegionRename}
             isParentSelected={isParentSelected}
             points={analysisData.points}
             selectedPointId={selectedPointId}
@@ -239,6 +244,7 @@ function App() {
             onPointRestore={handlePointRestore}
             onExportParentRegion={handleExportParentRegion}
             onExportChildRegion={handleExportChildRegion}
+            onClearAll={handleClearAllWithReset}
             className="w-72 h-full overflow-y-auto border-r border-gray-100 p-6"
           />
         )}
@@ -272,6 +278,7 @@ function App() {
               cachedImage={cachedImage}
               isParentSelected={isParentSelected}
               colorSettings={analysisData.colorSettings}
+              imageRotation={analysisData.imageRotation}
               canvasRef={canvasRef}
               className="h-full bg-white border border-gray-100 rounded-lg shadow-sm"
             />

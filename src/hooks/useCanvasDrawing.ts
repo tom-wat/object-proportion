@@ -4,8 +4,15 @@ import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
 
 export function useCanvasDrawing() {
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const imageDrawInfoRef = useRef<{
+    offsetX: number;
+    offsetY: number;
+    drawWidth: number;
+    drawHeight: number;
+    rotation: number;
+  } | null>(null);
 
-  const drawImage = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  const drawImage = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, imageRotation: number = 0) => {
     const img = imageRef.current;
     
     if (!img || !img.complete || img.naturalWidth === 0) {
@@ -13,6 +20,8 @@ export function useCanvasDrawing() {
     }
     
     try {
+      ctx.save();
+      
       // Calculate image scaling to fit canvas while maintaining aspect ratio
       const imgAspect = img.naturalWidth / img.naturalHeight;
       const canvasAspect = canvas.width / canvas.height;
@@ -33,8 +42,28 @@ export function useCanvasDrawing() {
         offsetY = (canvas.height - drawHeight) / 2;
       }
       
-      // Center the image in the canvas
+      // Simple rotation: just rotate the canvas context without changing coordinate system
+      if (imageRotation !== 0) {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        ctx.translate(centerX, centerY);
+        ctx.rotate(imageRotation);
+        ctx.translate(-centerX, -centerY);
+      }
+      
+      // Draw the image
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      
+      // Store image draw information for coordinate transformations
+      imageDrawInfoRef.current = {
+        offsetX,
+        offsetY,
+        drawWidth,
+        drawHeight,
+        rotation: imageRotation
+      };
+      
+      ctx.restore();
     } catch (error) {
       console.error('Error drawing image:', error);
     }
@@ -250,6 +279,12 @@ export function useCanvasDrawing() {
       ctx.lineTo(region.x + region.width/2, rotationHandleY);
       ctx.stroke();
     }
+
+    // Draw parent region name (similar to child regions)
+    ctx.fillStyle = isSelected ? COLORS.SELECTED : parentColor;
+    ctx.font = `${CANVAS_CONSTANTS.FONT_SIZE / zoom}px ${CANVAS_CONSTANTS.FONT_FAMILY}`;
+    const regionName = region.name || "Parent Region";
+    ctx.fillText(regionName, region.x, region.y - 5 / zoom);
 
     ctx.restore();
   }, [drawHandle, getResizeHandles]);
@@ -526,7 +561,8 @@ export function useCanvasDrawing() {
     childGridSettings?: { visible: boolean },
     isParentSelected: boolean = false,
     points: RegionPoint[] = [],
-    selectedPointId: number | null = null
+    selectedPointId: number | null = null,
+    imageRotation: number = 0
   ) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -542,7 +578,7 @@ export function useCanvasDrawing() {
     ctx.scale(zoom, zoom);
 
     // Draw image first
-    drawImage(ctx, canvas);
+    drawImage(ctx, canvas, imageRotation);
     
     // Draw grid second (behind frames)
     if (gridSettings?.visible && parentRegion && colorSettings?.gridColor && (colorSettings.gridOpacity || 0) > 0) {

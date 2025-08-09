@@ -229,7 +229,8 @@ export function useAnalysisData() {
       childGridColor: '#ffffff',
       childGridOpacity: 0.3
     },
-    imageInfo: null
+    imageInfo: null,
+    imageRotation: 0
   });
 
   const updateChildRegionData = useCallback((
@@ -260,7 +261,6 @@ export function useAnalysisData() {
       gridDimensions
     };
 
-
     return updatedChild;
   }, []);
 
@@ -269,6 +269,7 @@ export function useAnalysisData() {
       const aspectRatio = calculateAspectRatio(region.width, region.height);
       const updatedRegion = {
         ...region,
+        name: region.name || "Parent Region",
         aspectRatio: aspectRatio.ratio,
         aspectRatioDecimal: aspectRatio.decimal
       };
@@ -300,6 +301,13 @@ export function useAnalysisData() {
       }));
     }
   }, [updateChildRegionData]);
+
+  const handleParentRegionRename = useCallback((name: string) => {
+    setAnalysisData(prev => ({
+      ...prev,
+      parentRegion: prev.parentRegion ? { ...prev.parentRegion, name } : null
+    }));
+  }, []);
 
   const handleChildRegionAdd = useCallback((region: ChildRegion) => {
     setAnalysisData(prev => {
@@ -383,8 +391,6 @@ export function useAnalysisData() {
     }));
   }, []);
 
-
-
   const handlePointAdd = useCallback((point: Omit<RegionPoint, 'id'>) => {
     setAnalysisData(prev => {
       const newId = Math.max(0, ...prev.points.map(p => p.id)) + 1;
@@ -440,9 +446,20 @@ export function useAnalysisData() {
     }));
   }, []);
 
+  const handleImageRotationChange = useCallback((rotation: number) => {
+    setAnalysisData(prev => ({
+      ...prev,
+      imageRotation: rotation,
+      parentRegion: null, // Clear regions when rotating image
+      childRegions: [],
+      points: []
+    }));
+  }, []);
+
   return {
     analysisData,
     handleParentRegionChange,
+    handleParentRegionRename,
     handleChildRegionAdd,
     handleChildRegionChange,
     handleChildRegionDelete,
@@ -456,5 +473,6 @@ export function useAnalysisData() {
     handlePointUpdate,
     handleClearAll,
     setImageInfo,
+    handleImageRotationChange,
   };
 }

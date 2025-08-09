@@ -26,6 +26,7 @@ interface ImageCanvasProps {
   isParentSelected?: boolean;
   className?: string;
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
+  imageRotation?: number;
 }
 
 export function ImageCanvas({
@@ -50,7 +51,8 @@ export function ImageCanvas({
   cachedImage,
   isParentSelected,
   className = '',
-  canvasRef: externalCanvasRef
+  canvasRef: externalCanvasRef,
+  imageRotation = 0
 }: ImageCanvasProps) {
   
   const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
@@ -72,7 +74,8 @@ export function ImageCanvas({
     colorSettings,
     gridSettings,
     childGridSettings,
-    externalCanvasRef
+    externalCanvasRef,
+    imageRotation
   });
 
   React.useEffect(() => {
