@@ -249,22 +249,22 @@ export function Toolbar({
             )}
             
             {/* Undo/Redo Buttons */}
-            <div className="flex items-center gap-1 border-r border-gray-200 pr-4">
+            <div className="flex items-center gap-2">
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed rounded transition-all"
-                title="Undo"
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
               >
                 <Undo size={16} />
+                Undo
               </button>
               <button
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed rounded transition-all"
-                title="Redo"
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
               >
                 <Redo size={16} />
+                Redo
               </button>
             </div>
 
