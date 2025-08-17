@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useHistoryStack } from './useHistoryStack';
+import { useHistory } from './useHistory';
 import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, Point } from '../types';
 import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
 
@@ -234,17 +234,34 @@ export function useAnalysisData() {
     imageRotation: 0
   });
 
-  const { pushToHistory, undo, redo, canUndo, canRedo, clearHistory } = useHistoryStack();
+  const { 
+    undo, 
+    redo, 
+    canUndo, 
+    canRedo, 
+    clearHistory, 
+    recordImmediately, 
+    recordWithDebounce,
+    commitPending 
+  } = useHistory();
 
-  // Helper function to update state with history
+  // Helper function to update state with immediate history recording
   const updateStateWithHistory = useCallback((updater: (prev: AnalysisData) => AnalysisData, skipHistory = false) => {
     setAnalysisData(prev => {
       if (!skipHistory) {
-        pushToHistory(prev);
+        recordImmediately(prev);
       }
       return updater(prev);
     });
-  }, [pushToHistory]);
+  }, [recordImmediately]);
+
+  // Helper function to update state with debounced history recording (for continuous operations)
+  const updateStateWithDebouncedHistory = useCallback((updater: (prev: AnalysisData) => AnalysisData) => {
+    setAnalysisData(prev => {
+      recordWithDebounce(prev);
+      return updater(prev);
+    });
+  }, [recordWithDebounce]);
 
   const updateChildRegionData = useCallback((
     child: ChildRegion, 
@@ -287,9 +304,9 @@ export function useAnalysisData() {
         aspectRatioDecimal: aspectRatio.decimal
       };
       
-      updateStateWithHistory(prev => {
+      updateStateWithDebouncedHistory(prev => {
         // If this is the first parent region (from empty state), 
-        // the empty state is automatically saved by updateStateWithHistory
+        // the empty state is automatically saved by updateStateWithDebouncedHistory
         
         // Update points coordinates if there was a previous parent region
         let updatedPoints = prev.points;
@@ -316,7 +333,7 @@ export function useAnalysisData() {
         points: []
       }));
     }
-  }, [updateChildRegionData, updateStateWithHistory]);
+  }, [updateChildRegionData, updateStateWithHistory, updateStateWithDebouncedHistory]);
 
   const handleParentRegionRename = useCallback((name: string) => {
     updateStateWithHistory(prev => ({
@@ -338,7 +355,7 @@ export function useAnalysisData() {
   }, [updateChildRegionData, updateStateWithHistory]);
 
   const handleChildRegionChange = useCallback((region: ChildRegion) => {
-    updateStateWithHistory(prev => {
+    updateStateWithDebouncedHistory(prev => {
       if (!prev.parentRegion) return prev;
       
       const updatedRegion = updateChildRegionData(region, prev.parentRegion);
@@ -364,7 +381,7 @@ export function useAnalysisData() {
         points: updatedPoints
       };
     });
-  }, [updateChildRegionData, updateStateWithHistory]);
+  }, [updateChildRegionData, updateStateWithDebouncedHistory]);
 
   const handleChildRegionDelete = useCallback((id: number) => {
     updateStateWithHistory(prev => ({
@@ -453,6 +470,7 @@ export function useAnalysisData() {
   }, [updateStateWithHistory]);
 
   const setImageInfo = useCallback((imageInfo: AnalysisData['imageInfo']) => {
+    commitPending(); // Commit any pending debounced history
     clearHistory(); // Clear history when loading new image
     setAnalysisData(prev => ({
       ...prev,
@@ -461,9 +479,10 @@ export function useAnalysisData() {
       childRegions: [],
       points: [] // Clear all points when new image is loaded
     }));
-  }, [clearHistory]);
+  }, [commitPending, clearHistory]);
 
   const handleImageRotationChange = useCallback((rotation: number) => {
+    commitPending(); // Commit any pending debounced history
     clearHistory(); // Clear history when rotating image
     setAnalysisData(prev => ({
       ...prev,
@@ -472,24 +491,26 @@ export function useAnalysisData() {
       childRegions: [],
       points: []
     }));
-  }, [clearHistory]);
+  }, [commitPending, clearHistory]);
 
   // Undo/Redo functions
   const handleUndo = useCallback(() => {
+    commitPending(); // Commit any pending history before undo
     const previousState = undo(analysisData);
     if (previousState) {
       // Use direct setAnalysisData to avoid adding undo operation to history
       setAnalysisData(previousState);
     }
-  }, [undo, analysisData]);
+  }, [commitPending, undo, analysisData]);
 
   const handleRedo = useCallback(() => {
+    commitPending(); // Commit any pending history before redo
     const nextState = redo(analysisData);
     if (nextState) {
       // Use direct setAnalysisData to avoid adding redo operation to history
       setAnalysisData(nextState);
     }
-  }, [redo, analysisData]);
+  }, [commitPending, redo, analysisData]);
 
   return {
     analysisData,
