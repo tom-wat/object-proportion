@@ -392,11 +392,23 @@ export function useCanvasDrawing() {
     const gridColorWithOpacity = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
     
     ctx.strokeStyle = gridColorWithOpacity;
-    ctx.lineWidth = 0.5 / zoom;
 
     // Draw vertical lines
     for (let i = 0; i <= gridSize; i++) {
       const x = childRegion.bounds.x + i * cellWidth;
+      
+      // Set line width based on grid division
+      if (i % 8 === 0) {
+        // Center lines (every 8th line) - thickest
+        ctx.lineWidth = 1.5 / zoom;
+      } else if (i % 4 === 0) {
+        // 4x4 division lines (every 4th line) - medium thickness
+        ctx.lineWidth = 1.0 / zoom;
+      } else {
+        // Regular grid lines - thin
+        ctx.lineWidth = 0.5 / zoom;
+      }
+      
       ctx.beginPath();
       ctx.moveTo(x, childRegion.bounds.y);
       ctx.lineTo(x, childRegion.bounds.y + childRegion.bounds.height);
@@ -406,29 +418,26 @@ export function useCanvasDrawing() {
     // Draw horizontal lines
     for (let i = 0; i <= gridSize; i++) {
       const y = childRegion.bounds.y + i * cellHeight;
+      
+      // Set line width based on grid division
+      if (i % 8 === 0) {
+        // Center lines (every 8th line) - thickest
+        ctx.lineWidth = 1.5 / zoom;
+      } else if (i % 4 === 0) {
+        // 4x4 division lines (every 4th line) - medium thickness
+        ctx.lineWidth = 1.0 / zoom;
+      } else {
+        // Regular grid lines - thin
+        ctx.lineWidth = 0.5 / zoom;
+      }
+      
       ctx.beginPath();
       ctx.moveTo(childRegion.bounds.x, y);
       ctx.lineTo(childRegion.bounds.x + childRegion.bounds.width, y);
       ctx.stroke();
     }
 
-    // Draw center axes
-    ctx.lineWidth = 1.0 / zoom;
-    
-    const centerX = childRegion.bounds.x + childRegion.bounds.width / 2;
-    const centerY = childRegion.bounds.y + childRegion.bounds.height / 2;
-    
-    // Vertical center line
-    ctx.beginPath();
-    ctx.moveTo(centerX, childRegion.bounds.y);
-    ctx.lineTo(centerX, childRegion.bounds.y + childRegion.bounds.height);
-    ctx.stroke();
-    
-    // Horizontal center line
-    ctx.beginPath();
-    ctx.moveTo(childRegion.bounds.x, centerY);
-    ctx.lineTo(childRegion.bounds.x + childRegion.bounds.width, centerY);
-    ctx.stroke();
+    // Center axes are now drawn as part of the main grid loop above
 
     ctx.restore();
   }, []);
@@ -471,11 +480,23 @@ export function useCanvasDrawing() {
     const gridColorWithOpacity = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
     
     ctx.strokeStyle = gridColorWithOpacity;
-    ctx.lineWidth = 0.5 / zoom; // Adjust line width for zoom
 
     // Draw vertical lines
     for (let i = 0; i <= gridSize; i++) {
       const x = parentRegion.x + i * cellWidth;
+      
+      // Set line width based on grid division
+      if (i % 8 === 0) {
+        // Center lines (every 8th line) - thickest
+        ctx.lineWidth = 1.5 / zoom;
+      } else if (i % 4 === 0) {
+        // 4x4 division lines (every 4th line) - medium thickness
+        ctx.lineWidth = 1.0 / zoom;
+      } else {
+        // Regular grid lines - thin
+        ctx.lineWidth = 0.5 / zoom;
+      }
+      
       ctx.beginPath();
       ctx.moveTo(x, parentRegion.y);
       ctx.lineTo(x, parentRegion.y + parentRegion.height);
@@ -485,30 +506,26 @@ export function useCanvasDrawing() {
     // Draw horizontal lines
     for (let i = 0; i <= gridSize; i++) {
       const y = parentRegion.y + i * cellHeight;
+      
+      // Set line width based on grid division
+      if (i % 8 === 0) {
+        // Center lines (every 8th line) - thickest
+        ctx.lineWidth = 1.5 / zoom;
+      } else if (i % 4 === 0) {
+        // 4x4 division lines (every 4th line) - medium thickness
+        ctx.lineWidth = 1.0 / zoom;
+      } else {
+        // Regular grid lines - thin
+        ctx.lineWidth = 0.5 / zoom;
+      }
+      
       ctx.beginPath();
       ctx.moveTo(parentRegion.x, y);
       ctx.lineTo(parentRegion.x + parentRegion.width, y);
       ctx.stroke();
     }
 
-    // Draw center axes
-    ctx.strokeStyle = gridColorWithOpacity;
-    ctx.lineWidth = 1.5 / zoom;
-    
-    const centerX = parentRegion.x + parentRegion.width / 2;
-    const centerY = parentRegion.y + parentRegion.height / 2;
-    
-    // Vertical center line
-    ctx.beginPath();
-    ctx.moveTo(centerX, parentRegion.y);
-    ctx.lineTo(centerX, parentRegion.y + parentRegion.height);
-    ctx.stroke();
-    
-    // Horizontal center line
-    ctx.beginPath();
-    ctx.moveTo(parentRegion.x, centerY);
-    ctx.lineTo(parentRegion.x + parentRegion.width, centerY);
-    ctx.stroke();
+    // Center axes are now drawn as part of the main grid loop above
 
     ctx.restore();
   }, []);
