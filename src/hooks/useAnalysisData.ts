@@ -565,6 +565,98 @@ export function useAnalysisData() {
     });
   }, [updateStateWithHistory]);
 
+  // Fit child region height to image height
+  const handleFitChildHeightToImage = useCallback((childId: number, canvasRef: React.RefObject<HTMLCanvasElement | null>) => {
+    updateStateWithHistory(prev => {
+      if (!prev.imageInfo || !prev.parentRegion) return prev;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return prev;
+
+      const child = prev.childRegions.find(c => c.id === childId);
+      if (!child) return prev;
+
+      // Calculate actual drawn image dimensions
+      const imgAspect = prev.imageInfo.width / prev.imageInfo.height;
+      const canvasAspect = canvas.width / canvas.height;
+
+      let drawHeight, offsetY;
+
+      if (imgAspect > canvasAspect) {
+        const drawWidth = canvas.width * 0.95;
+        drawHeight = drawWidth / imgAspect;
+        offsetY = (canvas.height - drawHeight) / 2;
+      } else {
+        drawHeight = canvas.height * 0.95;
+        offsetY = (canvas.height - drawHeight) / 2;
+      }
+
+      // Update child region bounds
+      const childWithNewBounds: ChildRegion = {
+        ...child,
+        bounds: {
+          ...child.bounds,
+          y: offsetY,
+          height: drawHeight
+        }
+      };
+
+      // Recalculate all child region data (ratios, centerCoordinates, etc.)
+      const updatedChild = updateChildRegionData(childWithNewBounds, prev.parentRegion);
+
+      return {
+        ...prev,
+        childRegions: prev.childRegions.map(c => c.id === childId ? updatedChild : c)
+      };
+    });
+  }, [updateStateWithHistory, updateChildRegionData]);
+
+  // Fit child region width to image width
+  const handleFitChildWidthToImage = useCallback((childId: number, canvasRef: React.RefObject<HTMLCanvasElement | null>) => {
+    updateStateWithHistory(prev => {
+      if (!prev.imageInfo || !prev.parentRegion) return prev;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return prev;
+
+      const child = prev.childRegions.find(c => c.id === childId);
+      if (!child) return prev;
+
+      // Calculate actual drawn image dimensions
+      const imgAspect = prev.imageInfo.width / prev.imageInfo.height;
+      const canvasAspect = canvas.width / canvas.height;
+
+      let drawWidth, offsetX;
+
+      if (imgAspect > canvasAspect) {
+        drawWidth = canvas.width * 0.95;
+        offsetX = (canvas.width - drawWidth) / 2;
+      } else {
+        const drawHeight = canvas.height * 0.95;
+        drawWidth = drawHeight * imgAspect;
+        offsetX = (canvas.width - drawWidth) / 2;
+      }
+
+      // Update child region bounds
+      const childWithNewBounds: ChildRegion = {
+        ...child,
+        bounds: {
+          ...child.bounds,
+          x: offsetX,
+          width: drawWidth
+        }
+      };
+
+      // Recalculate all child region data (ratios, centerCoordinates, etc.)
+      const updatedChild = updateChildRegionData(childWithNewBounds, prev.parentRegion);
+
+      return {
+        ...prev,
+        childRegions: prev.childRegions.map(c => c.id === childId ? updatedChild : c)
+      };
+    });
+  }, [updateStateWithHistory, updateChildRegionData]);
+
   return {
     analysisData,
     handleParentRegionChange,
@@ -588,5 +680,7 @@ export function useAnalysisData() {
     canUndo,
     canRedo,
     handleCreateFullCanvasParent,
+    handleFitChildHeightToImage,
+    handleFitChildWidthToImage,
   };
 }

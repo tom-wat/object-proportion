@@ -11,7 +11,10 @@ interface ToolbarProps {
   onColorSettingsChange: (settings: ColorSettings) => void;
   hasParentRegion: boolean;
   childCount: number;
+  selectedChildId: number | null;
   onCreateFullCanvasParent: () => void;
+  onFitChildHeightToImage: (childId: number) => void;
+  onFitChildWidthToImage: (childId: number) => void;
 }
 
 export function Toolbar({
@@ -25,7 +28,10 @@ export function Toolbar({
   onColorSettingsChange,
   hasParentRegion,
   childCount,
-  onCreateFullCanvasParent
+  selectedChildId,
+  onCreateFullCanvasParent,
+  onFitChildHeightToImage,
+  onFitChildWidthToImage
 }: ToolbarProps) {
   return (
     <div className="bg-white border-b border-gray-100">
@@ -182,14 +188,33 @@ export function Toolbar({
             </div>
           </div>
 
-          {/* Right Section: Fit to Image Button */}
-          <div className="flex items-center">
+          {/* Right Section: Fit to Image Buttons */}
+          <div className="flex items-center gap-2">
             <button
               onClick={onCreateFullCanvasParent}
               className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all"
               title={hasParentRegion ? "Fit parent region to image size" : "Create parent region matching image size"}
             >
               Fit to Image
+            </button>
+
+            {/* Child Region Fit Buttons */}
+            <button
+              onClick={() => selectedChildId !== null && onFitChildHeightToImage(selectedChildId)}
+              disabled={selectedChildId === null}
+              className="px-3 py-1.5 text-sm font-medium bg-green-500 text-white rounded-md hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+              title={selectedChildId !== null ? "Fit child region height to image height" : "Select a child region first"}
+            >
+              Fit Height
+            </button>
+
+            <button
+              onClick={() => selectedChildId !== null && onFitChildWidthToImage(selectedChildId)}
+              disabled={selectedChildId === null}
+              className="px-3 py-1.5 text-sm font-medium bg-green-500 text-white rounded-md hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+              title={selectedChildId !== null ? "Fit child region width to image width" : "Select a child region first"}
+            >
+              Fit Width
             </button>
           </div>
 

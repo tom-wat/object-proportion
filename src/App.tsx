@@ -37,6 +37,8 @@ function App() {
     canUndo,
     canRedo,
     handleCreateFullCanvasParent,
+    handleFitChildHeightToImage,
+    handleFitChildWidthToImage,
   } = useAnalysisData();
 
   const [isPanMode, setIsPanMode] = useState(false);
@@ -321,7 +323,10 @@ function App() {
           onColorSettingsChange={handleColorSettingsChange}
           hasParentRegion={!!analysisData.parentRegion}
           childCount={analysisData.childRegions.length}
+          selectedChildId={selectedChildId}
           onCreateFullCanvasParent={() => handleCreateFullCanvasParent(canvasRef)}
+          onFitChildHeightToImage={(childId) => handleFitChildHeightToImage(childId, canvasRef)}
+          onFitChildWidthToImage={(childId) => handleFitChildWidthToImage(childId, canvasRef)}
         />
       )}
 
