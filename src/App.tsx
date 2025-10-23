@@ -350,6 +350,8 @@ function App() {
             onExportParentRegion={handleExportParentRegion}
             onExportChildRegion={handleExportChildRegion}
             onClearAll={handleClearAllWithReset}
+            imageInfo={analysisData.imageInfo}
+            canvasRef={canvasRef}
             className="w-72 h-full overflow-y-auto border-r border-gray-100 p-6"
           />
         )}

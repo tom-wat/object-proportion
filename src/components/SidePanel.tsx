@@ -24,6 +24,8 @@ interface SidePanelProps {
   onExportParentRegion?: () => void;
   onExportChildRegion?: (regionId: number, regionName: string) => void;
   onClearAll?: () => void;
+  imageInfo?: { width: number; height: number; name: string } | null;
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>;
   className?: string;
 }
 
@@ -48,9 +50,60 @@ export function SidePanel({
   onExportParentRegion,
   onExportChildRegion,
   onClearAll,
+  imageInfo,
+  canvasRef,
   className = ''
 }: SidePanelProps) {
   const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
+
+  // Calculate parent region size in original image pixels
+  const getOriginalImageSize = (region: ParentRegion) => {
+    if (!imageInfo) {
+      return {
+        width: Math.round(region.width),
+        height: Math.round(region.height)
+      };
+    }
+
+    // Get current canvas size
+    const canvas = canvasRef?.current;
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      return {
+        width: Math.round(region.width),
+        height: Math.round(region.height)
+      };
+    }
+
+    // Calculate how the image is drawn on the canvas
+    // The image is drawn at 95% of canvas size, maintaining aspect ratio
+    const imgAspect = imageInfo.width / imageInfo.height;
+    const canvasAspect = canvas.width / canvas.height;
+
+    let drawWidth, drawHeight;
+
+    if (imgAspect > canvasAspect) {
+      // Image is wider than canvas
+      drawWidth = canvas.width * 0.95;
+      drawHeight = drawWidth / imgAspect;
+    } else {
+      // Image is taller than canvas
+      drawHeight = canvas.height * 0.95;
+      drawWidth = drawHeight * imgAspect;
+    }
+
+    // Calculate the scale factor from drawn size to original image size
+    // This is how many original pixels per drawn pixel
+    const scale = imageInfo.width / drawWidth;
+
+    // Scale the region dimensions
+    const scaledWidth = region.width * scale;
+    const scaledHeight = region.height * scale;
+
+    return {
+      width: Math.round(scaledWidth),
+      height: Math.round(scaledHeight)
+    };
+  };
   
   // Store point states: 0=original, 1=edge, 2=corner
   const pointStateRef = useRef<{ [key: number]: number }>({});
@@ -140,17 +193,21 @@ export function SidePanel({
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Ratio</span>
-                <span className="font-mono text-gray-900 font-medium">{parentRegion.aspectRatio}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Decimal</span>
-                <span className="font-mono text-gray-900 font-medium">{parentRegion.aspectRatioDecimal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center">
                 <span className="text-gray-600">Size</span>
                 <span className="font-mono text-gray-900 font-medium">
-                  {Math.round(parentRegion.width)} × {Math.round(parentRegion.height)}
+                  {(() => {
+                    const size = getOriginalImageSize(parentRegion);
+                    return `${size.width} × ${size.height}`;
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Ratio</span>
+                <span className="font-mono text-gray-900 font-medium">
+                  {(() => {
+                    const size = getOriginalImageSize(parentRegion);
+                    return `${((size.width / size.height) * 100).toFixed(1)} : 100`;
+                  })()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
