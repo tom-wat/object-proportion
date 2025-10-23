@@ -26,3 +26,4 @@ dist-ssr
 # Claude Code settings and cache
 .claude/settings.local.json
 .serena/cache/
+.serena/
