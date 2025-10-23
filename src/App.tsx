@@ -9,6 +9,7 @@ import { useExport } from './hooks/useExport';
 import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { snapToNearestEdge, snapToNearestCorner, convertToPixelCoordinates } from './utils/geometry';
+import { Download, Undo, Redo } from 'lucide-react';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -216,10 +217,93 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100">
-        <div className="px-6 py-3">
+        <div className="px-6 py-3 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-gray-800">
             Object Proportion
           </h1>
+
+          {/* Action Buttons */}
+          {imageLoaded && (
+            <div className="flex items-center gap-4">
+              {/* Image Rotation */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-600">Rotate</span>
+                <div className="flex items-center gap-3">
+                  {/* Rotation slider */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">0°</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      step="1"
+                      value={Math.round((analysisData.imageRotation * 180) / Math.PI)}
+                      onChange={(e) => {
+                        const degrees = parseInt(e.target.value);
+                        const radians = (degrees * Math.PI) / 180;
+                        handleImageRotationChange(radians);
+                      }}
+                      className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      title={`Current rotation: ${Math.round((analysisData.imageRotation * 180) / Math.PI)}°`}
+                    />
+                    <span className="text-xs text-gray-500">360°</span>
+                  </div>
+
+                  {/* Current angle display */}
+                  <input
+                    type="number"
+                    value={Math.round((analysisData.imageRotation * 180) / Math.PI)}
+                    onChange={(e) => {
+                      const degrees = parseInt(e.target.value) || 0;
+                      const clampedDegrees = Math.max(0, Math.min(360, degrees));
+                      const radians = (clampedDegrees * Math.PI) / 180;
+                      handleImageRotationChange(radians);
+                    }}
+                    className="w-12 px-1 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="0"
+                    max="360"
+                    step="1"
+                  />
+                </div>
+              </div>
+
+              {/* Undo/Redo Buttons */}
+              <button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                <Undo size={16} />
+                Undo
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                <Redo size={16} />
+                Redo
+              </button>
+
+              {/* Export Buttons */}
+              <button
+                onClick={handleExportPNG}
+                disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                <Download size={16} />
+                PNG
+              </button>
+              <button
+                onClick={handleExportJSON}
+                disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                <Download size={16} />
+                JSON
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -234,17 +318,8 @@ function App() {
           onChildGridSettingsChange={handleChildGridSettingsChange}
           colorSettings={analysisData.colorSettings}
           onColorSettingsChange={handleColorSettingsChange}
-          onExportPNG={handleExportPNG}
-          onExportJSON={handleExportJSON}
           hasParentRegion={!!analysisData.parentRegion}
           childCount={analysisData.childRegions.length}
-          imageRotation={analysisData.imageRotation}
-          onImageRotationChange={handleImageRotationChange}
-          hasImage={imageLoaded}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          canUndo={canUndo}
-          canRedo={canRedo}
         />
       )}
 
