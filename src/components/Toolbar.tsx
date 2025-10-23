@@ -186,9 +186,8 @@ export function Toolbar({
           <div className="flex items-center">
             <button
               onClick={onCreateFullCanvasParent}
-              disabled={hasParentRegion}
-              className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
-              title="Create parent region matching image size"
+              className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all"
+              title={hasParentRegion ? "Fit parent region to image size" : "Create parent region matching image size"}
             >
               Fit to Image
             </button>

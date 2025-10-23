@@ -512,7 +512,7 @@ export function useAnalysisData() {
     }
   }, [commitPending, redo, analysisData]);
 
-  // Create parent region matching actual drawn image size
+  // Create or fit parent region to actual drawn image size
   const handleCreateFullCanvasParent = useCallback((canvasRef: React.RefObject<HTMLCanvasElement | null>) => {
     updateStateWithHistory(prev => {
       if (!prev.imageInfo) return prev;
@@ -551,7 +551,7 @@ export function useAnalysisData() {
         width: drawWidth,
         height: drawHeight,
         rotation: 0,
-        name: "Parent Region",
+        name: prev.parentRegion?.name || "Parent Region",
         aspectRatio: aspectRatio.ratio,
         aspectRatioDecimal: aspectRatio.decimal
       };
@@ -559,7 +559,8 @@ export function useAnalysisData() {
       return {
         ...prev,
         parentRegion: newParentRegion,
-        childRegions: [] // Clear child regions when creating new parent
+        // Only clear child regions when creating a new parent (not when fitting existing)
+        childRegions: prev.parentRegion ? prev.childRegions : []
       };
     });
   }, [updateStateWithHistory]);
