@@ -512,6 +512,58 @@ export function useAnalysisData() {
     }
   }, [commitPending, redo, analysisData]);
 
+  // Create parent region matching actual drawn image size
+  const handleCreateFullCanvasParent = useCallback((canvasRef: React.RefObject<HTMLCanvasElement | null>) => {
+    updateStateWithHistory(prev => {
+      if (!prev.imageInfo) return prev;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return prev;
+
+      // Calculate actual drawn image dimensions
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return prev;
+
+      // Get image natural dimensions
+      const imgAspect = prev.imageInfo.width / prev.imageInfo.height;
+      const canvasAspect = canvas.width / canvas.height;
+
+      let drawWidth, drawHeight, offsetX, offsetY;
+
+      if (imgAspect > canvasAspect) {
+        // Image is wider than canvas
+        drawWidth = canvas.width * 0.95; // Same as in useCanvasDrawing
+        drawHeight = drawWidth / imgAspect;
+        offsetX = (canvas.width - drawWidth) / 2;
+        offsetY = (canvas.height - drawHeight) / 2;
+      } else {
+        // Image is taller than canvas
+        drawHeight = canvas.height * 0.95; // Same as in useCanvasDrawing
+        drawWidth = drawHeight * imgAspect;
+        offsetX = (canvas.width - drawWidth) / 2;
+        offsetY = (canvas.height - drawHeight) / 2;
+      }
+
+      const aspectRatio = calculateAspectRatio(drawWidth, drawHeight);
+      const newParentRegion: ParentRegion = {
+        x: offsetX,
+        y: offsetY,
+        width: drawWidth,
+        height: drawHeight,
+        rotation: 0,
+        name: "Parent Region",
+        aspectRatio: aspectRatio.ratio,
+        aspectRatioDecimal: aspectRatio.decimal
+      };
+
+      return {
+        ...prev,
+        parentRegion: newParentRegion,
+        childRegions: [] // Clear child regions when creating new parent
+      };
+    });
+  }, [updateStateWithHistory]);
+
   return {
     analysisData,
     handleParentRegionChange,
@@ -534,5 +586,6 @@ export function useAnalysisData() {
     handleRedo,
     canUndo,
     canRedo,
+    handleCreateFullCanvasParent,
   };
 }

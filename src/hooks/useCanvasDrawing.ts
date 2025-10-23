@@ -648,6 +648,10 @@ export function useCanvasDrawing() {
     imageRef.current = image;
   }, []);
 
+  const getImageDrawInfo = useCallback(() => {
+    return imageDrawInfoRef.current;
+  }, []);
+
   return {
     drawImage,
     drawParentRegion,
@@ -660,5 +664,6 @@ export function useCanvasDrawing() {
     getResizeHandles,
     getHandleAtPoint,
     calculateResize,
+    getImageDrawInfo,
   };
 }

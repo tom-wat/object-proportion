@@ -64,6 +64,7 @@ export function useImageCanvas({
   }, []);
   
   const drawing = useCanvasDrawing();
+  const { getImageDrawInfo } = drawing;
   const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, resetZoom } = useZoom();
   
   const handleImageLoad = useCallback((image: HTMLImageElement, canvas: HTMLCanvasElement) => {
@@ -212,6 +213,7 @@ export function useImageCanvas({
     pan,
     zoomIn: zoomInCenter,
     zoomOut: zoomOutCenter,
-    resetZoom
+    resetZoom,
+    getImageDrawInfo
   };
 }

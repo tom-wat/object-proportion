@@ -36,6 +36,7 @@ function App() {
     handleRedo,
     canUndo,
     canRedo,
+    handleCreateFullCanvasParent,
   } = useAnalysisData();
 
   const [isPanMode, setIsPanMode] = useState(false);
@@ -60,7 +61,7 @@ function App() {
     onImageInfoSet: setImageInfo
   });
 
-  const { handleExportJSON, handleExportPNG } = useExport({ analysisData, canvasRef });
+  const { handleExportJSON, handleExportPNG } = useExport({ analysisData, canvasRef, cachedImage });
   const { exportSingleRegion } = usePanelExport();
 
   // Handle child region selection with deselection support
@@ -320,6 +321,7 @@ function App() {
           onColorSettingsChange={handleColorSettingsChange}
           hasParentRegion={!!analysisData.parentRegion}
           childCount={analysisData.childRegions.length}
+          onCreateFullCanvasParent={() => handleCreateFullCanvasParent(canvasRef)}
         />
       )}
 
