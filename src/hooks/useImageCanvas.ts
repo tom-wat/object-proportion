@@ -61,7 +61,7 @@ export function useImageCanvas({
     if (canvas) {
       canvas.style.cursor = cursor;
     }
-  }, []);
+  }, [canvasRef]);
   
   const drawing = useCanvasDrawing();
   const { getImageDrawInfo } = drawing;
@@ -82,7 +82,7 @@ export function useImageCanvas({
     if (canvas) {
       drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
     }
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
   
   const handleTemporaryDraw = useCallback((x: number, y: number, width: number, height: number, isParent: boolean) => {
     const canvas = canvasRef.current;
@@ -90,7 +90,7 @@ export function useImageCanvas({
     if (canvas && ctx) {
       // まず現在の状態を再描画
       drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
-      
+
       // 一時的な領域を描画
       ctx.save();
       ctx.translate(pan.x, pan.y);
@@ -98,7 +98,7 @@ export function useImageCanvas({
       drawing.drawTemporaryRegion(ctx, x, y, width, height, isParent, zoom);
       ctx.restore();
     }
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
   
   const interaction = useCanvasInteraction({
     selectionMode,
@@ -157,7 +157,7 @@ export function useImageCanvas({
       cleanupInteraction();
       canvas.removeEventListener('wheel', handleWheel);
     };
-  }, [interaction, zoomAtPoint]);
+  }, [canvasRef, interaction, zoomAtPoint]);
 
 
   const loadImage = useCallback((file: File) => {
@@ -166,7 +166,7 @@ export function useImageCanvas({
       imageLoadedRef.current = false; // Reset flag when loading new image
       imageLoader.loadImage(file, canvas);
     }
-  }, [imageLoader]);
+  }, [canvasRef, imageLoader]);
 
   const loadImageFromCached = useCallback((cachedImage: HTMLImageElement) => {
     const canvas = canvasRef.current;
@@ -174,12 +174,12 @@ export function useImageCanvas({
       imageLoadedRef.current = false; // Reset flag when loading cached image
       imageLoader.loadImageFromCached(cachedImage, canvas);
     }
-  }, [imageLoader]);
+  }, [canvasRef, imageLoader]);
 
   const getCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
     return canvas ? { width: canvas.width, height: canvas.height } : { width: 0, height: 0 };
-  }, []);
+  }, [canvasRef]);
 
   const zoomInCenter = useCallback(() => {
     const canvas = canvasRef.current;
@@ -190,7 +190,7 @@ export function useImageCanvas({
       };
       zoomIn(centerPoint);
     }
-  }, [zoomIn]);
+  }, [canvasRef, zoomIn]);
 
   const zoomOutCenter = useCallback(() => {
     const canvas = canvasRef.current;
@@ -201,7 +201,7 @@ export function useImageCanvas({
       };
       zoomOut(centerPoint);
     }
-  }, [zoomOut]);
+  }, [canvasRef, zoomOut]);
 
   return {
     canvasRef,
