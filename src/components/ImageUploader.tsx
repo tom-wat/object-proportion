@@ -46,10 +46,10 @@ export function ImageUploader({ onImageLoad, className = '' }: ImageUploaderProp
     <div className={className}>
       <div
         className={`
-          w-full h-full min-h-96 border-2 border-dashed rounded-xl p-16 text-center transition-all cursor-pointer flex flex-col items-center justify-center
-          ${isDragOver 
-            ? 'border-blue-300 bg-blue-50/50' 
-            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/30'
+          w-full h-full min-h-[80vh] border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer flex flex-col items-center justify-center bg-white
+          ${isDragOver
+            ? 'border-blue-300 bg-blue-50/50'
+            : 'border-gray-300 hover:border-gray-400'
           }
         `}
         onDrop={handleDrop}
@@ -57,29 +57,29 @@ export function ImageUploader({ onImageLoad, className = '' }: ImageUploaderProp
         onDragLeave={handleDragLeave}
         onClick={() => document.getElementById('file-input')?.click()}
       >
-        <svg 
-          className="w-12 h-12 text-gray-300 mb-4" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={1.5} 
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
-          />
-        </svg>
-        
-        <div className="space-y-2">
-          <p className="text-base font-medium text-gray-700">
-            Drop image here
-          </p>
-          <p className="text-sm text-gray-500">
-            or click to select file
-          </p>
-          <div className="text-xs text-gray-400 pt-1">
-            JPEG, PNG, GIF, WebP (max 10MB)
+        <div className="space-y-4">
+          <div className="text-6xl text-gray-300">
+            <svg
+              className="w-16 h-16 mx-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-medium text-gray-900">
+              Drop image here or click to select
+            </p>
+            <p className="text-sm text-gray-500">
+              Supports: JPEG, PNG, GIF, WebP (Max: 10MB, 8000×8000px)
+            </p>
           </div>
         </div>
       </div>
