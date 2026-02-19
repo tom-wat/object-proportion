@@ -348,7 +348,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-125px)]">
+      <div className="flex h-[calc(100vh-130px)]">
         {/* Side Panel - moved to left */}
         {imageLoaded && (
           <SidePanel
