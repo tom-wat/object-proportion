@@ -209,10 +209,11 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         if ((isChildRect0 && analysisData.childGridSettings.rectVisible) ||
             (isChildCircle0 && analysisData.childGridSettings.circleVisible)) {
           const childGridColor0 = isChildCircle0 ? analysisData.colorSettings.childCircleGridColor : analysisData.colorSettings.childRectGridColor;
+          const childGridOpacity0 = isChildCircle0 ? analysisData.colorSettings.childCircleGridOpacity : analysisData.colorSettings.childRectGridOpacity;
           drawGrid(
             scaledChild,
             childGridColor0,
-            analysisData.colorSettings.childGridOpacity,
+            childGridOpacity0,
             parentCellSize0,
             isChildCircle0
           );
@@ -461,7 +462,8 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         if ((isChildRect1 && analysisData.childGridSettings.rectVisible) ||
             (isChildCircle1 && analysisData.childGridSettings.circleVisible)) {
           const childGridColor1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridColor : analysisData.colorSettings.childRectGridColor;
-          drawGrid(scaledChild, childGridColor1, analysisData.colorSettings.childGridOpacity, parentCellSize1, isChildCircle1);
+          const childGridOpacity1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridOpacity : analysisData.colorSettings.childRectGridOpacity;
+          drawGrid(scaledChild, childGridColor1, childGridOpacity1, parentCellSize1, isChildCircle1);
         }
         ctx.save();
         const childShapeColor1 = isChildCircle1

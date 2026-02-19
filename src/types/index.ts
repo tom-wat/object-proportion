@@ -77,7 +77,8 @@ export interface ColorSettings {
   gridOpacity: number;
   childRectGridColor: string;
   childCircleGridColor: string;
-  childGridOpacity: number;
+  childRectGridOpacity: number;
+  childCircleGridOpacity: number;
 }
 
 export interface AnalysisData {

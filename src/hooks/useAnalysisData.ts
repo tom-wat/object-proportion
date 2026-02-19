@@ -214,7 +214,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       gridOpacity: 0.5,
       childRectGridColor: '#ffffff',
       childCircleGridColor: '#ffffff',
-      childGridOpacity: 0.3
+      childRectGridOpacity: 0.3,
+      childCircleGridOpacity: 0.3
     },
     imageInfo: null,
     imageRotation: 0

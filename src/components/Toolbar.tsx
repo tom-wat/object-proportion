@@ -311,15 +311,15 @@ export function Toolbar({
                           min="0"
                           max="1"
                           step="0.1"
-                          value={colorSettings.childGridOpacity}
+                          value={colorSettings.childRectGridOpacity}
                           onChange={(e) => onColorSettingsChange({
                             ...colorSettings,
-                            childGridOpacity: parseFloat(e.target.value)
+                            childRectGridOpacity: parseFloat(e.target.value)
                           })}
                           className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
                           title="Rect Grid Opacity"
                         />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childGridOpacity * 100)}%</span>
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childRectGridOpacity * 100)}%</span>
                       </div>
                     )}
                     {isChildCircle && (
@@ -339,15 +339,15 @@ export function Toolbar({
                           min="0"
                           max="1"
                           step="0.1"
-                          value={colorSettings.childGridOpacity}
+                          value={colorSettings.childCircleGridOpacity}
                           onChange={(e) => onColorSettingsChange({
                             ...colorSettings,
-                            childGridOpacity: parseFloat(e.target.value)
+                            childCircleGridOpacity: parseFloat(e.target.value)
                           })}
                           className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
                           title="Circle Grid Opacity"
                         />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childGridOpacity * 100)}%</span>
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childCircleGridOpacity * 100)}%</span>
                       </div>
                     )}
                   </div>

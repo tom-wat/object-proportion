@@ -668,17 +668,16 @@ export function useCanvasDrawing() {
     }
 
     // Draw child grids first (behind child regions)
-    if (colorSettings?.childGridOpacity !== undefined) {
-      childRegions.forEach((region) => {
-        const isRect = !region.shape || region.shape === 'rectangle';
-        const isCircle = region.shape === 'circle';
-        const gridVisible = (isRect && childGridSettings?.rectVisible) || (isCircle && childGridSettings?.circleVisible);
-        if (gridVisible) {
-          const gridColor = isCircle ? colorSettings.childCircleGridColor : colorSettings.childRectGridColor;
-          drawChildGrid(ctx, region, gridColor, colorSettings.childGridOpacity, zoom, unitBasis, parentRegion);
-        }
-      });
-    }
+    childRegions.forEach((region) => {
+      const isRect = !region.shape || region.shape === 'rectangle';
+      const isCircle = region.shape === 'circle';
+      const gridVisible = (isRect && childGridSettings?.rectVisible) || (isCircle && childGridSettings?.circleVisible);
+      if (gridVisible && colorSettings) {
+        const gridColor = isCircle ? colorSettings.childCircleGridColor : colorSettings.childRectGridColor;
+        const gridOpacity = isCircle ? colorSettings.childCircleGridOpacity : colorSettings.childRectGridOpacity;
+        drawChildGrid(ctx, region, gridColor, gridOpacity, zoom, unitBasis, parentRegion);
+      }
+    });
 
     // Layer order control: Draw selected region on top with proper separation
     const selectedChild = childRegions.find(region => region.id === selectedChildId);
