@@ -7,10 +7,15 @@ import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, c
 const updatePointCoordinatesForChildChange = (
   points: RegionPoint[],
   oldChild: ChildRegion,
-  newChild: ChildRegion
+  newChild: ChildRegion,
+  parentRegion: ParentRegion | null,
+  unitBasis: 'height' | 'width'
 ): RegionPoint[] => {
+  const cellSize = parentRegion
+    ? (unitBasis === 'width' ? parentRegion.width : parentRegion.height) / 16
+    : null;
+
   return points.map(point => {
-    // Only update points that belong to this specific child region
     if (point.parentRegionId !== oldChild.id) {
       return point;
     }
@@ -18,7 +23,7 @@ const updatePointCoordinatesForChildChange = (
     // Step 1: Get point position relative to old child region center
     const oldCenterX = oldChild.bounds.x + oldChild.bounds.width / 2;
     const oldCenterY = oldChild.bounds.y + oldChild.bounds.height / 2;
-    
+
     const pointRelativeToOldCenter = {
       x: point.coordinates.pixel.x - oldCenterX,
       y: point.coordinates.pixel.y - oldCenterY
@@ -27,16 +32,15 @@ const updatePointCoordinatesForChildChange = (
     // Step 2: Remove old rotation to get non-rotated relative position
     let nonRotatedRelative = pointRelativeToOldCenter;
     if (oldChild.rotation !== 0) {
-      const cos = Math.cos(-oldChild.rotation); // Inverse rotation
+      const cos = Math.cos(-oldChild.rotation);
       const sin = Math.sin(-oldChild.rotation);
-      
       nonRotatedRelative = {
         x: pointRelativeToOldCenter.x * cos - pointRelativeToOldCenter.y * sin,
         y: pointRelativeToOldCenter.x * sin + pointRelativeToOldCenter.y * cos
       };
     }
 
-    // Step 3: Convert to normalized coordinates (0-1 range within region)
+    // Step 3: Convert to normalized coordinates (0-1 range within old region)
     const normalizedX = nonRotatedRelative.x / (oldChild.bounds.width / 2);
     const normalizedY = nonRotatedRelative.y / (oldChild.bounds.height / 2);
 
@@ -51,56 +55,34 @@ const updatePointCoordinatesForChildChange = (
     if (newChild.rotation !== 0) {
       const cos = Math.cos(newChild.rotation);
       const sin = Math.sin(newChild.rotation);
-      
       rotatedRelative = {
         x: newRelativeToCenter.x * cos - newRelativeToCenter.y * sin,
         y: newRelativeToCenter.x * sin + newRelativeToCenter.y * cos
       };
     }
 
-    // Step 6: Calculate final absolute position
+    // Step 6: Calculate final absolute pixel position
     const newCenterX = newChild.bounds.x + newChild.bounds.width / 2;
     const newCenterY = newChild.bounds.y + newChild.bounds.height / 2;
-    
     const newPixelX = newCenterX + rotatedRelative.x;
     const newPixelY = newCenterY + rotatedRelative.y;
 
-    // For resize operations, maintain grid coordinates
-    // For move/rotate operations, update grid coordinates
-    const isResize = oldChild.bounds.width !== newChild.bounds.width || 
-                    oldChild.bounds.height !== newChild.bounds.height;
-    let newGridCoords = point.coordinates.grid;
-
-    if (!isResize) {
-      // For move/rotate, recalculate grid coordinates based on child region
-      const childRegionAsParent = {
-        x: newChild.bounds.x,
-        y: newChild.bounds.y,
-        width: newChild.bounds.width,
-        height: newChild.bounds.height,
-        rotation: newChild.rotation,
-        aspectRatio: '',
-        aspectRatioDecimal: 0
-      };
-      newGridCoords = convertToGridCoordinates({ x: newPixelX, y: newPixelY }, childRegionAsParent, 16);
-    } else {
-      // For resize, maintain grid coordinates but update pixel position based on grid
-      const gridSize = 16;
-      const cellWidth = newChild.bounds.width / gridSize;
-      const cellHeight = newChild.bounds.height / gridSize;
-      
-      // Calculate pixel position from grid coordinates
-      const gridPixelX = newChild.bounds.x + (point.coordinates.grid.x + 8) * cellWidth;
-      const gridPixelY = newChild.bounds.y + (8 - point.coordinates.grid.y) * cellHeight;
-
-      return {
-        ...point,
-        coordinates: {
-          pixel: { x: gridPixelX, y: gridPixelY },
-          grid: point.coordinates.grid // Maintain original grid coordinates
-        }
-      };
-    }
+    // Recalculate grid coordinates: child center as origin, parent cell size as unit
+    const newChildAsParent = {
+      x: newChild.bounds.x,
+      y: newChild.bounds.y,
+      width: newChild.bounds.width,
+      height: newChild.bounds.height,
+      rotation: newChild.rotation,
+      aspectRatio: '',
+      aspectRatioDecimal: 0
+    };
+    const newGridCoords = convertToGridCoordinates(
+      { x: newPixelX, y: newPixelY },
+      newChildAsParent,
+      16,
+      cellSize ?? undefined
+    );
 
     return {
       ...point,
@@ -211,7 +193,7 @@ const updatePointCoordinatesForParentChange = (
   });
 };
 
-export function useAnalysisData() {
+export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   const [analysisData, setAnalysisData] = useState<AnalysisData>({
     parentRegion: null,
     childRegions: [],
@@ -220,11 +202,14 @@ export function useAnalysisData() {
       visible: true
     },
     childGridSettings: {
-      visible: false
+      rectVisible: false,
+      circleVisible: false
     },
     colorSettings: {
       parentColor: '#3b82f6',
-      childColor: '#3b82f6',
+      childRectColor: '#3b82f6',
+      childCircleColor: '#3b82f6',
+      childLineColor: '#3b82f6',
       gridColor: '#ffffff',
       gridOpacity: 0.5,
       childGridColor: '#ffffff',
@@ -369,7 +354,9 @@ export function useAnalysisData() {
         updatedPoints = updatePointCoordinatesForChildChange(
           prev.points,
           oldChild,
-          updatedRegion
+          updatedRegion,
+          prev.parentRegion,
+          unitBasis
         );
       }
       
@@ -381,7 +368,7 @@ export function useAnalysisData() {
         points: updatedPoints
       };
     });
-  }, [updateChildRegionData, updateStateWithDebouncedHistory]);
+  }, [updateChildRegionData, updateStateWithDebouncedHistory, unitBasis]);
 
   const handleChildRegionDelete = useCallback((id: number) => {
     updateStateWithHistory(prev => ({

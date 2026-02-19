@@ -152,7 +152,8 @@ export function useImageCanvas({
     getHandleAtPoint: drawing.getHandleAtPoint,
     calculateResize: drawing.calculateResize,
     onCursorChange: handleCursorChange,
-    isPanMode
+    isPanMode,
+    unitBasis
   });
 
   useEffect(() => {

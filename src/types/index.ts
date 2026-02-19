@@ -46,7 +46,7 @@ export interface ChildRegion {
   lineStart?: Point;     // line: start point (pixels)
   lineEnd?: Point;       // line: end point (pixels)
   lineLength?: number;   // line: pixel length
-  lineAngle?: number;    // line: degrees (-180 to 180, atan2)
+  lineAngle?: number;    // line: degrees (-180 to 180, CW positive, 0 = right)
 }
 
 export interface RegionPoint {
@@ -64,12 +64,15 @@ export interface GridSettings {
 }
 
 export interface ChildGridSettings {
-  visible: boolean;
+  rectVisible: boolean;
+  circleVisible: boolean;
 }
 
 export interface ColorSettings {
   parentColor: string;
-  childColor: string;
+  childRectColor: string;
+  childCircleColor: string;
+  childLineColor: string;
   gridColor: string;
   gridOpacity: number;
   childGridColor: string;

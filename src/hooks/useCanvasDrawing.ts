@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import type { ParentRegion, ChildRegion, ColorSettings, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
+import type { ParentRegion, ChildRegion, ColorSettings, GridSettings, ChildGridSettings, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
 
 export function useCanvasDrawing() {
@@ -284,7 +284,11 @@ export function useCanvasDrawing() {
   }, [drawHandle, getResizeHandles]);
 
   const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings, zoom: number = 1) => {
-    const childColor = colorSettings?.childColor || COLORS.CHILD;
+    const childColor = region.shape === 'circle'
+      ? (colorSettings?.childCircleColor || COLORS.CHILD)
+      : region.shape === 'line'
+        ? (colorSettings?.childLineColor || COLORS.CHILD)
+        : (colorSettings?.childRectColor || COLORS.CHILD);
     ctx.save();
 
     if (region.shape === 'circle') {
@@ -446,13 +450,17 @@ export function useCanvasDrawing() {
     gridColor: string,
     gridOpacity: number,
     zoom: number,
-    unitBasis: 'height' | 'width' = 'height'
+    unitBasis: 'height' | 'width' = 'height',
+    parentRegion: ParentRegion | null = null
   ) => {
-    // Skip grid for non-rectangle shapes
-    if (childRegion.shape === 'circle' || childRegion.shape === 'line') return;
+    // Skip grid for line shape
+    if (childRegion.shape === 'line') return;
 
-    const basisLength = unitBasis === 'height' ? childRegion.bounds.height : childRegion.bounds.width;
-    const cellSize = basisLength / 16;
+    // Use parent cell size as unit; fall back to child size if no parent
+    const parentBasis = parentRegion
+      ? (unitBasis === 'height' ? parentRegion.height : parentRegion.width)
+      : (unitBasis === 'height' ? childRegion.bounds.height : childRegion.bounds.width);
+    const cellSize = parentBasis / 16;
     if (cellSize <= 0) return;
 
     const { x, y, width, height } = childRegion.bounds;
@@ -466,6 +474,13 @@ export function useCanvasDrawing() {
       ctx.translate(centerX, centerY);
       ctx.rotate(childRegion.rotation);
       ctx.translate(-centerX, -centerY);
+    }
+
+    // For circles, clip grid lines to the ellipse boundary
+    if (childRegion.shape === 'circle') {
+      ctx.beginPath();
+      ctx.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, 2 * Math.PI);
+      ctx.clip();
     }
 
     const hexToRgb = (hex: string) => {
@@ -598,7 +613,7 @@ export function useCanvasDrawing() {
         ctx.lineWidth = 2 / zoom; // Thicker border for selected
       } else {
         // Use child color for child region points, parent color for parent region points
-        const pointColor = point.parentRegionId !== undefined ? colorSettings.childColor : colorSettings.parentColor;
+        const pointColor = point.parentRegionId !== undefined ? colorSettings.childRectColor : colorSettings.parentColor;
         ctx.fillStyle = pointColor;
         ctx.strokeStyle = pointColor;
         ctx.lineWidth = 1 / zoom;
@@ -623,8 +638,8 @@ export function useCanvasDrawing() {
     pan: { x: number; y: number } = { x: 0, y: 0 },
     selectedChildId: number | null = null,
     colorSettings?: ColorSettings,
-    gridSettings?: { visible: boolean },
-    childGridSettings?: { visible: boolean },
+    gridSettings?: GridSettings,
+    childGridSettings?: ChildGridSettings,
     isParentSelected: boolean = false,
     points: RegionPoint[] = [],
     selectedPointId: number | null = null,
@@ -653,9 +668,14 @@ export function useCanvasDrawing() {
     }
 
     // Draw child grids first (behind child regions)
-    if (childGridSettings?.visible && colorSettings?.childGridColor && colorSettings.childGridOpacity !== undefined) {
+    if (colorSettings?.childGridColor && colorSettings.childGridOpacity !== undefined) {
       childRegions.forEach((region) => {
-        drawChildGrid(ctx, region, colorSettings.childGridColor, colorSettings.childGridOpacity, zoom, unitBasis);
+        const isRect = !region.shape || region.shape === 'rectangle';
+        const isCircle = region.shape === 'circle';
+        const gridVisible = (isRect && childGridSettings?.rectVisible) || (isCircle && childGridSettings?.circleVisible);
+        if (gridVisible) {
+          drawChildGrid(ctx, region, colorSettings.childGridColor, colorSettings.childGridOpacity, zoom, unitBasis, parentRegion);
+        }
       });
     }
 

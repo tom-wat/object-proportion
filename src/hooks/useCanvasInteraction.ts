@@ -29,6 +29,7 @@ interface UseCanvasInteractionProps {
   calculateResize?: (originalRegion: { x: number; y: number; width: number; height: number }, handleType: ResizeHandle, deltaX: number, deltaY: number, minWidth?: number, minHeight?: number, rotation?: number) => { x: number; y: number; width: number; height: number };
   onCursorChange?: (cursor: string) => void;
   isPanMode?: boolean;
+  unitBasis?: 'height' | 'width';
 }
 
 export function useCanvasInteraction({
@@ -56,7 +57,8 @@ export function useCanvasInteraction({
   getHandleAtPoint,
   calculateResize,
   onCursorChange,
-  isPanMode = false
+  isPanMode = false,
+  unitBasis = 'height'
 }: UseCanvasInteractionProps) {
   const isDrawingRef = useRef(false);
   const startPointRef = useRef<Point>({ x: 0, y: 0 });
@@ -268,7 +270,13 @@ export function useCanvasInteraction({
   }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, onCursorChange, isParentSelected, zoom, isPanMode]);
 
   const handleMouseDown = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
-    
+    // If a color picker input is currently active, this mousedown is dismissing it.
+    // document.activeElement still points to the input at mousedown time (before blur fires).
+    const activeEl = document.activeElement;
+    if (activeEl instanceof HTMLInputElement && activeEl.type === 'color') {
+      return;
+    }
+
     const point = getCanvasPoint(event, canvas);
     isDrawingRef.current = true;
     startPointRef.current = point;
@@ -702,7 +710,7 @@ export function useCanvasInteraction({
         const lx = newEnd.x - newStart.x;
         const ly = newEnd.y - newStart.y;
         const length = Math.sqrt(lx * lx + ly * ly);
-        const angle = Math.atan2(-ly, lx) * 180 / Math.PI;
+        const angle = Math.atan2(ly, lx) * 180 / Math.PI;
         const updatedChild = {
           ...selectedChild,
           lineStart: newStart,
@@ -798,8 +806,7 @@ export function useCanvasInteraction({
             const lx = point.x - fp.x;
             const ly = point.y - fp.y;
             const length = Math.sqrt(lx * lx + ly * ly);
-            // CCW positive: negate screen-y direction
-            const angle = Math.atan2(-ly, lx) * 180 / Math.PI;
+            const angle = Math.atan2(ly, lx) * 180 / Math.PI;
             const minX = Math.min(fp.x, point.x);
             const minY = Math.min(fp.y, point.y);
             const bWidth = Math.max(1, Math.abs(lx));
@@ -920,7 +927,13 @@ export function useCanvasInteraction({
         
         // Create point if we have a target region
         if (targetRegion) {
-          const gridCoords = convertToGridCoordinates(point, targetRegion, 16);
+          // Child region points: origin = child center, unit = parent cell size (parentBasis/16)
+          let cellSizeOverride: number | undefined;
+          if (parentRegionId !== undefined && parentRegion) {
+            const parentBasis = unitBasis === 'width' ? parentRegion.width : parentRegion.height;
+            cellSizeOverride = parentBasis / 16;
+          }
+          const gridCoords = convertToGridCoordinates(point, targetRegion, 16, cellSizeOverride);
           
           const newPoint: Omit<RegionPoint, 'id'> = {
             name: '', // Will be set by handlePointAdd
@@ -943,7 +956,7 @@ export function useCanvasInteraction({
     clickedParentRef.current = false;
     dragLineEndpointRef.current = null;
     onRedraw();
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected, childDrawMode]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected, childDrawMode, unitBasis]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
     const mouseDownHandler = (e: MouseEvent) => handleMouseDown(e, canvas);

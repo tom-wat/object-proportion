@@ -14,7 +14,11 @@ import type { ChildDrawMode } from './types';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
+  const [isPanMode, setIsPanMode] = useState(false);
+  const [childDrawMode, setChildDrawMode] = useState<ChildDrawMode>('rectangle');
+  const [unitBasis, setUnitBasis] = useState<'height' | 'width'>('height');
+
   const {
     analysisData,
     handleParentRegionChange,
@@ -40,11 +44,7 @@ function App() {
     handleCreateFullCanvasParent,
     handleFitChildHeightToImage,
     handleFitChildWidthToImage,
-  } = useAnalysisData();
-
-  const [isPanMode, setIsPanMode] = useState(false);
-  const [childDrawMode, setChildDrawMode] = useState<ChildDrawMode>('rectangle');
-  const [unitBasis, setUnitBasis] = useState<'height' | 'width'>('height');
+  } = useAnalysisData(unitBasis);
 
   const {
     imageFile,

@@ -57,29 +57,33 @@ export function isPointInRotatedBounds(point: Point, parent: ParentRegion): bool
 }
 
 export function convertToGridCoordinates(
-  point: Point, 
-  parent: ParentRegion, 
-  gridSize: number
+  point: Point,
+  parent: ParentRegion,
+  gridSize: number,
+  cellSizeOverride?: number  // when provided, use as uniform cell size for both axes
 ): Point {
   const center = {
     x: parent.x + parent.width / 2,
     y: parent.y + parent.height / 2
   };
-  
+
   const relativeX = point.x - center.x;
   const relativeY = point.y - center.y;
-  
+
+  const cellW = cellSizeOverride ?? (parent.width / gridSize);
+  const cellH = cellSizeOverride ?? (parent.height / gridSize);
+
   if (parent.rotation !== 0) {
     const rotated = rotatePoint({ x: relativeX, y: relativeY }, { x: 0, y: 0 }, -parent.rotation);
     return {
-      x: Math.round((rotated.x / (parent.width / gridSize)) * 10) / 10,
-      y: Math.round((-rotated.y / (parent.height / gridSize)) * 10) / 10  // Negate Y to make upward positive
+      x: Math.round((rotated.x / cellW) * 10) / 10,
+      y: Math.round((-rotated.y / cellH) * 10) / 10  // Negate Y to make upward positive
     };
   }
-  
+
   return {
-    x: Math.round((relativeX / (parent.width / gridSize)) * 10) / 10,
-    y: Math.round((-relativeY / (parent.height / gridSize)) * 10) / 10  // Negate Y to make upward positive
+    x: Math.round((relativeX / cellW) * 10) / 10,
+    y: Math.round((-relativeY / cellH) * 10) / 10  // Negate Y to make upward positive
   };
 }
 

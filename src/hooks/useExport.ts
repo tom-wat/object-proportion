@@ -97,10 +97,12 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
       const drawGrid = (
         region: { x: number; y: number; width: number; height: number; rotation: number },
         gridColor: string,
-        gridOpacity: number
+        gridOpacity: number,
+        cellSizeOverride?: number,
+        clipToEllipse?: boolean
       ) => {
         const basisLength = unitBasis === 'width' ? region.width : region.height;
-        const cellSize = basisLength / 16;
+        const cellSize = cellSizeOverride ?? basisLength / 16;
         if (cellSize <= 0) return;
 
         ctx.save();
@@ -111,6 +113,12 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           ctx.translate(centerX, centerY);
           ctx.rotate(region.rotation);
           ctx.translate(-centerX, -centerY);
+        }
+
+        if (clipToEllipse) {
+          ctx.beginPath();
+          ctx.ellipse(region.x + region.width / 2, region.y + region.height / 2, region.width / 2, region.height / 2, 0, 0, 2 * Math.PI);
+          ctx.clip();
         }
 
         const hexToRgb = (hex: string) => {
@@ -179,6 +187,12 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         drawRotatedRect(scaledParent, analysisData.colorSettings.parentColor, 2);
       }
 
+      // Compute parent cell size for child grids
+      const parentBasis0 = analysisData.parentRegion
+        ? (unitBasis === 'width' ? analysisData.parentRegion.width * scaleX : analysisData.parentRegion.height * scaleY)
+        : undefined;
+      const parentCellSize0 = parentBasis0 !== undefined ? parentBasis0 / 16 : undefined;
+
       // Draw child regions and grids
       analysisData.childRegions.forEach((child) => {
         const scaledChild = {
@@ -189,18 +203,28 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           rotation: child.rotation
         };
 
-        // Draw child grid if visible
-        if (analysisData.childGridSettings.visible) {
+        // Draw child grid if visible (shape-specific)
+        const isChildRect0 = !child.shape || child.shape === 'rectangle';
+        const isChildCircle0 = child.shape === 'circle';
+        if ((isChildRect0 && analysisData.childGridSettings.rectVisible) ||
+            (isChildCircle0 && analysisData.childGridSettings.circleVisible)) {
           drawGrid(
             scaledChild,
             analysisData.colorSettings.childGridColor,
-            analysisData.colorSettings.childGridOpacity
+            analysisData.colorSettings.childGridOpacity,
+            parentCellSize0,
+            isChildCircle0
           );
         }
 
         // Draw child region frame based on shape
         ctx.save();
-        ctx.strokeStyle = analysisData.colorSettings.childColor;
+        const childShapeColor0 = isChildCircle0
+          ? analysisData.colorSettings.childCircleColor
+          : child.shape === 'line'
+            ? analysisData.colorSettings.childLineColor
+            : analysisData.colorSettings.childRectColor;
+        ctx.strokeStyle = childShapeColor0;
         ctx.lineWidth = 2;
 
         if (child.shape === 'circle') {
@@ -227,7 +251,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           ctx.stroke();
         } else {
           // Rectangle (default)
-          drawRotatedRect(scaledChild, analysisData.colorSettings.childColor, 2);
+          drawRotatedRect(scaledChild, analysisData.colorSettings.childRectColor, 2);
         }
 
         ctx.restore();
@@ -240,7 +264,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           const scaledY = (point.coordinates.pixel.y - offsetY) * scaleY;
 
           const pointColor = point.parentRegionId !== undefined
-            ? analysisData.colorSettings.childColor
+            ? analysisData.colorSettings.childRectColor
             : analysisData.colorSettings.parentColor;
 
           ctx.fillStyle = pointColor;
@@ -348,10 +372,12 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
       const drawGrid = (
         region: { x: number; y: number; width: number; height: number; rotation: number },
         gridColor: string,
-        gridOpacity: number
+        gridOpacity: number,
+        cellSizeOverride?: number,
+        clipToEllipse?: boolean
       ) => {
         const basisLength = unitBasis === 'width' ? region.width : region.height;
-        const cellSize = basisLength / 16;
+        const cellSize = cellSizeOverride ?? basisLength / 16;
         if (cellSize <= 0) return;
         ctx.save();
         if (region.rotation !== 0) {
@@ -360,6 +386,11 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           ctx.translate(centerX, centerY);
           ctx.rotate(region.rotation);
           ctx.translate(-centerX, -centerY);
+        }
+        if (clipToEllipse) {
+          ctx.beginPath();
+          ctx.ellipse(region.x + region.width / 2, region.y + region.height / 2, region.width / 2, region.height / 2, 0, 0, 2 * Math.PI);
+          ctx.clip();
         }
         const hexToRgb = (hex: string) => {
           const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -371,21 +402,28 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         };
         const rgb = hexToRgb(gridColor);
         ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
-        for (let i = 0; i * cellSize <= region.width + 0.5; i++) {
-          const x = region.x + i * cellSize;
-          ctx.lineWidth = i % 8 === 0 ? 1.5 : i % 4 === 0 ? 1.0 : 0.5;
-          ctx.beginPath();
-          ctx.moveTo(x, region.y);
-          ctx.lineTo(x, region.y + region.height);
-          ctx.stroke();
+        const cx = region.x + region.width / 2;
+        const cy = region.y + region.height / 2;
+        const lw = (k: number) => k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5;
+        for (let k = 0; cx + k * cellSize <= region.x + region.width + 0.5; k++) {
+          const x = cx + k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
         }
-        for (let i = 0; i * cellSize <= region.height + 0.5; i++) {
-          const y = region.y + i * cellSize;
-          ctx.lineWidth = i % 8 === 0 ? 1.5 : i % 4 === 0 ? 1.0 : 0.5;
-          ctx.beginPath();
-          ctx.moveTo(region.x, y);
-          ctx.lineTo(region.x + region.width, y);
-          ctx.stroke();
+        for (let k = 1; cx - k * cellSize >= region.x - 0.5; k++) {
+          const x = cx - k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
+        }
+        for (let k = 0; cy + k * cellSize <= region.y + region.height + 0.5; k++) {
+          const y = cy + k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
+        }
+        for (let k = 1; cy - k * cellSize >= region.y - 0.5; k++) {
+          const y = cy - k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
         }
         ctx.restore();
       };
@@ -404,6 +442,11 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         drawRotatedRect(scaledParent, analysisData.colorSettings.parentColor, 2);
       }
 
+      const parentBasis1 = analysisData.parentRegion
+        ? (unitBasis === 'width' ? analysisData.parentRegion.width * scaleX : analysisData.parentRegion.height * scaleY)
+        : undefined;
+      const parentCellSize1 = parentBasis1 !== undefined ? parentBasis1 / 16 : undefined;
+
       analysisData.childRegions.forEach((child) => {
         const scaledChild = {
           x: (child.bounds.x - offsetX) * scaleX,
@@ -412,11 +455,19 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           height: child.bounds.height * scaleY,
           rotation: child.rotation
         };
-        if (analysisData.childGridSettings.visible) {
-          drawGrid(scaledChild, analysisData.colorSettings.childGridColor, analysisData.colorSettings.childGridOpacity);
+        const isChildRect1 = !child.shape || child.shape === 'rectangle';
+        const isChildCircle1 = child.shape === 'circle';
+        if ((isChildRect1 && analysisData.childGridSettings.rectVisible) ||
+            (isChildCircle1 && analysisData.childGridSettings.circleVisible)) {
+          drawGrid(scaledChild, analysisData.colorSettings.childGridColor, analysisData.colorSettings.childGridOpacity, parentCellSize1, isChildCircle1);
         }
         ctx.save();
-        ctx.strokeStyle = analysisData.colorSettings.childColor;
+        const childShapeColor1 = isChildCircle1
+          ? analysisData.colorSettings.childCircleColor
+          : child.shape === 'line'
+            ? analysisData.colorSettings.childLineColor
+            : analysisData.colorSettings.childRectColor;
+        ctx.strokeStyle = childShapeColor1;
         ctx.lineWidth = 2;
         if (child.shape === 'circle') {
           const cx = scaledChild.x + scaledChild.width / 2;
@@ -441,7 +492,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           ctx.lineTo(ex, ey);
           ctx.stroke();
         } else {
-          drawRotatedRect(scaledChild, analysisData.colorSettings.childColor, 2);
+          drawRotatedRect(scaledChild, analysisData.colorSettings.childRectColor, 2);
         }
         ctx.restore();
       });
@@ -451,7 +502,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           const scaledX = (point.coordinates.pixel.x - offsetX) * scaleX;
           const scaledY = (point.coordinates.pixel.y - offsetY) * scaleY;
           const pointColor = point.parentRegionId !== undefined
-            ? analysisData.colorSettings.childColor
+            ? analysisData.colorSettings.childRectColor
             : analysisData.colorSettings.parentColor;
           ctx.fillStyle = pointColor;
           ctx.strokeStyle = pointColor;

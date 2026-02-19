@@ -278,7 +278,7 @@ export function SidePanel({
 
                         <div className="text-sm text-gray-600">
                           <div className="flex justify-between items-center">
-                            <span>Grid</span>
+                            <span>Position</span>
                             <span className="font-mono text-gray-900 font-medium">
                               ({point.coordinates.grid.x.toFixed(1)}, {point.coordinates.grid.y.toFixed(1)})
                             </span>
@@ -488,12 +488,12 @@ export function SidePanel({
                           </>
                         )}
                         <div className="flex justify-between items-center">
-                          <span>Grid Width</span>
-                          <span className="font-mono text-gray-900 font-medium">{gridW !== null ? gridW.toFixed(1) : '–'} units</span>
+                          <span>Width</span>
+                          <span className="font-mono text-gray-900 font-medium">{gridW !== null ? gridW.toFixed(1) : '–'}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span>Grid Height</span>
-                          <span className="font-mono text-gray-900 font-medium">{gridH !== null ? gridH.toFixed(1) : '–'} units</span>
+                          <span>Height</span>
+                          <span className="font-mono text-gray-900 font-medium">{gridH !== null ? gridH.toFixed(1) : '–'}</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span>Width Ratio</span>
@@ -569,7 +569,7 @@ export function SidePanel({
 
                             <div className="text-sm text-gray-600">
                               <div className="flex justify-between items-center">
-                                <span>Grid</span>
+                                <span>Position</span>
                                 <span className="font-mono text-gray-900 font-medium">
                                   ({point.coordinates.grid.x.toFixed(1)}, {point.coordinates.grid.y.toFixed(1)})
                                 </span>
@@ -603,13 +603,10 @@ export function SidePanel({
       <div className="panel-export-hide bg-blue-50 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-800 mb-3">Controls</h4>
         <ul className="text-sm text-blue-700 space-y-2">
-          <li>• Parent: Drag to draw rectangle</li>
-          <li>• Child: Drag inside parent region</li>
           <li>• Points: Double-click inside region</li>
           <li>• Rotate: Use top handle</li>
           <li>• Resize: Corner handles</li>
           <li>• Move: Drag inside region</li>
-          <li>• Pan: Shift + drag</li>
           <li>• Mode Switch: Shift key</li>
           <li>• Pan: Space + drag</li>
         </ul>
