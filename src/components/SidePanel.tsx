@@ -349,68 +349,114 @@ export function SidePanel({
                 </div>
 
                 <div className="text-sm space-y-2 text-gray-600">
-                  <div className="flex justify-between items-center">
-                    <span>Center</span>
-                    <span className="font-mono text-gray-900 font-medium">
-                      ({region.centerCoordinates.grid.x}, {region.centerCoordinates.grid.y})
-                    </span>
-                  </div>
-                  
-                  {region.edgePositions && (
+                  {region.shape !== 'line' && (
+                    <div className="flex justify-between items-center">
+                      <span>Center</span>
+                      <span className="font-mono text-gray-900 font-medium">
+                        ({region.centerCoordinates.grid.x}, {region.centerCoordinates.grid.y})
+                      </span>
+                    </div>
+                  )}
+
+                  {region.shape === 'circle' ? (() => {
+                    const gridCellH = parentRegion && parentRegion.height > 0 ? parentRegion.height / 16 : null;
+                    const wLabel = gridCellH ? (region.bounds.width / gridCellH).toFixed(2) : `${Math.round(region.bounds.width)}px`;
+                    const hLabel = gridCellH ? (region.bounds.height / gridCellH).toFixed(2) : `${Math.round(region.bounds.height)}px`;
+                    return (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span>Width</span>
+                          <span className="font-mono text-gray-900 font-medium">{wLabel}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Height</span>
+                          <span className="font-mono text-gray-900 font-medium">{hLabel}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Rotation</span>
+                          <span className="font-mono text-gray-900 font-medium">
+                            {Math.round((region.rotation || 0) * 180 / Math.PI)}°
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })() : region.shape === 'line' ? (() => {
+                    const gridCellH = parentRegion && parentRegion.height > 0 ? parentRegion.height / 16 : null;
+                    const pixLen = region.lineLength ?? 0;
+                    const lenLabel = gridCellH ? (pixLen / gridCellH).toFixed(2) : `${Math.round(pixLen)}px`;
+                    return (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span>Length</span>
+                          <span className="font-mono text-gray-900 font-medium">{lenLabel}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span>Angle</span>
+                          <span className="font-mono text-gray-900 font-medium">
+                            {region.lineAngle !== undefined ? Math.round(region.lineAngle) : 0}°
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })() : (
                     <>
+                      {region.edgePositions && (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span>Left Edge</span>
+                            <span className="font-mono text-gray-900 font-medium">{region.edgePositions.left.toFixed(1)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Right Edge</span>
+                            <span className="font-mono text-gray-900 font-medium">{region.edgePositions.right.toFixed(1)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Top Edge</span>
+                            <span className="font-mono text-gray-900 font-medium">{region.edgePositions.top.toFixed(1)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Bottom Edge</span>
+                            <span className="font-mono text-gray-900 font-medium">{region.edgePositions.bottom.toFixed(1)}</span>
+                          </div>
+                        </>
+                      )}
+
                       <div className="flex justify-between items-center">
-                        <span>Left Edge</span>
-                        <span className="font-mono text-gray-900 font-medium">{region.edgePositions.left.toFixed(1)}</span>
+                        <span>Grid Width</span>
+                        <span className="font-mono text-gray-900 font-medium">
+                          {region.gridDimensions?.gridWidth.toFixed(1)} units
+                        </span>
                       </div>
+
                       <div className="flex justify-between items-center">
-                        <span>Right Edge</span>
-                        <span className="font-mono text-gray-900 font-medium">{region.edgePositions.right.toFixed(1)}</span>
+                        <span>Grid Height</span>
+                        <span className="font-mono text-gray-900 font-medium">
+                          {region.gridDimensions?.gridHeight.toFixed(1)} units
+                        </span>
                       </div>
+
                       <div className="flex justify-between items-center">
-                        <span>Top Edge</span>
-                        <span className="font-mono text-gray-900 font-medium">{region.edgePositions.top.toFixed(1)}</span>
+                        <span>Width Ratio</span>
+                        <span className="font-mono text-gray-900 font-medium">
+                          {Math.round(region.ratios.widthRatio * 100)}%
+                        </span>
                       </div>
+
                       <div className="flex justify-between items-center">
-                        <span>Bottom Edge</span>
-                        <span className="font-mono text-gray-900 font-medium">{region.edgePositions.bottom.toFixed(1)}</span>
+                        <span>Height Ratio</span>
+                        <span className="font-mono text-gray-900 font-medium">
+                          {Math.round(region.ratios.heightRatio * 100)}%
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span>Rotation</span>
+                        <span className="font-mono text-gray-900 font-medium">
+                          {Math.round(region.rotation * 180 / Math.PI)}°
+                        </span>
                       </div>
                     </>
                   )}
-                  
-                  <div className="flex justify-between items-center">
-                    <span>Grid Width</span>
-                    <span className="font-mono text-gray-900 font-medium">
-                      {region.gridDimensions?.gridWidth.toFixed(1)} units
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span>Grid Height</span>
-                    <span className="font-mono text-gray-900 font-medium">
-                      {region.gridDimensions?.gridHeight.toFixed(1)} units
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span>Width Ratio</span>
-                    <span className="font-mono text-gray-900 font-medium">
-                      {Math.round(region.ratios.widthRatio * 100)}%
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span>Height Ratio</span>
-                    <span className="font-mono text-gray-900 font-medium">
-                      {Math.round(region.ratios.heightRatio * 100)}%
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span>Rotation</span>
-                    <span className="font-mono text-gray-900 font-medium">
-                      {Math.round(region.rotation * 180 / Math.PI)}°
-                    </span>
-                  </div>
                 </div>
 
                 {/* Child Region Points */}

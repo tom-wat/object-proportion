@@ -10,6 +10,7 @@ import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { snapToNearestEdge, snapToNearestCorner, convertToPixelCoordinates } from './utils/geometry';
 import { Download, Undo, Redo } from 'lucide-react';
+import type { ChildDrawMode } from './types';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,6 +43,7 @@ function App() {
   } = useAnalysisData();
 
   const [isPanMode, setIsPanMode] = useState(false);
+  const [childDrawMode, setChildDrawMode] = useState<ChildDrawMode>('rectangle');
 
   const {
     imageFile,
@@ -82,14 +84,15 @@ function App() {
   const handleSelectionModeChange = useCallback((mode: 'parent' | 'child') => {
     // Clear current selections when switching modes
     if (mode === 'parent') {
-      // Switching to parent mode - deselect child
+      // Switching to parent mode - deselect child and reset draw mode
       setSelectedChildId(null);
+      setChildDrawMode('rectangle');
     } else {
       // Switching to child mode - deselect parent and points
       setIsParentSelected(false);
       handlePointDeselect();
     }
-    
+
     setSelectionMode(mode);
   }, [setSelectedChildId, setIsParentSelected, handlePointDeselect, setSelectionMode]);
 
@@ -315,6 +318,8 @@ function App() {
         <Toolbar
           selectionMode={selectionMode}
           onSelectionModeChange={handleSelectionModeChange}
+          childDrawMode={childDrawMode}
+          onChildDrawModeChange={setChildDrawMode}
           gridSettings={analysisData.gridSettings}
           onGridSettingsChange={handleGridSettingsChange}
           childGridSettings={analysisData.childGridSettings}
@@ -393,6 +398,7 @@ function App() {
               imageRotation={analysisData.imageRotation}
               canvasRef={canvasRef}
               isPanMode={isPanMode}
+              childDrawMode={childDrawMode}
               className="h-full bg-white border border-gray-100 rounded-lg shadow-sm"
             />
           )}

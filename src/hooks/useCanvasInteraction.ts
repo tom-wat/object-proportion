@@ -1,6 +1,6 @@
-import { useCallback, useRef } from 'react';
-import type { Point, ParentRegion, ChildRegion, SelectionMode, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
-import { isPointInRotatedBounds, convertToGridCoordinates } from '../utils/geometry';
+import { useCallback, useEffect, useRef } from 'react';
+import type { Point, ParentRegion, ChildRegion, SelectionMode, ResizeHandle, ResizeHandleInfo, RegionPoint, ChildDrawMode } from '../types';
+import { isPointInRotatedBounds, convertToGridCoordinates, distanceToSegment } from '../utils/geometry';
 import { CANVAS_CONSTANTS } from '../utils/constants';
 
 interface UseCanvasInteractionProps {
@@ -19,6 +19,9 @@ interface UseCanvasInteractionProps {
   onPointAdd?: (point: Omit<RegionPoint, 'id'>) => void;
   onTemporaryDraw?: (x: number, y: number, width: number, height: number, isParent: boolean) => void;
   onRedraw: () => void;
+  childDrawMode?: ChildDrawMode;
+  onTemporaryCircleDraw?: (cx: number, cy: number, radius: number) => void;
+  onTemporaryLineDraw?: (x1: number, y1: number, x2: number, y2: number) => void;
   zoom?: number;
   pan?: { x: number; y: number };
   onPanChange?: (pan: { x: number; y: number }) => void;
@@ -44,6 +47,9 @@ export function useCanvasInteraction({
   onPointAdd,
   onTemporaryDraw,
   onRedraw,
+  childDrawMode,
+  onTemporaryCircleDraw,
+  onTemporaryLineDraw,
   zoom = 1,
   pan = { x: 0, y: 0 },
   onPanChange,
@@ -55,7 +61,7 @@ export function useCanvasInteraction({
   const isDrawingRef = useRef(false);
   const startPointRef = useRef<Point>({ x: 0, y: 0 });
   const startScreenPointRef = useRef<Point>({ x: 0, y: 0 });
-  const dragTypeRef = useRef<'new' | 'move' | 'resize' | 'rotate' | 'pan' | null>(null);
+  const dragTypeRef = useRef<'new' | 'move' | 'resize' | 'rotate' | 'pan' | 'line-endpoint' | null>(null);
   const selectedHandleRef = useRef<ResizeHandleInfo | null>(null);
   const initialRotationRef = useRef<number>(0);
   const initialAngleRef = useRef<number>(0);
@@ -63,6 +69,13 @@ export function useCanvasInteraction({
   const clickedParentRef = useRef<boolean>(false);
   const lastClickTimeRef = useRef<number>(0);
   const lastClickPointRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lineFirstPointRef = useRef<Point | null>(null);
+  const didDeselectRef = useRef(false);
+  const dragLineEndpointRef = useRef<'start' | 'end' | null>(null);
+
+  useEffect(() => {
+    lineFirstPointRef.current = null;
+  }, [childDrawMode]);
 
   const getCanvasPoint = useCallback((event: MouseEvent, canvas: HTMLCanvasElement): Point => {
     const rect = canvas.getBoundingClientRect();
@@ -144,17 +157,35 @@ export function useCanvasInteraction({
         cursor = 'move';
       }
     } else if (selectionMode === 'child') {
-      // Check selected child rotation and resize handles first
+      // Check line endpoint handles
       if (selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
-        if (selectedChild) {
+        if (selectedChild?.shape === 'line' && selectedChild.lineStart && selectedChild.lineEnd) {
+          const threshold = 10 / zoom;
+          const distToStart = Math.sqrt(
+            (point.x - selectedChild.lineStart.x) ** 2 + (point.y - selectedChild.lineStart.y) ** 2
+          );
+          const distToEnd = Math.sqrt(
+            (point.x - selectedChild.lineEnd.x) ** 2 + (point.y - selectedChild.lineEnd.y) ** 2
+          );
+          if (distToStart <= threshold || distToEnd <= threshold) {
+            onCursorChange('pointer');
+            return;
+          }
+        }
+      }
+
+      // Check selected child rotation and resize handles (rectangle and circle shapes)
+      if (selectedChildId !== null) {
+        const selectedChild = childRegions.find(c => c.id === selectedChildId);
+        if (selectedChild && (!selectedChild.shape || selectedChild.shape === 'rectangle' || selectedChild.shape === 'circle')) {
           const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
           const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
-          
+
           // Check rotation handle (transform point to local coordinate system)
           let localX = point.x;
           let localY = point.y;
-          
+
           if (selectedChild.rotation !== 0) {
             // Apply inverse rotation to point
             const cos = Math.cos(-selectedChild.rotation);
@@ -164,19 +195,19 @@ export function useCanvasInteraction({
             localX = centerX + dx * cos - dy * sin;
             localY = centerY + dx * sin + dy * cos;
           }
-          
+
           const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
           const distToRotHandle = Math.sqrt(
-            Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) + 
+            Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) +
             Math.pow(localY - handleY, 2)
           );
-          
+
           if (distToRotHandle <= 10 / zoom) {
             cursor = 'grab';
             onCursorChange(cursor);
             return;
           }
-          
+
           // Check resize handles - use simple cursor
           if (getHandleAtPoint) {
             const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0, zoom);
@@ -245,9 +276,16 @@ export function useCanvasInteraction({
       return;
     }
 
+    // In line mode with first point already placed, skip ALL region interaction.
+    // The next mouseUp is always the second click of the new line.
+    if (selectionMode === 'child' && childDrawMode === 'line' && lineFirstPointRef.current !== null) {
+      dragTypeRef.current = 'new';
+      return;
+    }
+
     // First priority: Check for handles (rotation, resize) even if outside region bounds
     // This ensures handles work even when they extend beyond the visible region
-    
+
     // Check parent rotation/resize handles if parent is selected
     if (parentRegion && isParentSelected) {
       const centerX = parentRegion.x + parentRegion.width / 2;
@@ -292,17 +330,41 @@ export function useCanvasInteraction({
       }
     }
     
-    // Check child rotation/resize handles if child is selected
+    // Check line endpoint handles if line child is selected
     if (selectedChildId !== null) {
       const selectedChild = childRegions.find(c => c.id === selectedChildId);
-      if (selectedChild) {
+      if (selectedChild?.shape === 'line' && selectedChild.lineStart && selectedChild.lineEnd) {
+        const threshold = 10 / zoom;
+        const distToStart = Math.sqrt(
+          (point.x - selectedChild.lineStart.x) ** 2 + (point.y - selectedChild.lineStart.y) ** 2
+        );
+        const distToEnd = Math.sqrt(
+          (point.x - selectedChild.lineEnd.x) ** 2 + (point.y - selectedChild.lineEnd.y) ** 2
+        );
+        if (distToStart <= threshold) {
+          dragTypeRef.current = 'line-endpoint';
+          dragLineEndpointRef.current = 'start';
+          return;
+        }
+        if (distToEnd <= threshold) {
+          dragTypeRef.current = 'line-endpoint';
+          dragLineEndpointRef.current = 'end';
+          return;
+        }
+      }
+    }
+
+    // Check child rotation/resize handles if child is selected (rectangle and circle shapes)
+    if (selectedChildId !== null) {
+      const selectedChild = childRegions.find(c => c.id === selectedChildId);
+      if (selectedChild && (!selectedChild.shape || selectedChild.shape === 'rectangle' || selectedChild.shape === 'circle')) {
         const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
         const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
-        
+
         // Check rotation handle using local coordinates
         let localX = point.x;
         let localY = point.y;
-        
+
         if (selectedChild.rotation !== 0) {
           // Apply inverse rotation to point
           const cos = Math.cos(-selectedChild.rotation);
@@ -312,16 +374,15 @@ export function useCanvasInteraction({
           localX = centerX + dx * cos - dy * sin;
           localY = centerY + dx * sin + dy * cos;
         }
-        
+
         const handleY = selectedChild.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
         const distToRotHandle = Math.sqrt(
-          Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) + 
+          Math.pow(localX - (selectedChild.bounds.x + selectedChild.bounds.width/2), 2) +
           Math.pow(localY - handleY, 2)
         );
-        
+
         if (distToRotHandle <= 10 / zoom) {
           dragTypeRef.current = 'rotate';
-          // Store initial rotation and angle for relative calculation
           initialRotationRef.current = selectedChild.rotation;
           initialAngleRef.current = Math.atan2(point.y - centerY, point.x - centerX);
           return;
@@ -359,65 +420,41 @@ export function useCanvasInteraction({
     if (selectionMode === 'child') {
       let clickedChild: ChildRegion | null = null;
       
+      const LINE_HIT_PX = 8 / zoom;
+
+      const isPointInChild = (child: ChildRegion, p: Point): boolean => {
+        if (child.shape === 'line' && child.lineStart && child.lineEnd) {
+          return distanceToSegment(p, child.lineStart, child.lineEnd) <= LINE_HIT_PX;
+        }
+        if (child.rotation !== 0) {
+          const centerX = child.bounds.x + child.bounds.width / 2;
+          const centerY = child.bounds.y + child.bounds.height / 2;
+          const cos = Math.cos(-child.rotation);
+          const sin = Math.sin(-child.rotation);
+          const dx = p.x - centerX;
+          const dy = p.y - centerY;
+          const rx = centerX + dx * cos - dy * sin;
+          const ry = centerY + dx * sin + dy * cos;
+          return rx >= child.bounds.x && rx <= child.bounds.x + child.bounds.width &&
+                 ry >= child.bounds.y && ry <= child.bounds.y + child.bounds.height;
+        }
+        return p.x >= child.bounds.x && p.x <= child.bounds.x + child.bounds.width &&
+               p.y >= child.bounds.y && p.y <= child.bounds.y + child.bounds.height;
+      };
+
       // First, check if clicking on the currently selected child (highest priority)
       if (selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
-        if (selectedChild) {
-          let pointInSelectedChild = false;
-          
-          if (selectedChild.rotation !== 0) {
-            // For rotated child regions, use rotated bounds check
-            const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
-            const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
-            const cos = Math.cos(-selectedChild.rotation);
-            const sin = Math.sin(-selectedChild.rotation);
-            const dx = point.x - centerX;
-            const dy = point.y - centerY;
-            const rotatedX = centerX + dx * cos - dy * sin;
-            const rotatedY = centerY + dx * sin + dy * cos;
-            
-            pointInSelectedChild = rotatedX >= selectedChild.bounds.x && rotatedX <= selectedChild.bounds.x + selectedChild.bounds.width &&
-                         rotatedY >= selectedChild.bounds.y && rotatedY <= selectedChild.bounds.y + selectedChild.bounds.height;
-          } else {
-            // Simple bounds check for non-rotated child
-            pointInSelectedChild = point.x >= selectedChild.bounds.x && point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
-                         point.y >= selectedChild.bounds.y && point.y <= selectedChild.bounds.y + selectedChild.bounds.height;
-          }
-          
-          if (pointInSelectedChild) {
-            clickedChild = selectedChild;
-          }
+        if (selectedChild && isPointInChild(selectedChild, point)) {
+          clickedChild = selectedChild;
         }
       }
-      
+
       // If not clicking on selected child, check other children
       if (!clickedChild) {
         for (const child of childRegions) {
-          // Skip already selected child (already checked above)
           if (child.id === selectedChildId) continue;
-          
-          let pointInChild = false;
-          
-          if (child.rotation !== 0) {
-            // For rotated child regions, use rotated bounds check
-            const centerX = child.bounds.x + child.bounds.width / 2;
-            const centerY = child.bounds.y + child.bounds.height / 2;
-            const cos = Math.cos(-child.rotation);
-            const sin = Math.sin(-child.rotation);
-            const dx = point.x - centerX;
-            const dy = point.y - centerY;
-            const rotatedX = centerX + dx * cos - dy * sin;
-            const rotatedY = centerY + dx * sin + dy * cos;
-            
-            pointInChild = rotatedX >= child.bounds.x && rotatedX <= child.bounds.x + child.bounds.width &&
-                       rotatedY >= child.bounds.y && rotatedY <= child.bounds.y + child.bounds.height;
-          } else {
-            // Simple bounds check for non-rotated child
-            pointInChild = point.x >= child.bounds.x && point.x <= child.bounds.x + child.bounds.width &&
-                       point.y >= child.bounds.y && point.y <= child.bounds.y + child.bounds.height;
-          }
-          
-          if (pointInChild) {
+          if (isPointInChild(child, point)) {
             clickedChild = child;
             break;
           }
@@ -439,22 +476,32 @@ export function useCanvasInteraction({
     }
     
     // Third priority: Handle empty space clicks - deselect current selections
+    didDeselectRef.current = false;
     if (selectedChildId !== null) {
       onChildRegionSelect(-1);
+      didDeselectRef.current = true;
     }
     if (parentRegion && isParentSelected && onParentDeselect) {
       onParentDeselect();
+      didDeselectRef.current = true;
     }
-    
+
     dragTypeRef.current = 'new';
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect, isPanMode]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect, isPanMode, childDrawMode]);
 
   const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);
-    
+
     // Update cursor when not drawing
     if (!isDrawingRef.current) {
       updateCursor(point);
+      // Line preview: show temporary line from first click to current cursor
+      if (childDrawMode === 'line' && lineFirstPointRef.current !== null) {
+        onRedraw();
+        if (onTemporaryLineDraw) {
+          onTemporaryLineDraw(lineFirstPointRef.current.x, lineFirstPointRef.current.y, point.x, point.y);
+        }
+      }
       return;
     }
     const dx = point.x - startPointRef.current.x;
@@ -488,15 +535,22 @@ export function useCanvasInteraction({
 
     if (dragTypeRef.current === 'new' && (selectionMode === 'parent' || selectionMode === 'child')) {
       onRedraw();
-      
-      const width = Math.abs(dx);
-      const height = Math.abs(dy);
-      const x = dx < 0 ? point.x : startPointRef.current.x;
-      const y = dy < 0 ? point.y : startPointRef.current.y;
 
-      if (onTemporaryDraw) {
-        onTemporaryDraw(x, y, width, height, selectionMode === 'parent');
+      if (selectionMode === 'parent' || !childDrawMode || childDrawMode === 'rectangle') {
+        const width = Math.abs(dx);
+        const height = Math.abs(dy);
+        const x = dx < 0 ? point.x : startPointRef.current.x;
+        const y = dy < 0 ? point.y : startPointRef.current.y;
+        if (onTemporaryDraw) {
+          onTemporaryDraw(x, y, width, height, selectionMode === 'parent');
+        }
+      } else if (childDrawMode === 'circle') {
+        const radius = Math.sqrt(dx * dx + dy * dy);
+        if (onTemporaryCircleDraw) {
+          onTemporaryCircleDraw(startPointRef.current.x, startPointRef.current.y, radius);
+        }
       }
+      // 'line': no drag preview (two-click model)
     } else if (dragTypeRef.current === 'move' && selectionMode === 'parent' && parentRegion) {
       const newRegion = {
         ...parentRegion,
@@ -508,7 +562,7 @@ export function useCanvasInteraction({
     } else if (dragTypeRef.current === 'move' && selectionMode === 'child' && selectedChildId !== null) {
       const selectedChild = childRegions.find(c => c.id === selectedChildId);
       if (selectedChild) {
-        const updatedChild = {
+        const updatedChild: typeof selectedChild = {
           ...selectedChild,
           bounds: {
             ...selectedChild.bounds,
@@ -516,6 +570,11 @@ export function useCanvasInteraction({
             y: selectedChild.bounds.y + dy
           }
         };
+        // Also translate line endpoints
+        if (selectedChild.shape === 'line' && selectedChild.lineStart && selectedChild.lineEnd) {
+          updatedChild.lineStart = { x: selectedChild.lineStart.x + dx, y: selectedChild.lineStart.y + dy };
+          updatedChild.lineEnd = { x: selectedChild.lineEnd.x + dx, y: selectedChild.lineEnd.y + dy };
+        }
         if (onChildRegionChange) {
           onChildRegionChange(updatedChild);
         }
@@ -598,8 +657,38 @@ export function useCanvasInteraction({
           onChildRegionChange(updatedChild);
         }
       }
+    } else if (dragTypeRef.current === 'line-endpoint' && selectionMode === 'child' && selectedChildId !== null) {
+      const selectedChild = childRegions.find(c => c.id === selectedChildId);
+      if (selectedChild?.shape === 'line' && selectedChild.lineStart && selectedChild.lineEnd) {
+        const newStart = dragLineEndpointRef.current === 'start' ? point : selectedChild.lineStart;
+        const newEnd = dragLineEndpointRef.current === 'end' ? point : selectedChild.lineEnd;
+        const lx = newEnd.x - newStart.x;
+        const ly = newEnd.y - newStart.y;
+        const length = Math.sqrt(lx * lx + ly * ly);
+        const angle = Math.atan2(-ly, lx) * 180 / Math.PI;
+        const updatedChild = {
+          ...selectedChild,
+          lineStart: newStart,
+          lineEnd: newEnd,
+          lineLength: length,
+          lineAngle: angle,
+          bounds: {
+            x: Math.min(newStart.x, newEnd.x),
+            y: Math.min(newStart.y, newEnd.y),
+            width: Math.max(1, Math.abs(lx)),
+            height: Math.max(1, Math.abs(ly))
+          },
+          centerCoordinates: {
+            ...selectedChild.centerCoordinates,
+            pixel: { x: (newStart.x + newEnd.x) / 2, y: (newStart.y + newEnd.y) / 2 }
+          }
+        };
+        if (onChildRegionChange) {
+          onChildRegionChange(updatedChild);
+        }
+      }
     }
-  }, [getCanvasPoint, onRedraw, onTemporaryDraw, selectionMode, parentRegion, childRegions, selectedChildId, onParentRegionChange, onChildRegionChange, onPanChange, pan, calculateResize, updateCursor]);
+  }, [getCanvasPoint, onRedraw, onTemporaryDraw, onTemporaryCircleDraw, onTemporaryLineDraw, childDrawMode, selectionMode, parentRegion, childRegions, selectedChildId, onParentRegionChange, onChildRegionChange, onPanChange, pan, calculateResize, updateCursor]);
 
   const handleMouseUp = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
     if (!isDrawingRef.current) return;
@@ -630,34 +719,94 @@ export function useCanvasInteraction({
         onParentRegionChange(newRegion);
       }
     } else if (dragTypeRef.current === 'new' && selectionMode === 'child') {
-      const width = Math.abs(dx);
-      const height = Math.abs(dy);
       const dragDistance = Math.sqrt(dx * dx + dy * dy);
-      
-      // If drag distance is small and clicked inside a child region, select it
-      if (dragDistance < 5 && clickedChildIdRef.current !== null) {
-        onChildRegionSelect(clickedChildIdRef.current);
-      } else if (width > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE && height > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE) {
-        // Create new child region only if dragged significantly
-        const x = dx < 0 ? point.x : startPointRef.current.x;
-        const y = dy < 0 ? point.y : startPointRef.current.y;
-        
-        const newChild: ChildRegion = {
-          id: childRegions.length + 1,
-          name: `Region ${childRegions.length + 1}`,
-          centerCoordinates: {
-            grid: { x: 0, y: 0 },
-            pixel: { x: x + width/2, y: y + height/2 }
-          },
-          bounds: { x, y, width, height },
-          rotation: 0,
-          ratios: {
-            areaRatio: 0,
-            widthRatio: 0,
-            heightRatio: 0
+
+      if (childDrawMode === 'circle') {
+        if (dragDistance < 5 && clickedChildIdRef.current !== null) {
+          onChildRegionSelect(clickedChildIdRef.current);
+        } else {
+          const radius = Math.sqrt(dx * dx + dy * dy);
+          if (radius > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE) {
+            const cx = startPointRef.current.x;
+            const cy = startPointRef.current.y;
+            const newChild: ChildRegion = {
+              id: childRegions.length + 1,
+              name: `Circle ${childRegions.filter(c => c.shape === 'circle').length + 1}`,
+              shape: 'circle',
+              radius,
+              centerCoordinates: { grid: { x: 0, y: 0 }, pixel: { x: cx, y: cy } },
+              bounds: { x: cx - radius, y: cy - radius, width: 2 * radius, height: 2 * radius },
+              rotation: 0,
+              ratios: { areaRatio: 0, widthRatio: 0, heightRatio: 0 }
+            };
+            onChildRegionAdd(newChild);
+
           }
-        };
-        onChildRegionAdd(newChild);
+        }
+      } else if (childDrawMode === 'line') {
+        if (dragDistance < 5 && clickedChildIdRef.current !== null) {
+          // Clicked on existing child – select it and reset any pending first point
+          onChildRegionSelect(clickedChildIdRef.current);
+          lineFirstPointRef.current = null;
+        } else if (dragDistance < 5) {
+          // Two-click model
+          if (lineFirstPointRef.current === null) {
+            // Record first click only if this mousedown didn't just deselect a region
+            if (!didDeselectRef.current) {
+              lineFirstPointRef.current = { x: startPointRef.current.x, y: startPointRef.current.y };
+            }
+          } else {
+            // Second click – create line
+            const fp = lineFirstPointRef.current;
+            const lx = point.x - fp.x;
+            const ly = point.y - fp.y;
+            const length = Math.sqrt(lx * lx + ly * ly);
+            // CCW positive: negate screen-y direction
+            const angle = Math.atan2(-ly, lx) * 180 / Math.PI;
+            const minX = Math.min(fp.x, point.x);
+            const minY = Math.min(fp.y, point.y);
+            const bWidth = Math.max(1, Math.abs(lx));
+            const bHeight = Math.max(1, Math.abs(ly));
+            const newChild: ChildRegion = {
+              id: childRegions.length + 1,
+              name: `Line ${childRegions.filter(c => c.shape === 'line').length + 1}`,
+              shape: 'line',
+              lineStart: { x: fp.x, y: fp.y },
+              lineEnd: { x: point.x, y: point.y },
+              lineLength: length,
+              lineAngle: angle,
+              centerCoordinates: { grid: { x: 0, y: 0 }, pixel: { x: (fp.x + point.x) / 2, y: (fp.y + point.y) / 2 } },
+              bounds: { x: minX, y: minY, width: bWidth, height: bHeight },
+              rotation: 0,
+              ratios: { areaRatio: 0, widthRatio: 0, heightRatio: 0 }
+            };
+            onChildRegionAdd(newChild);
+            lineFirstPointRef.current = null;
+          }
+        } else if (lineFirstPointRef.current !== null) {
+          // Large drag after first click – cancel
+          lineFirstPointRef.current = null;
+        }
+      } else {
+        // Rectangle (default)
+        const width = Math.abs(dx);
+        const height = Math.abs(dy);
+
+        if (dragDistance < 5 && clickedChildIdRef.current !== null) {
+          onChildRegionSelect(clickedChildIdRef.current);
+        } else if (width > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE && height > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE) {
+          const x = dx < 0 ? point.x : startPointRef.current.x;
+          const y = dy < 0 ? point.y : startPointRef.current.y;
+          const newChild: ChildRegion = {
+            id: childRegions.length + 1,
+            name: `Rectangle ${childRegions.filter(c => !c.shape || c.shape === 'rectangle').length + 1}`,
+            centerCoordinates: { grid: { x: 0, y: 0 }, pixel: { x: x + width/2, y: y + height/2 } },
+            bounds: { x, y, width, height },
+            rotation: 0,
+            ratios: { areaRatio: 0, widthRatio: 0, heightRatio: 0 }
+          };
+          onChildRegionAdd(newChild);
+        }
       }
     }
 
@@ -688,10 +837,10 @@ export function useCanvasInteraction({
           targetRegion = parentRegion;
           parentRegionId = undefined; // null indicates parent region point
         }
-        // Check if point is inside selected child region
+        // Check if point is inside selected child region (line regions do not support points)
         else if (selectedChildId !== null) {
           const selectedChild = childRegions.find(c => c.id === selectedChildId);
-          if (selectedChild) {
+          if (selectedChild && selectedChild.shape !== 'line') {
             let isInsideChild = false;
             
             if (selectedChild.rotation !== 0) {
@@ -755,8 +904,9 @@ export function useCanvasInteraction({
     selectedHandleRef.current = null;
     clickedChildIdRef.current = null;
     clickedParentRef.current = false;
+    dragLineEndpointRef.current = null;
     onRedraw();
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected, childDrawMode]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
     const mouseDownHandler = (e: MouseEvent) => handleMouseDown(e, canvas);

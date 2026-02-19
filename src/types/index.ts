@@ -41,6 +41,12 @@ export interface ChildRegion {
     top: number;    // y grid coordinate of top edge
     bottom: number; // y grid coordinate of bottom edge
   };
+  shape?: 'rectangle' | 'circle' | 'line'; // undefined treated as 'rectangle'
+  radius?: number;       // circle: pixel radius
+  lineStart?: Point;     // line: start point (pixels)
+  lineEnd?: Point;       // line: end point (pixels)
+  lineLength?: number;   // line: pixel length
+  lineAngle?: number;    // line: degrees (-180 to 180, atan2)
 }
 
 export interface RegionPoint {
@@ -86,6 +92,7 @@ export interface AnalysisData {
 }
 
 export type SelectionMode = 'parent' | 'child';
+export type ChildDrawMode = 'rectangle' | 'circle' | 'line';
 export type ResizeHandle = 
   | 'top-left' | 'top-center' | 'top-right'
   | 'middle-left' | 'middle-right'

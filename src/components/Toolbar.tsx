@@ -1,8 +1,10 @@
-import type { SelectionMode, GridSettings, ChildGridSettings, ColorSettings } from '../types';
+import type { SelectionMode, GridSettings, ChildGridSettings, ColorSettings, ChildDrawMode } from '../types';
 
 interface ToolbarProps {
   selectionMode: SelectionMode;
   onSelectionModeChange: (mode: SelectionMode) => void;
+  childDrawMode: ChildDrawMode;
+  onChildDrawModeChange: (mode: ChildDrawMode) => void;
   gridSettings: GridSettings;
   onGridSettingsChange: (settings: GridSettings) => void;
   childGridSettings: ChildGridSettings;
@@ -20,6 +22,8 @@ interface ToolbarProps {
 export function Toolbar({
   selectionMode,
   onSelectionModeChange,
+  childDrawMode,
+  onChildDrawModeChange,
   gridSettings,
   onGridSettingsChange,
   childGridSettings,
@@ -66,6 +70,48 @@ export function Toolbar({
                 </button>
               </div>
             </div>
+
+            {/* Child Shape Selector */}
+            {selectionMode === 'child' && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-600">Shape</span>
+                <div className="flex bg-gray-50 rounded-lg p-0.5">
+                  <button
+                    onClick={() => onChildDrawModeChange('rectangle')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      childDrawMode === 'rectangle'
+                        ? 'bg-blue-500 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    }`}
+                    title="Draw rectangle"
+                  >
+                    □ Rect
+                  </button>
+                  <button
+                    onClick={() => onChildDrawModeChange('circle')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      childDrawMode === 'circle'
+                        ? 'bg-blue-500 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    }`}
+                    title="Draw circle (drag from center)"
+                  >
+                    ○ Circle
+                  </button>
+                  <button
+                    onClick={() => onChildDrawModeChange('line')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      childDrawMode === 'line'
+                        ? 'bg-blue-500 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    }`}
+                    title="Draw line (two clicks)"
+                  >
+                    / Line
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Grid Controls */}
             <div className="flex items-center gap-4">

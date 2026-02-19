@@ -1,5 +1,5 @@
 import React from 'react';
-import type { SelectionMode, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint } from '../types';
+import type { SelectionMode, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, ChildDrawMode } from '../types';
 import { useImageCanvas } from '../hooks/useImageCanvas';
 
 
@@ -28,6 +28,7 @@ interface ImageCanvasProps {
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
   imageRotation?: number;
   isPanMode?: boolean;
+  childDrawMode?: ChildDrawMode;
 }
 
 export function ImageCanvas({
@@ -54,7 +55,8 @@ export function ImageCanvas({
   className = '',
   canvasRef: externalCanvasRef,
   imageRotation = 0,
-  isPanMode = false
+  isPanMode = false,
+  childDrawMode
 }: ImageCanvasProps) {
   
   const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
@@ -78,7 +80,8 @@ export function ImageCanvas({
     childGridSettings,
     externalCanvasRef,
     imageRotation,
-    isPanMode
+    isPanMode,
+    childDrawMode
   });
 
   React.useEffect(() => {

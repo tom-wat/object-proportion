@@ -1,5 +1,16 @@
 import type { Point, Bounds, ParentRegion } from '../types';
 
+export function distanceToSegment(point: Point, start: Point, end: Point): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) {
+    return Math.sqrt((point.x - start.x) ** 2 + (point.y - start.y) ** 2);
+  }
+  const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lenSq));
+  return Math.sqrt((point.x - (start.x + t * dx)) ** 2 + (point.y - (start.y + t * dy)) ** 2);
+}
+
 export function rotatePoint(point: Point, center: Point, angle: number): Point {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);

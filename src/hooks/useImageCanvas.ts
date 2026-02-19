@@ -3,7 +3,7 @@ import { useCanvasDrawing } from './useCanvasDrawing';
 import { useCanvasInteraction } from './useCanvasInteraction';
 import { useImageLoader } from './useImageLoader';
 import { useZoom } from './useZoom';
-import type { ParentRegion, ChildRegion, SelectionMode, ColorSettings, ChildGridSettings, RegionPoint } from '../types';
+import type { ParentRegion, ChildRegion, SelectionMode, ColorSettings, ChildGridSettings, RegionPoint, ChildDrawMode } from '../types';
 
 interface UseImageCanvasProps {
   selectionMode: SelectionMode;
@@ -27,6 +27,7 @@ interface UseImageCanvasProps {
   externalCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
   imageRotation?: number;
   isPanMode?: boolean;
+  childDrawMode?: ChildDrawMode;
 }
 
 export function useImageCanvas({
@@ -50,7 +51,8 @@ export function useImageCanvas({
   childGridSettings,
   externalCanvasRef,
   imageRotation = 0,
-  isPanMode = false
+  isPanMode = false,
+  childDrawMode
 }: UseImageCanvasProps) {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef = externalCanvasRef || internalCanvasRef;
@@ -88,14 +90,37 @@ export function useImageCanvas({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
-      // まず現在の状態を再描画
       drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
-
-      // 一時的な領域を描画
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
       drawing.drawTemporaryRegion(ctx, x, y, width, height, isParent, zoom);
+      ctx.restore();
+    }
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
+
+  const handleTemporaryCircleDraw = useCallback((cx: number, cy: number, radius: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) {
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
+      ctx.save();
+      ctx.translate(pan.x, pan.y);
+      ctx.scale(zoom, zoom);
+      drawing.drawTemporaryCircle(ctx, cx, cy, radius, zoom);
+      ctx.restore();
+    }
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
+
+  const handleTemporaryLineDraw = useCallback((x1: number, y1: number, x2: number, y2: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) {
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
+      ctx.save();
+      ctx.translate(pan.x, pan.y);
+      ctx.scale(zoom, zoom);
+      drawing.drawTemporaryLine(ctx, x1, y1, x2, y2, zoom);
       ctx.restore();
     }
   }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
@@ -116,6 +141,9 @@ export function useImageCanvas({
     onPointAdd,
     onTemporaryDraw: handleTemporaryDraw,
     onRedraw: handleRedraw,
+    childDrawMode,
+    onTemporaryCircleDraw: handleTemporaryCircleDraw,
+    onTemporaryLineDraw: handleTemporaryLineDraw,
     zoom,
     pan,
     onPanChange: setPan,

@@ -280,61 +280,112 @@ export function useCanvasDrawing() {
       ctx.stroke();
     }
 
-    // Draw parent region name (similar to child regions)
-    ctx.fillStyle = isSelected ? COLORS.SELECTED : parentColor;
-    ctx.font = `${CANVAS_CONSTANTS.FONT_SIZE / zoom}px ${CANVAS_CONSTANTS.FONT_FAMILY}`;
-    const regionName = region.name || "Parent Region";
-    ctx.fillText(regionName, region.x, region.y - 5 / zoom);
-
     ctx.restore();
   }, [drawHandle, getResizeHandles]);
 
   const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings, zoom: number = 1) => {
     const childColor = colorSettings?.childColor || COLORS.CHILD;
     ctx.save();
-    
-    // Apply rotation if needed
-    if (region.rotation !== 0) {
-      const centerX = region.bounds.x + region.bounds.width / 2;
-      const centerY = region.bounds.y + region.bounds.height / 2;
-      ctx.translate(centerX, centerY);
-      ctx.rotate(region.rotation);
-      ctx.translate(-centerX, -centerY);
-    }
 
-    ctx.strokeStyle = isSelected ? COLORS.SELECTED : childColor;
-    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
-    ctx.strokeRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
+    if (region.shape === 'circle') {
+      const cx = region.bounds.x + region.bounds.width / 2;
+      const cy = region.bounds.y + region.bounds.height / 2;
+      const radiusX = region.bounds.width / 2;
+      const radiusY = region.bounds.height / 2;
 
-    // Add selection highlight
-    if (isSelected) {
-      ctx.fillStyle = COLORS.SELECTED + '20'; // Add transparency
-      ctx.fillRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
-    }
+      if (region.rotation) {
+        ctx.translate(cx, cy);
+        ctx.rotate(region.rotation);
+        ctx.translate(-cx, -cy);
+      }
 
-    // Draw resize handles for selected child (using non-rotated coordinates since they are already calculated with rotation)
-    if (isSelected) {
-      ctx.fillStyle = COLORS.SELECTED;
-      const resizeHandles = getResizeHandles(region.bounds, 0); // Use 0 rotation since we're already in rotated context
-      resizeHandles.forEach(handle => {
-        drawHandle(ctx, handle.x, handle.y, CANVAS_CONSTANTS.HANDLE_SIZE, zoom);
-      });
-
-      // Draw rotation handle and line in the same coordinate system
-      const rotationHandleY = region.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
+      ctx.strokeStyle = isSelected ? COLORS.SELECTED : childColor;
+      ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
       ctx.beginPath();
-      ctx.arc(region.bounds.x + region.bounds.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE / zoom, 0, 2 * Math.PI);
-      ctx.fill();
-      
-      ctx.beginPath();
-      ctx.moveTo(region.bounds.x + region.bounds.width/2, region.bounds.y);
-      ctx.lineTo(region.bounds.x + region.bounds.width/2, rotationHandleY);
+      ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, 2 * Math.PI);
       ctx.stroke();
-    }
 
-    ctx.fillStyle = isSelected ? COLORS.SELECTED : childColor;
-    ctx.font = `${CANVAS_CONSTANTS.FONT_SIZE / zoom}px ${CANVAS_CONSTANTS.FONT_FAMILY}`;
-    ctx.fillText(region.name, region.bounds.x, region.bounds.y - 5 / zoom);
+      if (isSelected) {
+        ctx.fillStyle = COLORS.SELECTED + '20';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.fillStyle = COLORS.SELECTED;
+        const resizeHandles = getResizeHandles(region.bounds, 0);
+        resizeHandles.forEach(handle => {
+          drawHandle(ctx, handle.x, handle.y, CANVAS_CONSTANTS.HANDLE_SIZE, zoom);
+        });
+
+        const rotationHandleY = region.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
+        ctx.beginPath();
+        ctx.arc(cx, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE / zoom, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, region.bounds.y);
+        ctx.lineTo(cx, rotationHandleY);
+        ctx.stroke();
+      }
+
+    } else if (region.shape === 'line' && region.lineStart && region.lineEnd) {
+      ctx.strokeStyle = isSelected ? COLORS.SELECTED : childColor;
+      ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
+      ctx.beginPath();
+      ctx.moveTo(region.lineStart.x, region.lineStart.y);
+      ctx.lineTo(region.lineEnd.x, region.lineEnd.y);
+      ctx.stroke();
+
+      if (isSelected) {
+        const endpointRadius = CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE / zoom;
+        ctx.fillStyle = COLORS.SELECTED;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5 / zoom;
+        [region.lineStart, region.lineEnd].forEach(pt => {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, endpointRadius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        });
+      }
+
+    } else {
+      // Rectangle (default)
+      if (region.rotation !== 0) {
+        const centerX = region.bounds.x + region.bounds.width / 2;
+        const centerY = region.bounds.y + region.bounds.height / 2;
+        ctx.translate(centerX, centerY);
+        ctx.rotate(region.rotation);
+        ctx.translate(-centerX, -centerY);
+      }
+
+      ctx.strokeStyle = isSelected ? COLORS.SELECTED : childColor;
+      ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
+      ctx.strokeRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
+
+      if (isSelected) {
+        ctx.fillStyle = COLORS.SELECTED + '20';
+        ctx.fillRect(region.bounds.x, region.bounds.y, region.bounds.width, region.bounds.height);
+      }
+
+      if (isSelected) {
+        ctx.fillStyle = COLORS.SELECTED;
+        const resizeHandles = getResizeHandles(region.bounds, 0);
+        resizeHandles.forEach(handle => {
+          drawHandle(ctx, handle.x, handle.y, CANVAS_CONSTANTS.HANDLE_SIZE, zoom);
+        });
+
+        const rotationHandleY = region.bounds.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
+        ctx.beginPath();
+        ctx.arc(region.bounds.x + region.bounds.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE / zoom, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(region.bounds.x + region.bounds.width/2, region.bounds.y);
+        ctx.lineTo(region.bounds.x + region.bounds.width/2, rotationHandleY);
+        ctx.stroke();
+      }
+    }
 
     ctx.restore();
   }, [getResizeHandles, drawHandle]);
@@ -355,6 +406,40 @@ export function useCanvasDrawing() {
     ctx.setLineDash([]);
   }, []);
 
+  const drawTemporaryCircle = useCallback((
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    zoom: number = 1
+  ) => {
+    ctx.strokeStyle = COLORS.PRIMARY;
+    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
+    ctx.setLineDash(CANVAS_CONSTANTS.DASH_PATTERN);
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }, []);
+
+  const drawTemporaryLine = useCallback((
+    ctx: CanvasRenderingContext2D,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    zoom: number = 1
+  ) => {
+    ctx.strokeStyle = COLORS.PRIMARY;
+    ctx.lineWidth = CANVAS_CONSTANTS.LINE_WIDTH / zoom;
+    ctx.setLineDash(CANVAS_CONSTANTS.DASH_PATTERN);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }, []);
+
   const drawChildGrid = useCallback((
     ctx: CanvasRenderingContext2D,
     childRegion: ChildRegion,
@@ -362,6 +447,8 @@ export function useCanvasDrawing() {
     gridOpacity: number,
     zoom: number
   ) => {
+    // Skip grid for non-rectangle shapes
+    if (childRegion.shape === 'circle' || childRegion.shape === 'line') return;
     // Fixed 16x16 grid for child regions
     const gridSize = 16;
     const cellWidth = childRegion.bounds.width / gridSize;
@@ -624,7 +711,7 @@ export function useCanvasDrawing() {
     unselectedChildren.forEach((region, index) => {
       drawChildRegion(ctx, region, index, false, colorSettings, zoom);
     });
-    
+
     // 3. Draw selected region on top (completely separate from background)
     if (selectedChild) {
       // Selected child region always on top with selection highlight
@@ -658,6 +745,8 @@ export function useCanvasDrawing() {
     drawChildRegion,
     drawChildGrid,
     drawTemporaryRegion,
+    drawTemporaryCircle,
+    drawTemporaryLine,
     drawPoints,
     redraw,
     setImage,
