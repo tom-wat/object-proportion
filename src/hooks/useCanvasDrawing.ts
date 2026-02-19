@@ -445,86 +445,68 @@ export function useCanvasDrawing() {
     childRegion: ChildRegion,
     gridColor: string,
     gridOpacity: number,
-    zoom: number
+    zoom: number,
+    unitBasis: 'height' | 'width' = 'height'
   ) => {
     // Skip grid for non-rectangle shapes
     if (childRegion.shape === 'circle' || childRegion.shape === 'line') return;
-    // Fixed 16x16 grid for child regions
-    const gridSize = 16;
-    const cellWidth = childRegion.bounds.width / gridSize;
-    const cellHeight = childRegion.bounds.height / gridSize;
+
+    const basisLength = unitBasis === 'height' ? childRegion.bounds.height : childRegion.bounds.width;
+    const cellSize = basisLength / 16;
+    if (cellSize <= 0) return;
+
+    const { x, y, width, height } = childRegion.bounds;
 
     ctx.save();
-    
+
     // Apply rotation if needed
     if (childRegion.rotation !== 0) {
-      const centerX = childRegion.bounds.x + childRegion.bounds.width / 2;
-      const centerY = childRegion.bounds.y + childRegion.bounds.height / 2;
+      const centerX = x + width / 2;
+      const centerY = y + height / 2;
       ctx.translate(centerX, centerY);
       ctx.rotate(childRegion.rotation);
       ctx.translate(-centerX, -centerY);
     }
 
-    // Set grid style
     const hexToRgb = (hex: string) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
-      } : { r: 209, g: 213, b: 219 }; // fallback to default gray
+      } : { r: 209, g: 213, b: 219 };
     };
-    
+
     const rgb = hexToRgb(gridColor);
-    const gridColorWithOpacity = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
-    
-    ctx.strokeStyle = gridColorWithOpacity;
+    ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
 
-    // Draw vertical lines
-    for (let i = 0; i <= gridSize; i++) {
-      const x = childRegion.bounds.x + i * cellWidth;
-      
-      // Set line width based on grid division
-      if (i % 8 === 0) {
-        // Center lines (every 8th line) - thickest
-        ctx.lineWidth = 1.5 / zoom;
-      } else if (i % 4 === 0) {
-        // 4x4 division lines (every 4th line) - medium thickness
-        ctx.lineWidth = 1.0 / zoom;
-      } else {
-        // Regular grid lines - thin
-        ctx.lineWidth = 0.5 / zoom;
-      }
-      
-      ctx.beginPath();
-      ctx.moveTo(x, childRegion.bounds.y);
-      ctx.lineTo(x, childRegion.bounds.y + childRegion.bounds.height);
-      ctx.stroke();
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    const lw = (k: number) => (k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5) / zoom;
+
+    // Vertical lines from center outward
+    for (let k = 0; cx + k * cellSize <= x + width + 0.5; k++) {
+      const lx = cx + k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
+    }
+    for (let k = 1; cx - k * cellSize >= x - 0.5; k++) {
+      const lx = cx - k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
     }
 
-    // Draw horizontal lines
-    for (let i = 0; i <= gridSize; i++) {
-      const y = childRegion.bounds.y + i * cellHeight;
-      
-      // Set line width based on grid division
-      if (i % 8 === 0) {
-        // Center lines (every 8th line) - thickest
-        ctx.lineWidth = 1.5 / zoom;
-      } else if (i % 4 === 0) {
-        // 4x4 division lines (every 4th line) - medium thickness
-        ctx.lineWidth = 1.0 / zoom;
-      } else {
-        // Regular grid lines - thin
-        ctx.lineWidth = 0.5 / zoom;
-      }
-      
-      ctx.beginPath();
-      ctx.moveTo(childRegion.bounds.x, y);
-      ctx.lineTo(childRegion.bounds.x + childRegion.bounds.width, y);
-      ctx.stroke();
+    // Horizontal lines from center outward
+    for (let k = 0; cy + k * cellSize <= y + height + 0.5; k++) {
+      const ly = cy + k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
     }
-
-    // Center axes are now drawn as part of the main grid loop above
+    for (let k = 1; cy - k * cellSize >= y - 0.5; k++) {
+      const ly = cy - k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
+    }
 
     ctx.restore();
   }, []);
@@ -534,85 +516,65 @@ export function useCanvasDrawing() {
     parentRegion: ParentRegion,
     gridColor: string,
     gridOpacity: number,
-    zoom: number
+    zoom: number,
+    unitBasis: 'height' | 'width' = 'height'
   ) => {
-    const gridSize = 16; // Fixed 16x16 grid
+    const basisLength = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
+    const cellSize = basisLength / 16;
+    if (cellSize <= 0) return;
 
-    const cellWidth = parentRegion.width / gridSize;
-    const cellHeight = parentRegion.height / gridSize;
+    const { x, y, width, height } = parentRegion;
 
     ctx.save();
-    
+
     // Apply rotation if needed
     if (parentRegion.rotation !== 0) {
-      const centerX = parentRegion.x + parentRegion.width / 2;
-      const centerY = parentRegion.y + parentRegion.height / 2;
+      const centerX = x + width / 2;
+      const centerY = y + height / 2;
       ctx.translate(centerX, centerY);
       ctx.rotate(parentRegion.rotation);
       ctx.translate(-centerX, -centerY);
     }
 
-    // Set grid style
-    // Convert hex color to rgba with opacity
     const hexToRgb = (hex: string) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
-      } : { r: 209, g: 213, b: 219 }; // fallback to default gray
+      } : { r: 209, g: 213, b: 219 };
     };
-    
+
     const rgb = hexToRgb(gridColor);
-    const gridColorWithOpacity = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
-    
-    ctx.strokeStyle = gridColorWithOpacity;
+    ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
 
-    // Draw vertical lines
-    for (let i = 0; i <= gridSize; i++) {
-      const x = parentRegion.x + i * cellWidth;
-      
-      // Set line width based on grid division
-      if (i % 8 === 0) {
-        // Center lines (every 8th line) - thickest
-        ctx.lineWidth = 1.5 / zoom;
-      } else if (i % 4 === 0) {
-        // 4x4 division lines (every 4th line) - medium thickness
-        ctx.lineWidth = 1.0 / zoom;
-      } else {
-        // Regular grid lines - thin
-        ctx.lineWidth = 0.5 / zoom;
-      }
-      
-      ctx.beginPath();
-      ctx.moveTo(x, parentRegion.y);
-      ctx.lineTo(x, parentRegion.y + parentRegion.height);
-      ctx.stroke();
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    const lw = (k: number) => (k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5) / zoom;
+
+    // Vertical lines from center outward
+    for (let k = 0; cx + k * cellSize <= x + width + 0.5; k++) {
+      const lx = cx + k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
+    }
+    for (let k = 1; cx - k * cellSize >= x - 0.5; k++) {
+      const lx = cx - k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
     }
 
-    // Draw horizontal lines
-    for (let i = 0; i <= gridSize; i++) {
-      const y = parentRegion.y + i * cellHeight;
-      
-      // Set line width based on grid division
-      if (i % 8 === 0) {
-        // Center lines (every 8th line) - thickest
-        ctx.lineWidth = 1.5 / zoom;
-      } else if (i % 4 === 0) {
-        // 4x4 division lines (every 4th line) - medium thickness
-        ctx.lineWidth = 1.0 / zoom;
-      } else {
-        // Regular grid lines - thin
-        ctx.lineWidth = 0.5 / zoom;
-      }
-      
-      ctx.beginPath();
-      ctx.moveTo(parentRegion.x, y);
-      ctx.lineTo(parentRegion.x + parentRegion.width, y);
-      ctx.stroke();
+    // Horizontal lines from center outward
+    for (let k = 0; cy + k * cellSize <= y + height + 0.5; k++) {
+      const ly = cy + k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
     }
-
-    // Center axes are now drawn as part of the main grid loop above
+    for (let k = 1; cy - k * cellSize >= y - 0.5; k++) {
+      const ly = cy - k * cellSize;
+      ctx.lineWidth = lw(k);
+      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
+    }
 
     ctx.restore();
   }, []);
@@ -666,7 +628,8 @@ export function useCanvasDrawing() {
     isParentSelected: boolean = false,
     points: RegionPoint[] = [],
     selectedPointId: number | null = null,
-    imageRotation: number = 0
+    imageRotation: number = 0,
+    unitBasis: 'height' | 'width' = 'height'
   ) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -686,13 +649,13 @@ export function useCanvasDrawing() {
     
     // Draw grid second (behind frames)
     if (gridSettings?.visible && parentRegion && colorSettings?.gridColor && (colorSettings.gridOpacity || 0) > 0) {
-      drawGrid(ctx, parentRegion, colorSettings.gridColor, colorSettings.gridOpacity || 0.7, zoom);
+      drawGrid(ctx, parentRegion, colorSettings.gridColor, colorSettings.gridOpacity || 0.7, zoom, unitBasis);
     }
-    
+
     // Draw child grids first (behind child regions)
     if (childGridSettings?.visible && colorSettings?.childGridColor && colorSettings.childGridOpacity !== undefined) {
       childRegions.forEach((region) => {
-        drawChildGrid(ctx, region, colorSettings.childGridColor, colorSettings.childGridOpacity, zoom);
+        drawChildGrid(ctx, region, colorSettings.childGridColor, colorSettings.childGridOpacity, zoom, unitBasis);
       });
     }
 

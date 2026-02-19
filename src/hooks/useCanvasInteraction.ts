@@ -77,6 +77,19 @@ export function useCanvasInteraction({
     lineFirstPointRef.current = null;
   }, [childDrawMode]);
 
+  // Cancel line drawing on Escape (capture phase – fires before other keydown listeners)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && childDrawMode === 'line' && lineFirstPointRef.current !== null) {
+        lineFirstPointRef.current = null;
+        onRedraw();
+        event.stopImmediatePropagation();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [childDrawMode, onRedraw]);
+
   const getCanvasPoint = useCallback((event: MouseEvent, canvas: HTMLCanvasElement): Point => {
     const rect = canvas.getBoundingClientRect();
     
@@ -603,7 +616,7 @@ export function useCanvasInteraction({
       } else if (selectionMode === 'child' && selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
         if (selectedChild) {
-          const resized = calculateResize(
+          let resized = calculateResize(
             selectedChild.bounds,
             selectedHandleRef.current.type,
             dx,
@@ -611,12 +624,36 @@ export function useCanvasInteraction({
             CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE,
             CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE
           );
-          
+
+          // For circle shapes with corner handles, maintain current aspect ratio (supports ellipses)
+          const cornerHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+          if (selectedChild.shape === 'circle' && cornerHandles.includes(selectedHandleRef.current.type)) {
+            const origW = selectedChild.bounds.width;
+            const origH = selectedChild.bounds.height;
+            const scaleW = resized.width / origW;
+            const scaleH = resized.height / origH;
+            const scale = Math.max(scaleW, scaleH);
+            const newW = origW * scale;
+            const newH = origH * scale;
+            const handle = selectedHandleRef.current.type;
+            let adjustedX = resized.x;
+            let adjustedY = resized.y;
+            if (handle === 'top-left') {
+              adjustedX = resized.x + resized.width - newW;
+              adjustedY = resized.y + resized.height - newH;
+            } else if (handle === 'top-right') {
+              adjustedY = resized.y + resized.height - newH;
+            } else if (handle === 'bottom-left') {
+              adjustedX = resized.x + resized.width - newW;
+            }
+            resized = { x: adjustedX, y: adjustedY, width: newW, height: newH };
+          }
+
           const updatedChild = {
             ...selectedChild,
             bounds: resized
           };
-          
+
           if (onChildRegionChange) {
             onChildRegionChange(updatedChild);
           }

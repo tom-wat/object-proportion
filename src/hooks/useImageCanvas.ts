@@ -28,6 +28,7 @@ interface UseImageCanvasProps {
   imageRotation?: number;
   isPanMode?: boolean;
   childDrawMode?: ChildDrawMode;
+  unitBasis?: 'height' | 'width';
 }
 
 export function useImageCanvas({
@@ -52,7 +53,8 @@ export function useImageCanvas({
   externalCanvasRef,
   imageRotation = 0,
   isPanMode = false,
-  childDrawMode
+  childDrawMode,
+  unitBasis = 'height' as 'height' | 'width'
 }: UseImageCanvasProps) {
   const internalCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef = externalCanvasRef || internalCanvasRef;
@@ -74,7 +76,7 @@ export function useImageCanvas({
     imageLoadedRef.current = true;
     
     // Draw with zoom and pan
-    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
+    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
   }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
   
   const imageLoader = useImageLoader({ onImageLoad: handleImageLoad });
@@ -82,7 +84,7 @@ export function useImageCanvas({
   const handleRedraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
     }
   }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
   
@@ -90,7 +92,7 @@ export function useImageCanvas({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
@@ -103,7 +105,7 @@ export function useImageCanvas({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
@@ -116,7 +118,7 @@ export function useImageCanvas({
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);

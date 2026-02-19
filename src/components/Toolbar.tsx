@@ -17,6 +17,8 @@ interface ToolbarProps {
   onCreateFullCanvasParent: () => void;
   onFitChildHeightToImage: (childId: number) => void;
   onFitChildWidthToImage: (childId: number) => void;
+  unitBasis: 'height' | 'width';
+  onUnitBasisChange: (basis: 'height' | 'width') => void;
 }
 
 export function Toolbar({
@@ -35,7 +37,9 @@ export function Toolbar({
   selectedChildId,
   onCreateFullCanvasParent,
   onFitChildHeightToImage,
-  onFitChildWidthToImage
+  onFitChildWidthToImage,
+  unitBasis,
+  onUnitBasisChange
 }: ToolbarProps) {
   return (
     <div className="bg-white border-b border-gray-100">
@@ -61,7 +65,7 @@ export function Toolbar({
                   onClick={() => onSelectionModeChange('child')}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                     selectionMode === 'child'
-                      ? 'bg-green-500 text-white shadow-sm'
+                      ? 'bg-blue-500 text-white shadow-sm'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                   }`}
                   disabled={!hasParentRegion}
@@ -134,12 +138,41 @@ export function Toolbar({
                   onClick={() => onChildGridSettingsChange({ ...childGridSettings, visible: !childGridSettings.visible })}
                   className={`px-2 py-1 text-xs font-medium rounded transition-all ${
                     childGridSettings.visible
-                      ? 'bg-green-500 text-white shadow-sm'
+                      ? 'bg-blue-500 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                   disabled={childCount === 0}
                 >
                   {childGridSettings.visible ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            </div>
+
+            {/* Unit Basis Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Unit</span>
+              <div className="flex bg-gray-50 rounded-lg p-0.5">
+                <button
+                  onClick={() => onUnitBasisChange('height')}
+                  className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${
+                    unitBasis === 'height'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  title="Use height as grid unit basis"
+                >
+                  H
+                </button>
+                <button
+                  onClick={() => onUnitBasisChange('width')}
+                  className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${
+                    unitBasis === 'width'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  title="Use width as grid unit basis"
+                >
+                  W
                 </button>
               </div>
             </div>
@@ -244,24 +277,28 @@ export function Toolbar({
               Fit to Image
             </button>
 
-            {/* Child Region Fit Buttons */}
-            <button
-              onClick={() => selectedChildId !== null && onFitChildHeightToImage(selectedChildId)}
-              disabled={selectedChildId === null}
-              className="px-3 py-1.5 text-sm font-medium bg-green-500 text-white rounded-md hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
-              title={selectedChildId !== null ? "Fit child region height to image height" : "Select a child region first"}
-            >
-              Fit Height
-            </button>
+            {/* Child Region Fit Buttons: only for rectangle in child mode */}
+            {selectionMode === 'child' && childDrawMode === 'rectangle' && (
+              <>
+                <button
+                  onClick={() => selectedChildId !== null && onFitChildHeightToImage(selectedChildId)}
+                  disabled={selectedChildId === null}
+                  className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                  title={selectedChildId !== null ? "Fit child region height to image height" : "Select a child region first"}
+                >
+                  Fit Height
+                </button>
 
-            <button
-              onClick={() => selectedChildId !== null && onFitChildWidthToImage(selectedChildId)}
-              disabled={selectedChildId === null}
-              className="px-3 py-1.5 text-sm font-medium bg-green-500 text-white rounded-md hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
-              title={selectedChildId !== null ? "Fit child region width to image width" : "Select a child region first"}
-            >
-              Fit Width
-            </button>
+                <button
+                  onClick={() => selectedChildId !== null && onFitChildWidthToImage(selectedChildId)}
+                  disabled={selectedChildId === null}
+                  className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                  title={selectedChildId !== null ? "Fit child region width to image width" : "Select a child region first"}
+                >
+                  Fit Width
+                </button>
+              </>
+            )}
           </div>
 
         </div>

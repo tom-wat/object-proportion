@@ -29,6 +29,7 @@ interface ImageCanvasProps {
   imageRotation?: number;
   isPanMode?: boolean;
   childDrawMode?: ChildDrawMode;
+  unitBasis?: 'height' | 'width';
 }
 
 export function ImageCanvas({
@@ -56,9 +57,10 @@ export function ImageCanvas({
   canvasRef: externalCanvasRef,
   imageRotation = 0,
   isPanMode = false,
-  childDrawMode
+  childDrawMode,
+  unitBasis = 'height'
 }: ImageCanvasProps) {
-  
+
   const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
     selectionMode,
     parentRegion,
@@ -81,7 +83,8 @@ export function ImageCanvas({
     externalCanvasRef,
     imageRotation,
     isPanMode,
-    childDrawMode
+    childDrawMode,
+    unitBasis
   });
 
   React.useEffect(() => {

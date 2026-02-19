@@ -44,6 +44,7 @@ function App() {
 
   const [isPanMode, setIsPanMode] = useState(false);
   const [childDrawMode, setChildDrawMode] = useState<ChildDrawMode>('rectangle');
+  const [unitBasis, setUnitBasis] = useState<'height' | 'width'>('height');
 
   const {
     imageFile,
@@ -65,7 +66,7 @@ function App() {
     onImageInfoSet: setImageInfo
   });
 
-  const { handleExportJSON, handleExportPNG } = useExport({ analysisData, canvasRef, cachedImage });
+  const { handleExportJSON, handleExportPNG, handleExportPNGOverlayOnly } = useExport({ analysisData, canvasRef, cachedImage, unitBasis });
   const { exportSingleRegion } = usePanelExport();
 
   // Handle child region selection with deselection support
@@ -301,6 +302,15 @@ function App() {
                 PNG
               </button>
               <button
+                onClick={handleExportPNGOverlayOnly}
+                disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                title="Download regions only (transparent background)"
+              >
+                <Download size={16} />
+                PNG (overlay)
+              </button>
+              <button
                 onClick={handleExportJSON}
                 disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
                 className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
@@ -332,6 +342,8 @@ function App() {
           onCreateFullCanvasParent={() => handleCreateFullCanvasParent(canvasRef)}
           onFitChildHeightToImage={(childId) => handleFitChildHeightToImage(childId, canvasRef)}
           onFitChildWidthToImage={(childId) => handleFitChildWidthToImage(childId, canvasRef)}
+          unitBasis={unitBasis}
+          onUnitBasisChange={setUnitBasis}
         />
       )}
 
@@ -362,6 +374,7 @@ function App() {
             onClearAll={handleClearAllWithReset}
             imageInfo={analysisData.imageInfo}
             canvasRef={canvasRef}
+            unitBasis={unitBasis}
             className="w-72 h-full overflow-y-auto border-r border-gray-100 p-6"
           />
         )}
@@ -399,6 +412,7 @@ function App() {
               canvasRef={canvasRef}
               isPanMode={isPanMode}
               childDrawMode={childDrawMode}
+              unitBasis={unitBasis}
               className="h-full bg-white border border-gray-100 rounded-lg shadow-sm"
             />
           )}

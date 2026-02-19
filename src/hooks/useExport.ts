@@ -6,9 +6,10 @@ interface UseExportProps {
   analysisData: AnalysisData;
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
   cachedImage?: HTMLImageElement | null;
+  unitBasis?: 'height' | 'width';
 }
 
-export function useExport({ analysisData, canvasRef, cachedImage }: UseExportProps) {
+export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'height' }: UseExportProps) {
   const handleExportJSON = useCallback(() => {
     const json = exportToJSON(analysisData);
     downloadFile(json, `analysis-${Date.now()}.json`, 'application/json');
@@ -92,15 +93,15 @@ export function useExport({ analysisData, canvasRef, cachedImage }: UseExportPro
         ctx.restore();
       };
 
-      // Helper function to draw grid
+      // Helper function to draw grid (square cells based on unitBasis)
       const drawGrid = (
         region: { x: number; y: number; width: number; height: number; rotation: number },
         gridColor: string,
         gridOpacity: number
       ) => {
-        const gridSize = 16;
-        const cellWidth = region.width / gridSize;
-        const cellHeight = region.height / gridSize;
+        const basisLength = unitBasis === 'width' ? region.width : region.height;
+        const cellSize = basisLength / 16;
+        if (cellSize <= 0) return;
 
         ctx.save();
 
@@ -122,44 +123,34 @@ export function useExport({ analysisData, canvasRef, cachedImage }: UseExportPro
         };
 
         const rgb = hexToRgb(gridColor);
-        const gridColorWithOpacity = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
+        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
 
-        ctx.strokeStyle = gridColorWithOpacity;
+        const cx = region.x + region.width / 2;
+        const cy = region.y + region.height / 2;
+        const lw = (k: number) => k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5;
 
-        // Draw vertical lines
-        for (let i = 0; i <= gridSize; i++) {
-          const x = region.x + i * cellWidth;
-
-          if (i % 8 === 0) {
-            ctx.lineWidth = 1.5;
-          } else if (i % 4 === 0) {
-            ctx.lineWidth = 1.0;
-          } else {
-            ctx.lineWidth = 0.5;
-          }
-
-          ctx.beginPath();
-          ctx.moveTo(x, region.y);
-          ctx.lineTo(x, region.y + region.height);
-          ctx.stroke();
+        // Vertical lines from center outward
+        for (let k = 0; cx + k * cellSize <= region.x + region.width + 0.5; k++) {
+          const x = cx + k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
+        }
+        for (let k = 1; cx - k * cellSize >= region.x - 0.5; k++) {
+          const x = cx - k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
         }
 
-        // Draw horizontal lines
-        for (let i = 0; i <= gridSize; i++) {
-          const y = region.y + i * cellHeight;
-
-          if (i % 8 === 0) {
-            ctx.lineWidth = 1.5;
-          } else if (i % 4 === 0) {
-            ctx.lineWidth = 1.0;
-          } else {
-            ctx.lineWidth = 0.5;
-          }
-
-          ctx.beginPath();
-          ctx.moveTo(region.x, y);
-          ctx.lineTo(region.x + region.width, y);
-          ctx.stroke();
+        // Horizontal lines from center outward
+        for (let k = 0; cy + k * cellSize <= region.y + region.height + 0.5; k++) {
+          const y = cy + k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
+        }
+        for (let k = 1; cy - k * cellSize >= region.y - 0.5; k++) {
+          const y = cy - k * cellSize;
+          ctx.lineWidth = lw(k);
+          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
         }
 
         ctx.restore();
@@ -207,8 +198,39 @@ export function useExport({ analysisData, canvasRef, cachedImage }: UseExportPro
           );
         }
 
-        // Draw child region frame
-        drawRotatedRect(scaledChild, analysisData.colorSettings.childColor, 2);
+        // Draw child region frame based on shape
+        ctx.save();
+        ctx.strokeStyle = analysisData.colorSettings.childColor;
+        ctx.lineWidth = 2;
+
+        if (child.shape === 'circle') {
+          const cx = scaledChild.x + scaledChild.width / 2;
+          const cy = scaledChild.y + scaledChild.height / 2;
+          const radiusX = scaledChild.width / 2;
+          const radiusY = scaledChild.height / 2;
+          if (scaledChild.rotation) {
+            ctx.translate(cx, cy);
+            ctx.rotate(scaledChild.rotation);
+            ctx.translate(-cx, -cy);
+          }
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, 2 * Math.PI);
+          ctx.stroke();
+        } else if (child.shape === 'line' && child.lineStart && child.lineEnd) {
+          const sx = (child.lineStart.x - offsetX) * scaleX;
+          const sy = (child.lineStart.y - offsetY) * scaleY;
+          const ex = (child.lineEnd.x - offsetX) * scaleX;
+          const ey = (child.lineEnd.y - offsetY) * scaleY;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+        } else {
+          // Rectangle (default)
+          drawRotatedRect(scaledChild, analysisData.colorSettings.childColor, 2);
+        }
+
+        ctx.restore();
       });
 
       // Draw points
@@ -254,9 +276,217 @@ export function useExport({ analysisData, canvasRef, cachedImage }: UseExportPro
     }
   }, [analysisData, canvasRef, cachedImage]);
 
+  const handleExportPNGOverlayOnly = useCallback(() => {
+    if (!analysisData.imageInfo) {
+      alert('Image not loaded');
+      return;
+    }
+
+    if (!canvasRef?.current) {
+      alert('Canvas not available for export');
+      return;
+    }
+
+    if (!analysisData.parentRegion && analysisData.childRegions.length === 0) {
+      alert('No regions to export');
+      return;
+    }
+
+    try {
+      const offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = analysisData.imageInfo.width;
+      offscreenCanvas.height = analysisData.imageInfo.height;
+
+      const ctx = offscreenCanvas.getContext('2d');
+      if (!ctx) {
+        alert('Failed to create canvas context');
+        return;
+      }
+
+      // Transparent background – do NOT draw the image
+
+      const displayCanvas = canvasRef.current;
+      const imgAspect = analysisData.imageInfo.width / analysisData.imageInfo.height;
+      const canvasAspect = displayCanvas.width / displayCanvas.height;
+
+      let drawWidth, drawHeight, offsetX, offsetY;
+
+      if (imgAspect > canvasAspect) {
+        drawWidth = displayCanvas.width * 0.95;
+        drawHeight = drawWidth / imgAspect;
+        offsetX = (displayCanvas.width - drawWidth) / 2;
+        offsetY = (displayCanvas.height - drawHeight) / 2;
+      } else {
+        drawHeight = displayCanvas.height * 0.95;
+        drawWidth = drawHeight * imgAspect;
+        offsetX = (displayCanvas.width - drawWidth) / 2;
+        offsetY = (displayCanvas.height - drawHeight) / 2;
+      }
+
+      const scaleX = analysisData.imageInfo.width / drawWidth;
+      const scaleY = analysisData.imageInfo.height / drawHeight;
+
+      const drawRotatedRect = (
+        region: { x: number; y: number; width: number; height: number; rotation: number },
+        color: string,
+        lineWidth: number
+      ) => {
+        ctx.save();
+        if (region.rotation !== 0) {
+          const centerX = region.x + region.width / 2;
+          const centerY = region.y + region.height / 2;
+          ctx.translate(centerX, centerY);
+          ctx.rotate(region.rotation);
+          ctx.translate(-centerX, -centerY);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.strokeRect(region.x, region.y, region.width, region.height);
+        ctx.restore();
+      };
+
+      const drawGrid = (
+        region: { x: number; y: number; width: number; height: number; rotation: number },
+        gridColor: string,
+        gridOpacity: number
+      ) => {
+        const basisLength = unitBasis === 'width' ? region.width : region.height;
+        const cellSize = basisLength / 16;
+        if (cellSize <= 0) return;
+        ctx.save();
+        if (region.rotation !== 0) {
+          const centerX = region.x + region.width / 2;
+          const centerY = region.y + region.height / 2;
+          ctx.translate(centerX, centerY);
+          ctx.rotate(region.rotation);
+          ctx.translate(-centerX, -centerY);
+        }
+        const hexToRgb = (hex: string) => {
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+          return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+          } : { r: 0, g: 0, b: 0 };
+        };
+        const rgb = hexToRgb(gridColor);
+        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
+        for (let i = 0; i * cellSize <= region.width + 0.5; i++) {
+          const x = region.x + i * cellSize;
+          ctx.lineWidth = i % 8 === 0 ? 1.5 : i % 4 === 0 ? 1.0 : 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, region.y);
+          ctx.lineTo(x, region.y + region.height);
+          ctx.stroke();
+        }
+        for (let i = 0; i * cellSize <= region.height + 0.5; i++) {
+          const y = region.y + i * cellSize;
+          ctx.lineWidth = i % 8 === 0 ? 1.5 : i % 4 === 0 ? 1.0 : 0.5;
+          ctx.beginPath();
+          ctx.moveTo(region.x, y);
+          ctx.lineTo(region.x + region.width, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      };
+
+      if (analysisData.parentRegion) {
+        const scaledParent = {
+          x: (analysisData.parentRegion.x - offsetX) * scaleX,
+          y: (analysisData.parentRegion.y - offsetY) * scaleY,
+          width: analysisData.parentRegion.width * scaleX,
+          height: analysisData.parentRegion.height * scaleY,
+          rotation: analysisData.parentRegion.rotation
+        };
+        if (analysisData.gridSettings.visible) {
+          drawGrid(scaledParent, analysisData.colorSettings.gridColor, analysisData.colorSettings.gridOpacity);
+        }
+        drawRotatedRect(scaledParent, analysisData.colorSettings.parentColor, 2);
+      }
+
+      analysisData.childRegions.forEach((child) => {
+        const scaledChild = {
+          x: (child.bounds.x - offsetX) * scaleX,
+          y: (child.bounds.y - offsetY) * scaleY,
+          width: child.bounds.width * scaleX,
+          height: child.bounds.height * scaleY,
+          rotation: child.rotation
+        };
+        if (analysisData.childGridSettings.visible) {
+          drawGrid(scaledChild, analysisData.colorSettings.childGridColor, analysisData.colorSettings.childGridOpacity);
+        }
+        ctx.save();
+        ctx.strokeStyle = analysisData.colorSettings.childColor;
+        ctx.lineWidth = 2;
+        if (child.shape === 'circle') {
+          const cx = scaledChild.x + scaledChild.width / 2;
+          const cy = scaledChild.y + scaledChild.height / 2;
+          const radiusX = scaledChild.width / 2;
+          const radiusY = scaledChild.height / 2;
+          if (scaledChild.rotation) {
+            ctx.translate(cx, cy);
+            ctx.rotate(scaledChild.rotation);
+            ctx.translate(-cx, -cy);
+          }
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, 2 * Math.PI);
+          ctx.stroke();
+        } else if (child.shape === 'line' && child.lineStart && child.lineEnd) {
+          const sx = (child.lineStart.x - offsetX) * scaleX;
+          const sy = (child.lineStart.y - offsetY) * scaleY;
+          const ex = (child.lineEnd.x - offsetX) * scaleX;
+          const ey = (child.lineEnd.y - offsetY) * scaleY;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+        } else {
+          drawRotatedRect(scaledChild, analysisData.colorSettings.childColor, 2);
+        }
+        ctx.restore();
+      });
+
+      if (analysisData.points.length > 0) {
+        analysisData.points.forEach(point => {
+          const scaledX = (point.coordinates.pixel.x - offsetX) * scaleX;
+          const scaledY = (point.coordinates.pixel.y - offsetY) * scaleY;
+          const pointColor = point.parentRegionId !== undefined
+            ? analysisData.colorSettings.childColor
+            : analysisData.colorSettings.parentColor;
+          ctx.fillStyle = pointColor;
+          ctx.strokeStyle = pointColor;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(scaledX, scaledY, 3, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        });
+      }
+
+      offscreenCanvas.toBlob((blob) => {
+        if (!blob) {
+          alert('Failed to export PNG');
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `overlay-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    } catch (error) {
+      console.error('Failed to export overlay PNG:', error);
+      alert('Failed to export overlay PNG');
+    }
+  }, [analysisData, canvasRef]);
+
   return {
     handleExportJSON,
     handleExportCSV,
     handleExportPNG,
+    handleExportPNGOverlayOnly,
   };
 }

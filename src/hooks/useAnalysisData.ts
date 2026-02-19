@@ -224,7 +224,7 @@ export function useAnalysisData() {
     },
     colorSettings: {
       parentColor: '#3b82f6',
-      childColor: '#10b981',
+      childColor: '#3b82f6',
       gridColor: '#ffffff',
       gridOpacity: 0.5,
       childGridColor: '#ffffff',
