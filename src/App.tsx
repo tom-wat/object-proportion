@@ -221,7 +221,7 @@ function App() {
   }, [selectionMode, analysisData.parentRegion, setSelectionMode]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-100">
         <div className="px-6 py-3 flex items-center justify-between">
@@ -348,7 +348,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-130px)]">
+      <div className="flex flex-1 overflow-hidden">
         {/* Side Panel - moved to left */}
         {imageLoaded && (
           <SidePanel
