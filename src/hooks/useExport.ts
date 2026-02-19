@@ -208,9 +208,10 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         const isChildCircle0 = child.shape === 'circle';
         if ((isChildRect0 && analysisData.childGridSettings.rectVisible) ||
             (isChildCircle0 && analysisData.childGridSettings.circleVisible)) {
+          const childGridColor0 = isChildCircle0 ? analysisData.colorSettings.childCircleGridColor : analysisData.colorSettings.childRectGridColor;
           drawGrid(
             scaledChild,
-            analysisData.colorSettings.childGridColor,
+            childGridColor0,
             analysisData.colorSettings.childGridOpacity,
             parentCellSize0,
             isChildCircle0
@@ -459,7 +460,8 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         const isChildCircle1 = child.shape === 'circle';
         if ((isChildRect1 && analysisData.childGridSettings.rectVisible) ||
             (isChildCircle1 && analysisData.childGridSettings.circleVisible)) {
-          drawGrid(scaledChild, analysisData.colorSettings.childGridColor, analysisData.colorSettings.childGridOpacity, parentCellSize1, isChildCircle1);
+          const childGridColor1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridColor : analysisData.colorSettings.childRectGridColor;
+          drawGrid(scaledChild, childGridColor1, analysisData.colorSettings.childGridOpacity, parentCellSize1, isChildCircle1);
         }
         ctx.save();
         const childShapeColor1 = isChildCircle1

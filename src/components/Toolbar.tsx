@@ -294,17 +294,17 @@ export function Toolbar({
                         <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.gridOpacity * 100)}%</span>
                       </div>
                     )}
-                    {(isChildRect || isChildCircle) && (
+                    {isChildRect && (
                       <div className="flex items-center gap-1">
                         <input
                           type="color"
-                          value={colorSettings.childGridColor}
+                          value={colorSettings.childRectGridColor}
                           onChange={(e) => onColorSettingsChange({
                             ...colorSettings,
-                            childGridColor: e.target.value
+                            childRectGridColor: e.target.value
                           })}
                           className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Child Grid Color"
+                          title="Rect Grid Color"
                         />
                         <input
                           type="range"
@@ -317,7 +317,35 @@ export function Toolbar({
                             childGridOpacity: parseFloat(e.target.value)
                           })}
                           className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Child Grid Opacity"
+                          title="Rect Grid Opacity"
+                        />
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childGridOpacity * 100)}%</span>
+                      </div>
+                    )}
+                    {isChildCircle && (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="color"
+                          value={colorSettings.childCircleGridColor}
+                          onChange={(e) => onColorSettingsChange({
+                            ...colorSettings,
+                            childCircleGridColor: e.target.value
+                          })}
+                          className="w-6 h-6 rounded border-0 cursor-pointer"
+                          title="Circle Grid Color"
+                        />
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={colorSettings.childGridOpacity}
+                          onChange={(e) => onColorSettingsChange({
+                            ...colorSettings,
+                            childGridOpacity: parseFloat(e.target.value)
+                          })}
+                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                          title="Circle Grid Opacity"
                         />
                         <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childGridOpacity * 100)}%</span>
                       </div>

@@ -668,13 +668,14 @@ export function useCanvasDrawing() {
     }
 
     // Draw child grids first (behind child regions)
-    if (colorSettings?.childGridColor && colorSettings.childGridOpacity !== undefined) {
+    if (colorSettings?.childGridOpacity !== undefined) {
       childRegions.forEach((region) => {
         const isRect = !region.shape || region.shape === 'rectangle';
         const isCircle = region.shape === 'circle';
         const gridVisible = (isRect && childGridSettings?.rectVisible) || (isCircle && childGridSettings?.circleVisible);
         if (gridVisible) {
-          drawChildGrid(ctx, region, colorSettings.childGridColor, colorSettings.childGridOpacity, zoom, unitBasis, parentRegion);
+          const gridColor = isCircle ? colorSettings.childCircleGridColor : colorSettings.childRectGridColor;
+          drawChildGrid(ctx, region, gridColor, colorSettings.childGridOpacity, zoom, unitBasis, parentRegion);
         }
       });
     }
