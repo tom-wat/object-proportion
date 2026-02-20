@@ -1,6 +1,5 @@
 
 import type { ParentRegion, ChildRegion, RegionPoint } from '../types';
-import { CoordinateDisplay } from './CoordinateDisplay';
 import { rotatePoint } from '../utils/geometry';
 import { Trash2, Download } from 'lucide-react';
 
@@ -53,8 +52,6 @@ export function SidePanel({
   unitBasis = 'height',
   className = ''
 }: SidePanelProps) {
-  const selectedChild = childRegions.find(child => child.id === selectedChildId) || null;
-
   // Calculate parent region size in original image pixels
   const getOriginalImageSize = (region: ParentRegion) => {
     if (!imageInfo) {
@@ -106,16 +103,16 @@ export function SidePanel({
   
 
   return (
-    <div id="side-panel-export" className={`bg-gray-50 space-y-8 ${className}`}>
+    <div id="side-panel-export" className={`bg-white space-y-8 ${className}`}>
       {/* Parent Region Info */}
       <div>
-        <h3 className="text-base font-semibold text-gray-800 mb-4">Parent Region</h3>
+        <h3 className="panel-export-hide text-base font-semibold text-gray-800 mb-4">Parent Region</h3>
         {parentRegion ? (
           <div 
             className={`bg-white rounded-lg p-4 border cursor-pointer transition-all ${
               isParentSelected 
                 ? 'bg-blue-50 ring-2 ring-blue-200 border-transparent' 
-                : 'border-transparent hover:border-gray-300'
+                : 'border-gray-200 hover:border-gray-300'
             }`}
             onClick={onParentRegionSelect}
           >
@@ -249,7 +246,7 @@ export function SidePanel({
 
       {/* Child Regions List */}
       <div>
-        <h3 className="text-base font-semibold text-gray-800 mb-4">
+        <h3 className="panel-export-hide text-base font-semibold text-gray-800 mb-4">
           Child Regions ({childRegions.length})
         </h3>
         
@@ -262,7 +259,7 @@ export function SidePanel({
                 className={`bg-white rounded-lg p-4 border cursor-pointer transition-all ${
                   selectedChildId === region.id
                     ? 'bg-blue-50 ring-2 ring-blue-200 border-transparent'
-                    : 'border-transparent hover:border-gray-300'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
                 onClick={() => onChildRegionSelect(region.id)}
               >
@@ -529,15 +526,7 @@ export function SidePanel({
         )}
       </div>
 
-      {/* Coordinate System */}
-      <div className="panel-export-hide">
-        <CoordinateDisplay
-          parentRegion={parentRegion}
-          selectedChild={selectedChild}
-        />
-      </div>
-
-      {/* Instructions */}
+{/* Instructions */}
       <div className="panel-export-hide bg-blue-50 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-800 mb-3">Controls</h4>
         <ul className="text-sm text-blue-700 space-y-2">

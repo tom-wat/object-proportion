@@ -328,7 +328,7 @@ function App() {
               isPanMode={isPanMode}
               childDrawMode={childDrawMode}
               unitBasis={unitBasis}
-              className="h-full bg-white border border-gray-100 rounded-lg shadow-sm"
+              className="h-full bg-gray-100 border border-gray-100 rounded-lg shadow-sm"
             />
           )}
         </div>

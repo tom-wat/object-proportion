@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 interface UseZoomProps {
   minZoom?: number;
@@ -6,46 +6,50 @@ interface UseZoomProps {
   initialZoom?: number;
 }
 
-export function useZoom({ 
-  minZoom = 0.1, 
-  maxZoom = 5, 
-  initialZoom = 1 
+export function useZoom({
+  minZoom = 0.1,
+  maxZoom = 20,
+  initialZoom = 1
 }: UseZoomProps = {}) {
   const [zoom, setZoom] = useState(initialZoom);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const maxZoomRef = useRef(maxZoom);
+  const minZoomRef = useRef(minZoom);
+
+  const updateMaxZoom = useCallback((newMax: number) => {
+    maxZoomRef.current = newMax;
+  }, []);
 
   const zoomAtPoint = useCallback((delta: number, point: { x: number; y: number }) => {
     const factor = delta > 0 ? 1 / 1.2 : 1.2;
-    const newZoom = Math.max(minZoom, Math.min(maxZoom, zoom * factor));
-    
+    const newZoom = Math.max(minZoomRef.current, Math.min(maxZoomRef.current, zoom * factor));
+
     if (newZoom !== zoom) {
-      // Calculate new pan to keep the mouse point stationary
       const zoomChange = newZoom / zoom;
       const newPan = {
         x: point.x - (point.x - pan.x) * zoomChange,
         y: point.y - (point.y - pan.y) * zoomChange
       };
-      
       setZoom(newZoom);
       setPan(newPan);
     }
-  }, [zoom, pan, minZoom, maxZoom]);
+  }, [zoom, pan]);
 
   const zoomIn = useCallback((centerPoint?: { x: number; y: number }) => {
     if (centerPoint) {
       zoomAtPoint(-1, centerPoint);
     } else {
-      setZoom(prev => Math.min(prev * 1.2, maxZoom));
+      setZoom(prev => Math.min(prev * 1.2, maxZoomRef.current));
     }
-  }, [maxZoom, zoomAtPoint]);
+  }, [zoomAtPoint]);
 
   const zoomOut = useCallback((centerPoint?: { x: number; y: number }) => {
     if (centerPoint) {
       zoomAtPoint(1, centerPoint);
     } else {
-      setZoom(prev => Math.max(prev / 1.2, minZoom));
+      setZoom(prev => Math.max(prev / 1.2, minZoomRef.current));
     }
-  }, [minZoom, zoomAtPoint]);
+  }, [zoomAtPoint]);
 
   const resetZoom = useCallback(() => {
     setZoom(initialZoom);
@@ -53,8 +57,8 @@ export function useZoom({
   }, [initialZoom]);
 
   const setZoomLevel = useCallback((level: number) => {
-    setZoom(Math.max(minZoom, Math.min(maxZoom, level)));
-  }, [minZoom, maxZoom]);
+    setZoom(Math.max(minZoomRef.current, Math.min(maxZoomRef.current, level)));
+  }, []);
 
   return {
     zoom,
@@ -64,6 +68,7 @@ export function useZoom({
     zoomOut,
     zoomAtPoint,
     resetZoom,
-    setZoomLevel
+    setZoomLevel,
+    updateMaxZoom,
   };
 }

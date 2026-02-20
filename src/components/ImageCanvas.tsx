@@ -61,7 +61,7 @@ export function ImageCanvas({
   unitBasis = 'height'
 }: ImageCanvasProps) {
 
-  const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom } = useImageCanvas({
+  const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom, getImageDrawInfo, drawVersion, setZoomToActualPct } = useImageCanvas({
     selectionMode,
     parentRegion,
     childRegions,
@@ -115,26 +115,40 @@ export function ImageCanvas({
 
         {/* Zoom Controls - positioned relative to canvas */}
         <div className="absolute top-2 right-2 z-10 flex flex-col gap-2">
-          <button 
+          <button
             onClick={zoomIn}
             className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm shadow-sm"
             title="Zoom In"
           >
             +
           </button>
-          <button 
+          <button
             onClick={zoomOut}
             className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm shadow-sm"
             title="Zoom Out"
           >
             −
           </button>
-          <button 
+          <button
             onClick={resetZoom}
             className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs shadow-sm"
-            title="Reset Zoom"
+            title="Fit to canvas"
           >
-            {Math.round(zoom * 100)}%
+            Fit
+          </button>
+          <button
+            onClick={() => setZoomToActualPct(100)}
+            className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs text-gray-500 text-center shadow-sm cursor-pointer"
+            title="Click to set 100% actual scale"
+          >
+            {(() => {
+              void drawVersion;
+              const drawInfo = getImageDrawInfo?.();
+              if (drawInfo && cachedImage?.naturalWidth) {
+                return Math.round(drawInfo.drawWidth / cachedImage.naturalWidth * zoom * 100) + '%';
+              }
+              return null;
+            })()}
           </button>
         </div>
 

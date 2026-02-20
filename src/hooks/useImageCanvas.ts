@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useCanvasDrawing } from './useCanvasDrawing';
 import { useCanvasInteraction } from './useCanvasInteraction';
 import { useImageLoader } from './useImageLoader';
@@ -69,15 +69,41 @@ export function useImageCanvas({
   
   const drawing = useCanvasDrawing();
   const { getImageDrawInfo } = drawing;
-  const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, resetZoom } = useZoom();
-  
+  const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, resetZoom, setZoomLevel, updateMaxZoom } = useZoom();
+  const [drawVersion, setDrawVersion] = useState(0);
+  const fitScaleRef = useRef<number>(1);
+
   const handleImageLoad = useCallback((image: HTMLImageElement, canvas: HTMLCanvasElement) => {
     drawing.setImage(image);
     imageLoadedRef.current = true;
-    
+
     // Draw with zoom and pan
     drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
+
+    // Compute fit scale and update max zoom so actual scale caps at 500%
+    const drawInfo = drawing.getImageDrawInfo();
+    if (drawInfo && image.naturalWidth > 0) {
+      const fitScale = drawInfo.drawWidth / image.naturalWidth;
+      fitScaleRef.current = fitScale;
+      updateMaxZoom(5 / fitScale);
+    }
+
+    setDrawVersion(v => v + 1);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, updateMaxZoom]);
+
+  const setZoomToActualPct = useCallback((pct: number) => {
+    if (fitScaleRef.current > 0) {
+      const newZoom = pct / 100 / fitScaleRef.current;
+      setZoomLevel(newZoom);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        setPan({
+          x: canvas.width / 2 * (1 - newZoom),
+          y: canvas.height / 2 * (1 - newZoom),
+        });
+      }
+    }
+  }, [setZoomLevel, setPan, canvasRef]);
   
   const imageLoader = useImageLoader({ onImageLoad: handleImageLoad });
   
@@ -245,6 +271,8 @@ export function useImageCanvas({
     zoomIn: zoomInCenter,
     zoomOut: zoomOutCenter,
     resetZoom,
-    getImageDrawInfo
+    getImageDrawInfo,
+    drawVersion,
+    setZoomToActualPct,
   };
 }

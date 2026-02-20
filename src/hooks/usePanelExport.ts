@@ -1,5 +1,47 @@
 import { useCallback } from 'react';
 
+function trimCanvasBottom(canvas: HTMLCanvasElement, bgColor = { r: 255, g: 255, b: 255 }, tolerance = 10): HTMLCanvasElement {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const { width, height } = canvas;
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+
+  let lastContentRow = 0;
+  for (let y = height - 1; y >= 0; y--) {
+    let rowHasContent = false;
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      if (
+        Math.abs(r - bgColor.r) > tolerance ||
+        Math.abs(g - bgColor.g) > tolerance ||
+        Math.abs(b - bgColor.b) > tolerance
+      ) {
+        rowHasContent = true;
+        break;
+      }
+    }
+    if (rowHasContent) {
+      lastContentRow = y;
+      break;
+    }
+  }
+
+  const trimmedHeight = lastContentRow + 16; // small bottom padding
+  const trimmed = document.createElement('canvas');
+  trimmed.width = width;
+  trimmed.height = Math.min(trimmedHeight, height);
+  const trimCtx = trimmed.getContext('2d');
+  if (trimCtx) {
+    trimCtx.drawImage(canvas, 0, 0);
+  }
+  return trimmed;
+}
+
 export function usePanelExport() {
   const exportPanelAsImage = useCallback(async (elementId: string, filename?: string) => {
     try {
@@ -51,7 +93,7 @@ export function usePanelExport() {
       const options = {
         useCORS: true,
         allowTaint: false,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#ffffff',
         logging: false,
         imageTimeout: 10000,
         height: element.scrollHeight,
@@ -135,8 +177,11 @@ export function usePanelExport() {
       element.style.maxHeight = originalMaxHeight;
       document.head.removeChild(tempStyle);
 
+      // Trim bottom whitespace
+      const trimmedCanvas = trimCanvasBottom(canvas);
+
       // Convert canvas to blob and download
-      canvas.toBlob((blob) => {
+      trimmedCanvas.toBlob((blob) => {
         if (!blob) {
           console.error('Failed to create blob from canvas');
           return;
@@ -280,7 +325,7 @@ export function usePanelExport() {
         });
         
         // Add base padding for container
-        actualHeight += 48; // Container padding
+        actualHeight += 24; // Container padding
       } else {
         // Fallback: use minimal height for empty content
         actualHeight = 100;
@@ -317,13 +362,13 @@ export function usePanelExport() {
       const actualContentHeight = contentEnd - contentStart;
       
       // Use the actual measured content height instead of calculated height
-      actualHeight = Math.max(actualContentHeight + 48, actualHeight * 0.75);
+      actualHeight = Math.max(actualContentHeight + 24, actualHeight * 0.75);
       
       // Configure html2canvas options
       const options = {
         useCORS: true,
         allowTaint: false,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#ffffff',
         logging: false,
         imageTimeout: 10000,
         height: actualHeight,
@@ -407,8 +452,11 @@ export function usePanelExport() {
       element.style.maxHeight = originalMaxHeight;
       document.head.removeChild(tempStyle);
 
+      // Trim bottom whitespace
+      const trimmedCanvas = trimCanvasBottom(canvas);
+
       // Convert canvas to blob and download
-      canvas.toBlob((blob) => {
+      trimmedCanvas.toBlob((blob) => {
         if (!blob) {
           console.error('Failed to create blob from canvas');
           return;
