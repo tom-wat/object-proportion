@@ -61,6 +61,7 @@ function App() {
     handleParentDeselect,
     handlePointSelect,
     handlePointDeselect,
+    resetImageState,
   } = useImageHandling({
     onImageInfoSet: setImageInfo
   });
@@ -120,6 +121,12 @@ function App() {
     setSelectionMode('parent');
   }, [handleClearAll, setSelectedChildId, setIsParentSelected, setSelectionMode]);
 
+  const handleTitleClick = useCallback(() => {
+    if (!imageLoaded) return;
+    handleClearAll();
+    resetImageState();
+  }, [imageLoaded, handleClearAll, resetImageState]);
+
 
   const handleExportParentRegion = useCallback(() => {
     exportSingleRegion('side-panel-export', 'parent', undefined, `parent-region-${Date.now()}.png`);
@@ -140,9 +147,13 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100">
-        <div className="px-6 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-800">
+      <header className="bg-white border-b border-gray-100 h-14">
+        <div className="px-6 h-full flex items-center justify-between">
+          <h1
+            className={`text-lg font-semibold text-gray-800 ${imageLoaded ? 'cursor-pointer hover:text-gray-500 transition-colors' : ''}`}
+            onClick={handleTitleClick}
+            title={imageLoaded ? 'Click to return to start' : undefined}
+          >
             Object Proportion
           </h1>
 

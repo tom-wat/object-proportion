@@ -80,7 +80,9 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     setSelectedPointId(null);
     setIsParentSelected(false);
     setSelectionMode('parent');
-    
+    setImageLoaded(false);
+    setImageFile(null);
+
     // Clean up cached resources
     if (cachedBlobUrl) {
       URL.revokeObjectURL(cachedBlobUrl);
