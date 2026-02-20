@@ -70,9 +70,13 @@ export interface ChildGridSettings {
 
 export interface ColorSettings {
   parentColor: string;
+  parentColorOpacity: number;
   childRectColor: string;
+  childRectColorOpacity: number;
   childCircleColor: string;
+  childCircleColorOpacity: number;
   childLineColor: string;
+  childLineColorOpacity: number;
   gridColor: string;
   gridOpacity: number;
   childRectGridColor: string;

@@ -87,15 +87,25 @@ export function ImageCanvas({
     unitBasis
   });
 
+  // Keep refs pointing to the latest versions so the effect below can always
+  // call the most up-to-date function without re-triggering on every re-render.
+  const loadImageFromCachedRef = React.useRef(loadImageFromCached);
+  loadImageFromCachedRef.current = loadImageFromCached;
+  const loadImageRef = React.useRef(loadImage);
+  loadImageRef.current = loadImage;
+
+  // Only re-run when the actual image data changes, not when function references
+  // change.  Depending on loadImage / loadImageFromCached directly would cause
+  // the effect to fire on every render (those functions are recreated whenever
+  // any canvas state changes), which schedules a setTimeout inside useImageLoader
+  // that clears the canvas mid-drag and erases the temporary dashed preview.
   React.useEffect(() => {
-    if (cachedImage && loadImageFromCached) {
-      // Use cached image for better performance
-      loadImageFromCached(cachedImage);
-    } else if (imageFile && loadImage) {
-      // Fallback to loading from file
-      loadImage(imageFile);
+    if (cachedImage) {
+      loadImageFromCachedRef.current(cachedImage);
+    } else if (imageFile) {
+      loadImageRef.current(imageFile);
     }
-  }, [imageFile, cachedImage, loadImage, loadImageFromCached]);
+  }, [imageFile, cachedImage]);
 
 
 

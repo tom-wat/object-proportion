@@ -265,17 +265,30 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           const scaledX = (point.coordinates.pixel.x - offsetX) * scaleX;
           const scaledY = (point.coordinates.pixel.y - offsetY) * scaleY;
 
-          const pointColor = point.parentRegionId !== undefined
-            ? analysisData.colorSettings.childRectColor
-            : analysisData.colorSettings.parentColor;
+          const cs = analysisData.colorSettings;
+          let pointColor: string;
+          if (point.parentRegionId === undefined) {
+            const op = cs.parentColorOpacity ?? 1;
+            pointColor = op < 1 ? `rgba(${parseInt(cs.parentColor.slice(1,3),16)},${parseInt(cs.parentColor.slice(3,5),16)},${parseInt(cs.parentColor.slice(5,7),16)},${op})` : cs.parentColor;
+          } else {
+            const region = analysisData.childRegions.find(r => r.id === point.parentRegionId);
+            const [hex, op] = region?.shape === 'circle'
+              ? [cs.childCircleColor, cs.childCircleColorOpacity ?? 1]
+              : region?.shape === 'line'
+                ? [cs.childLineColor, cs.childLineColorOpacity ?? 1]
+                : [cs.childRectColor, cs.childRectColorOpacity ?? 1];
+            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
+          }
 
-          ctx.fillStyle = pointColor;
           ctx.strokeStyle = pointColor;
           ctx.lineWidth = 1;
 
+          const arm = 6;
           ctx.beginPath();
-          ctx.arc(scaledX, scaledY, 3, 0, 2 * Math.PI);
-          ctx.fill();
+          ctx.moveTo(scaledX - arm, scaledY);
+          ctx.lineTo(scaledX + arm, scaledY);
+          ctx.moveTo(scaledX, scaledY - arm);
+          ctx.lineTo(scaledX, scaledY + arm);
           ctx.stroke();
         });
       }
@@ -505,15 +518,31 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         analysisData.points.forEach(point => {
           const scaledX = (point.coordinates.pixel.x - offsetX) * scaleX;
           const scaledY = (point.coordinates.pixel.y - offsetY) * scaleY;
-          const pointColor = point.parentRegionId !== undefined
-            ? analysisData.colorSettings.childRectColor
-            : analysisData.colorSettings.parentColor;
-          ctx.fillStyle = pointColor;
+
+          const cs = analysisData.colorSettings;
+          let pointColor: string;
+          if (point.parentRegionId === undefined) {
+            const op = cs.parentColorOpacity ?? 1;
+            pointColor = op < 1 ? `rgba(${parseInt(cs.parentColor.slice(1,3),16)},${parseInt(cs.parentColor.slice(3,5),16)},${parseInt(cs.parentColor.slice(5,7),16)},${op})` : cs.parentColor;
+          } else {
+            const region = analysisData.childRegions.find(r => r.id === point.parentRegionId);
+            const [hex, op] = region?.shape === 'circle'
+              ? [cs.childCircleColor, cs.childCircleColorOpacity ?? 1]
+              : region?.shape === 'line'
+                ? [cs.childLineColor, cs.childLineColorOpacity ?? 1]
+                : [cs.childRectColor, cs.childRectColorOpacity ?? 1];
+            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
+          }
+
           ctx.strokeStyle = pointColor;
           ctx.lineWidth = 1;
+
+          const arm = 6;
           ctx.beginPath();
-          ctx.arc(scaledX, scaledY, 3, 0, 2 * Math.PI);
-          ctx.fill();
+          ctx.moveTo(scaledX - arm, scaledY);
+          ctx.lineTo(scaledX + arm, scaledY);
+          ctx.moveTo(scaledX, scaledY - arm);
+          ctx.lineTo(scaledX, scaledY + arm);
           ctx.stroke();
         });
       }

@@ -1,6 +1,12 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import type { ParentRegion, ChildRegion, ColorSettings, GridSettings, ChildGridSettings, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
+
+function hexToRgba(hex: string, opacity: number): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return hex;
+  return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})`;
+}
 
 export function useCanvasDrawing() {
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -237,7 +243,9 @@ export function useCanvasDrawing() {
   }, []);
 
   const drawParentRegion = useCallback((ctx: CanvasRenderingContext2D, region: ParentRegion, colorSettings?: ColorSettings, isSelected: boolean = false, zoom: number = 1) => {
-    const parentColor = colorSettings?.parentColor || COLORS.PRIMARY;
+    const parentColor = colorSettings
+      ? hexToRgba(colorSettings.parentColor, colorSettings.parentColorOpacity ?? 1)
+      : COLORS.PRIMARY;
     ctx.save();
     
     if (region.rotation !== 0) {
@@ -254,7 +262,7 @@ export function useCanvasDrawing() {
 
     // Add selection highlight
     if (isSelected) {
-      ctx.fillStyle = COLORS.SELECTED + '20'; // Add transparency
+      ctx.fillStyle = COLORS.SELECTED + '20';
       ctx.fillRect(region.x, region.y, region.width, region.height);
     }
 
@@ -262,13 +270,11 @@ export function useCanvasDrawing() {
     if (isSelected) {
       ctx.fillStyle = COLORS.SELECTED;
       
-      // Draw resize handles (using non-rotated coordinates since they are already calculated with rotation)
-      const resizeHandles = getResizeHandles(region, 0); // Use 0 rotation since we're already in rotated context
+      const resizeHandles = getResizeHandles(region, 0);
       resizeHandles.forEach(handle => {
         drawHandle(ctx, handle.x, handle.y, CANVAS_CONSTANTS.HANDLE_SIZE, zoom);
       });
 
-      // Draw rotation handle and line in the same coordinate system
       const rotationHandleY = region.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
       ctx.beginPath();
       ctx.arc(region.x + region.width/2, rotationHandleY, CANVAS_CONSTANTS.ROTATION_HANDLE_SIZE / zoom, 0, 2 * Math.PI);
@@ -285,10 +291,10 @@ export function useCanvasDrawing() {
 
   const drawChildRegion = useCallback((ctx: CanvasRenderingContext2D, region: ChildRegion, _index: number, isSelected: boolean = false, colorSettings?: ColorSettings, zoom: number = 1) => {
     const childColor = region.shape === 'circle'
-      ? (colorSettings?.childCircleColor || COLORS.CHILD)
+      ? (colorSettings ? hexToRgba(colorSettings.childCircleColor, colorSettings.childCircleColorOpacity ?? 1) : COLORS.CHILD)
       : region.shape === 'line'
-        ? (colorSettings?.childLineColor || COLORS.CHILD)
-        : (colorSettings?.childRectColor || COLORS.CHILD);
+        ? (colorSettings ? hexToRgba(colorSettings.childLineColor, colorSettings.childLineColorOpacity ?? 1) : COLORS.CHILD)
+        : (colorSettings ? hexToRgba(colorSettings.childRectColor, colorSettings.childRectColorOpacity ?? 1) : COLORS.CHILD);
     ctx.save();
 
     if (region.shape === 'circle') {
@@ -595,37 +601,47 @@ export function useCanvasDrawing() {
   }, []);
 
   const drawPoints = useCallback((
-    ctx: CanvasRenderingContext2D, 
-    points: RegionPoint[], 
+    ctx: CanvasRenderingContext2D,
+    points: RegionPoint[],
     colorSettings: ColorSettings,
+    childRegions: ChildRegion[],
     selectedPointId: number | null = null,
     zoom: number = 1
   ) => {
     points.forEach(point => {
       ctx.save();
-      
+
       const isSelected = selectedPointId === point.id;
-      
-      // Use selection color if selected, otherwise frame color based on region type
+      const { x, y } = point.coordinates.pixel;
+
+      let color: string;
       if (isSelected) {
-        ctx.fillStyle = '#ef4444'; // Red for selected
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2 / zoom; // Thicker border for selected
+        color = '#ef4444';
+      } else if (point.parentRegionId === undefined) {
+        color = hexToRgba(colorSettings.parentColor, colorSettings.parentColorOpacity ?? 1);
       } else {
-        // Use child color for child region points, parent color for parent region points
-        const pointColor = point.parentRegionId !== undefined ? colorSettings.childRectColor : colorSettings.parentColor;
-        ctx.fillStyle = pointColor;
-        ctx.strokeStyle = pointColor;
-        ctx.lineWidth = 1 / zoom;
+        const region = childRegions.find(r => r.id === point.parentRegionId);
+        if (region?.shape === 'circle') {
+          color = hexToRgba(colorSettings.childCircleColor, colorSettings.childCircleColorOpacity ?? 1);
+        } else if (region?.shape === 'line') {
+          color = hexToRgba(colorSettings.childLineColor, colorSettings.childLineColorOpacity ?? 1);
+        } else {
+          color = hexToRgba(colorSettings.childRectColor, colorSettings.childRectColorOpacity ?? 1);
+        }
       }
-      
-      // Draw point as 6px diameter circle
-      const radius = 3 / zoom; // Same size for both selected and deselected
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = (isSelected ? 1.5 : 1) / zoom;
+
+      const arm = 6 / zoom;
+
       ctx.beginPath();
-      ctx.arc(point.coordinates.pixel.x, point.coordinates.pixel.y, radius, 0, 2 * Math.PI);
-      ctx.fill();
+      ctx.moveTo(x - arm, y);
+      ctx.lineTo(x + arm, y);
+      ctx.moveTo(x, y - arm);
+      ctx.lineTo(x, y + arm);
       ctx.stroke();
-      
+
       ctx.restore();
     });
   }, []);
@@ -707,7 +723,7 @@ export function useCanvasDrawing() {
 
     // Draw points on top of everything
     if (points.length > 0 && colorSettings) {
-      drawPoints(ctx, points, colorSettings, selectedPointId, zoom);
+      drawPoints(ctx, points, colorSettings, childRegions, selectedPointId, zoom);
     }
 
     // Restore context state
@@ -722,7 +738,11 @@ export function useCanvasDrawing() {
     return imageDrawInfoRef.current;
   }, []);
 
-  return {
+  // Memoize the returned object so its reference stays stable across renders.
+  // All member functions are already useCallback with stable deps, so useMemo
+  // will produce the same object every render, preventing unnecessary downstream
+  // re-creation of callbacks and useEffect re-runs.
+  return useMemo(() => ({
     drawImage,
     drawParentRegion,
     drawChildRegion,
@@ -737,5 +757,20 @@ export function useCanvasDrawing() {
     getHandleAtPoint,
     calculateResize,
     getImageDrawInfo,
-  };
+  }), [
+    drawImage,
+    drawParentRegion,
+    drawChildRegion,
+    drawChildGrid,
+    drawTemporaryRegion,
+    drawTemporaryCircle,
+    drawTemporaryLine,
+    drawPoints,
+    redraw,
+    setImage,
+    getResizeHandles,
+    getHandleAtPoint,
+    calculateResize,
+    getImageDrawInfo,
+  ]);
 }

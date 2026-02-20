@@ -207,9 +207,13 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     },
     colorSettings: {
       parentColor: '#3b82f6',
+      parentColorOpacity: 1,
       childRectColor: '#3b82f6',
+      childRectColorOpacity: 1,
       childCircleColor: '#3b82f6',
+      childCircleColorOpacity: 1,
       childLineColor: '#3b82f6',
+      childLineColorOpacity: 1,
       gridColor: '#ffffff',
       gridOpacity: 0.5,
       childRectGridColor: '#ffffff',

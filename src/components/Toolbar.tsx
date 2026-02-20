@@ -214,52 +214,84 @@ export function Toolbar({
                   <span className="text-xs text-gray-500">Regions</span>
                   <div className="flex items-center gap-1">
                     {isParentMode && (
-                      <input
-                        type="color"
-                        value={colorSettings.parentColor}
-                        onChange={(e) => onColorSettingsChange({
-                          ...colorSettings,
-                          parentColor: e.target.value
-                        })}
-                        className="w-6 h-6 rounded border-0 cursor-pointer"
-                        title="Parent Region Color"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="color"
+                          value={colorSettings.parentColor}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, parentColor: e.target.value })}
+                          className="w-6 h-6 rounded border-0 cursor-pointer"
+                          title="Parent Region Color"
+                        />
+                        <input
+                          type="range"
+                          min="0" max="1" step="0.05"
+                          value={colorSettings.parentColorOpacity}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, parentColorOpacity: parseFloat(e.target.value) })}
+                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                          title="Parent Region Opacity"
+                        />
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.parentColorOpacity * 100)}%</span>
+                      </div>
                     )}
                     {isChildRect && (
-                      <input
-                        type="color"
-                        value={colorSettings.childRectColor}
-                        onChange={(e) => onColorSettingsChange({
-                          ...colorSettings,
-                          childRectColor: e.target.value
-                        })}
-                        className="w-6 h-6 rounded border-0 cursor-pointer"
-                        title="Rectangle Color"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="color"
+                          value={colorSettings.childRectColor}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childRectColor: e.target.value })}
+                          className="w-6 h-6 rounded border-0 cursor-pointer"
+                          title="Rectangle Color"
+                        />
+                        <input
+                          type="range"
+                          min="0" max="1" step="0.05"
+                          value={colorSettings.childRectColorOpacity}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childRectColorOpacity: parseFloat(e.target.value) })}
+                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                          title="Rectangle Opacity"
+                        />
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childRectColorOpacity * 100)}%</span>
+                      </div>
                     )}
                     {isChildCircle && (
-                      <input
-                        type="color"
-                        value={colorSettings.childCircleColor}
-                        onChange={(e) => onColorSettingsChange({
-                          ...colorSettings,
-                          childCircleColor: e.target.value
-                        })}
-                        className="w-6 h-6 rounded border-0 cursor-pointer"
-                        title="Circle Color"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="color"
+                          value={colorSettings.childCircleColor}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childCircleColor: e.target.value })}
+                          className="w-6 h-6 rounded border-0 cursor-pointer"
+                          title="Circle Color"
+                        />
+                        <input
+                          type="range"
+                          min="0" max="1" step="0.05"
+                          value={colorSettings.childCircleColorOpacity}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childCircleColorOpacity: parseFloat(e.target.value) })}
+                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                          title="Circle Opacity"
+                        />
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childCircleColorOpacity * 100)}%</span>
+                      </div>
                     )}
                     {isChildLine && (
-                      <input
-                        type="color"
-                        value={colorSettings.childLineColor}
-                        onChange={(e) => onColorSettingsChange({
-                          ...colorSettings,
-                          childLineColor: e.target.value
-                        })}
-                        className="w-6 h-6 rounded border-0 cursor-pointer"
-                        title="Line Color"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="color"
+                          value={colorSettings.childLineColor}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childLineColor: e.target.value })}
+                          className="w-6 h-6 rounded border-0 cursor-pointer"
+                          title="Line Color"
+                        />
+                        <input
+                          type="range"
+                          min="0" max="1" step="0.05"
+                          value={colorSettings.childLineColorOpacity}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childLineColorOpacity: parseFloat(e.target.value) })}
+                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                          title="Line Opacity"
+                        />
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childLineColorOpacity * 100)}%</span>
+                      </div>
                     )}
                   </div>
                 </div>

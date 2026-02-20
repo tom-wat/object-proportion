@@ -153,6 +153,20 @@ export function useImageCanvas({
     }
   }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
   
+  // Sync the canvas with React state after every relevant state/prop change.
+  // Canvas is an imperative API, so we need this effect to re-draw whenever
+  // the authoritative state changes (e.g. a new region is committed on mouseup).
+  // Because `drawing` is now memoized (stable reference), this effect only fires
+  // when actual data changes, not on every render — so it does NOT interfere
+  // with temporary dashed previews drawn during a drag (no state changes occur
+  // during a 'new' drag, only direct canvas API calls).
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
+    }
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis]);
+
   const interaction = useCanvasInteraction({
     selectionMode,
     parentRegion,
