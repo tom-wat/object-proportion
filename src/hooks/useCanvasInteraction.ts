@@ -839,7 +839,7 @@ export function useCanvasInteraction({
 
         if (dragDistance < 5 && clickedChildIdRef.current !== null) {
           onChildRegionSelect(clickedChildIdRef.current);
-        } else if (width > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE && height > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE) {
+        } else if (width > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE / zoom && height > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE / zoom) {
           const x = dx < 0 ? point.x : startPointRef.current.x;
           const y = dy < 0 ? point.y : startPointRef.current.y;
           const newChild: ChildRegion = {
