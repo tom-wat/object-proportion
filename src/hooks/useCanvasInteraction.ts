@@ -767,11 +767,12 @@ export function useCanvasInteraction({
       const dragDistance = Math.sqrt(dx * dx + dy * dy);
 
       if (childDrawMode === 'circle') {
-        if (dragDistance < 5 && clickedChildIdRef.current !== null) {
+        const clickThreshold = 5 / zoom;
+        if (dragDistance < clickThreshold && clickedChildIdRef.current !== null) {
           onChildRegionSelect(clickedChildIdRef.current);
         } else {
           const radius = Math.sqrt(dx * dx + dy * dy);
-          if (radius > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE) {
+          if (radius > CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE / zoom) {
             const cx = startPointRef.current.x;
             const cy = startPointRef.current.y;
             const newChild: ChildRegion = {
@@ -956,7 +957,7 @@ export function useCanvasInteraction({
     clickedParentRef.current = false;
     dragLineEndpointRef.current = null;
     onRedraw();
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected, childDrawMode, unitBasis]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected, childDrawMode, unitBasis, zoom]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
     const mouseDownHandler = (e: MouseEvent) => handleMouseDown(e, canvas);
