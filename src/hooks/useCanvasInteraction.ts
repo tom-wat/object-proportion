@@ -630,7 +630,8 @@ export function useCanvasInteraction({
             dx,
             dy,
             CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE,
-            CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE
+            CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE,
+            selectedChild.rotation
           );
 
           // For circle shapes with corner handles, maintain current aspect ratio (supports ellipses)
@@ -643,18 +644,10 @@ export function useCanvasInteraction({
             const scale = Math.max(scaleW, scaleH);
             const newW = origW * scale;
             const newH = origH * scale;
-            const handle = selectedHandleRef.current.type;
-            let adjustedX = resized.x;
-            let adjustedY = resized.y;
-            if (handle === 'top-left') {
-              adjustedX = resized.x + resized.width - newW;
-              adjustedY = resized.y + resized.height - newH;
-            } else if (handle === 'top-right') {
-              adjustedY = resized.y + resized.height - newH;
-            } else if (handle === 'bottom-left') {
-              adjustedX = resized.x + resized.width - newW;
-            }
-            resized = { x: adjustedX, y: adjustedY, width: newW, height: newH };
+            // Keep the center from calculateResize (rotation-aware) and scale uniformly
+            const rCX = resized.x + resized.width / 2;
+            const rCY = resized.y + resized.height / 2;
+            resized = { x: rCX - newW / 2, y: rCY - newH / 2, width: newW, height: newH };
           }
 
           const updatedChild = {

@@ -148,99 +148,58 @@ export function useCanvasDrawing() {
     minHeight: number = CANVAS_CONSTANTS.MIN_REGION_SIZE,
     rotation: number = 0
   ) => {
-    let { x, y, width, height } = originalRegion;
-    
-    // Transform delta for rotation
-    let transformedDeltaX = deltaX;
-    let transformedDeltaY = deltaY;
-    
-    if (rotation !== 0) {
-      // Inverse rotation to get delta in region's local coordinate system
-      transformedDeltaX = deltaX * Math.cos(-rotation) - deltaY * Math.sin(-rotation);
-      transformedDeltaY = deltaX * Math.sin(-rotation) + deltaY * Math.cos(-rotation);
-    }
+    const { x, y, width, height } = originalRegion;
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    const cosR = Math.cos(rotation);
+    const sinR = Math.sin(rotation);
 
+    // Transform drag delta into region's local (unrotated) coordinate space
+    const ldx = deltaX * Math.cos(-rotation) - deltaY * Math.sin(-rotation);
+    const ldy = deltaX * Math.sin(-rotation) + deltaY * Math.cos(-rotation);
+
+    // Compute new size in local space
+    let newW = width;
+    let newH = height;
     switch (handleType) {
-      case 'top-left': {
-        const newWidthTL = width - transformedDeltaX;
-        const newHeightTL = height - transformedDeltaY;
-        if (newWidthTL >= minWidth && newHeightTL >= minHeight) {
-          x += transformedDeltaX;
-          y += transformedDeltaY;
-          width = newWidthTL;
-          height = newHeightTL;
-        }
-        break;
-      }
+      case 'top-left':     newW = width - ldx; newH = height - ldy; break;
+      case 'top-center':                        newH = height - ldy; break;
+      case 'top-right':    newW = width + ldx; newH = height - ldy; break;
+      case 'middle-left':  newW = width - ldx;                       break;
+      case 'middle-right': newW = width + ldx;                       break;
+      case 'bottom-left':  newW = width - ldx; newH = height + ldy; break;
+      case 'bottom-center':                     newH = height + ldy; break;
+      case 'bottom-right': newW = width + ldx; newH = height + ldy; break;
+    }
+    newW = Math.max(minWidth, newW);
+    newH = Math.max(minHeight, newH);
 
-      case 'top-center': {
-        const newHeightTC = height - transformedDeltaY;
-        if (newHeightTC >= minHeight) {
-          y += transformedDeltaY;
-          height = newHeightTC;
-        }
-        break;
-      }
-
-      case 'top-right': {
-        const newWidthTR = width + transformedDeltaX;
-        const newHeightTR = height - transformedDeltaY;
-        if (newWidthTR >= minWidth && newHeightTR >= minHeight) {
-          y += transformedDeltaY;
-          width = newWidthTR;
-          height = newHeightTR;
-        }
-        break;
-      }
-
-      case 'middle-left': {
-        const newWidthML = width - transformedDeltaX;
-        if (newWidthML >= minWidth) {
-          x += transformedDeltaX;
-          width = newWidthML;
-        }
-        break;
-      }
-
-      case 'middle-right': {
-        const newWidthMR = width + transformedDeltaX;
-        if (newWidthMR >= minWidth) {
-          width = newWidthMR;
-        }
-        break;
-      }
-
-      case 'bottom-left': {
-        const newWidthBL = width - transformedDeltaX;
-        const newHeightBL = height + transformedDeltaY;
-        if (newWidthBL >= minWidth && newHeightBL >= minHeight) {
-          x += transformedDeltaX;
-          width = newWidthBL;
-          height = newHeightBL;
-        }
-        break;
-      }
-
-      case 'bottom-center': {
-        const newHeightBC = height + transformedDeltaY;
-        if (newHeightBC >= minHeight) {
-          height = newHeightBC;
-        }
-        break;
-      }
-
-      case 'bottom-right': {
-        const newWidthBR = width + transformedDeltaX;
-        const newHeightBR = height + transformedDeltaY;
-        if (newWidthBR >= minWidth && newHeightBR >= minHeight) {
-          width = newWidthBR;
-          height = newHeightBR;
-        }
-        break;
-      }
+    // Fixed local point (opposite corner/edge) and its new position after resize.
+    // The screen position of this point must remain constant.
+    type LP = { x: number; y: number };
+    let localFixed: LP;
+    let newLocalFixed: LP;
+    switch (handleType) {
+      case 'top-left':      localFixed = { x:  width/2, y:  height/2 }; newLocalFixed = { x:  newW/2, y:  newH/2 }; break;
+      case 'top-center':    localFixed = { x:  0,       y:  height/2 }; newLocalFixed = { x:  0,      y:  newH/2 }; break;
+      case 'top-right':     localFixed = { x: -width/2, y:  height/2 }; newLocalFixed = { x: -newW/2, y:  newH/2 }; break;
+      case 'middle-left':   localFixed = { x:  width/2, y:  0        }; newLocalFixed = { x:  newW/2, y:  0      }; break;
+      case 'middle-right':  localFixed = { x: -width/2, y:  0        }; newLocalFixed = { x: -newW/2, y:  0      }; break;
+      case 'bottom-left':   localFixed = { x:  width/2, y: -height/2 }; newLocalFixed = { x:  newW/2, y: -newH/2 }; break;
+      case 'bottom-center': localFixed = { x:  0,       y: -height/2 }; newLocalFixed = { x:  0,      y: -newH/2 }; break;
+      case 'bottom-right':  localFixed = { x: -width/2, y: -height/2 }; newLocalFixed = { x: -newW/2, y: -newH/2 }; break;
+      default:              localFixed = { x: 0, y: 0 }; newLocalFixed = { x: 0, y: 0 };
     }
 
-    return { x, y, width, height };
+    // Screen position of the fixed point (invariant)
+    const screenFixedX = cx + localFixed.x * cosR - localFixed.y * sinR;
+    const screenFixedY = cy + localFixed.x * sinR + localFixed.y * cosR;
+
+    // New center: place new fixed local point at the same screen position
+    const newCX = screenFixedX - (newLocalFixed.x * cosR - newLocalFixed.y * sinR);
+    const newCY = screenFixedY - (newLocalFixed.x * sinR + newLocalFixed.y * cosR);
+
+    return { x: newCX - newW / 2, y: newCY - newH / 2, width: newW, height: newH };
   }, []);
 
   const drawParentRegion = useCallback((ctx: CanvasRenderingContext2D, region: ParentRegion, colorSettings?: ColorSettings, isSelected: boolean = false, zoom: number = 1) => {
