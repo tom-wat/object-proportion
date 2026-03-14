@@ -188,12 +188,12 @@ export interface LineModuleEntry {
   radius: number;
 }
 
-const MODULE_FRACTIONS = ['1', '1/2', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256', '1/512'];
+const MODULE_FRACTIONS = ['1', '1/2', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256'];
 
 export function calculateLineModules(lineLength: number, parentBasis: number): LineModuleEntry[] {
   const result: LineModuleEntry[] = [];
   let remaining = lineLength;
-  for (let level = 0; level <= 9; level++) {
+  for (let level = 0; level <= 8; level++) {
     const radius = parentBasis / Math.pow(2, level + 1);
     const diameter = radius * 2;
     if (diameter < 0.5) break;

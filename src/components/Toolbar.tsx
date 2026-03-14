@@ -122,20 +122,23 @@ export function Toolbar({
               </div>
             )}
 
-            {/* Module Controls: Line mode only */}
-            {isChildLine && (
+            {/* Module Controls: Line / Circle mode */}
+            {(isChildLine || isChildCircle) && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Modules</span>
                 <button
-                  onClick={() => onChildGridSettingsChange({ ...childGridSettings, lineModuleVisible: !childGridSettings.lineModuleVisible })}
+                  onClick={() => isChildLine
+                    ? onChildGridSettingsChange({ ...childGridSettings, lineModuleVisible: !childGridSettings.lineModuleVisible })
+                    : onChildGridSettingsChange({ ...childGridSettings, circleModuleVisible: !childGridSettings.circleModuleVisible })
+                  }
                   className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                    childGridSettings.lineModuleVisible
+                    (isChildLine ? childGridSettings.lineModuleVisible : childGridSettings.circleModuleVisible)
                       ? 'bg-blue-500 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                   disabled={childCount === 0}
                 >
-                  {childGridSettings.lineModuleVisible ? 'ON' : 'OFF'}
+                  {(isChildLine ? childGridSettings.lineModuleVisible : childGridSettings.circleModuleVisible) ? 'ON' : 'OFF'}
                 </button>
               </div>
             )}
@@ -321,7 +324,7 @@ export function Toolbar({
                       value={colorSettings.lineModuleColor}
                       onChange={(e) => onColorSettingsChange({ ...colorSettings, lineModuleColor: e.target.value })}
                       className="w-6 h-6 rounded border-0 cursor-pointer"
-                      title="Module Color"
+                      title="Line Module Color"
                     />
                     <input
                       type="range"
@@ -329,9 +332,30 @@ export function Toolbar({
                       value={colorSettings.lineModuleOpacity}
                       onChange={(e) => onColorSettingsChange({ ...colorSettings, lineModuleOpacity: parseFloat(e.target.value) })}
                       className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                      title="Module Opacity"
+                      title="Line Module Opacity"
                     />
                     <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.lineModuleOpacity * 100)}%</span>
+                  </div>
+                </div>}
+                {isChildCircle && <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Modules</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="color"
+                      value={colorSettings.circleModuleColor}
+                      onChange={(e) => onColorSettingsChange({ ...colorSettings, circleModuleColor: e.target.value })}
+                      className="w-6 h-6 rounded border-0 cursor-pointer"
+                      title="Circle Module Color"
+                    />
+                    <input
+                      type="range"
+                      min="0" max="1" step="0.05"
+                      value={colorSettings.circleModuleOpacity}
+                      onChange={(e) => onColorSettingsChange({ ...colorSettings, circleModuleOpacity: parseFloat(e.target.value) })}
+                      className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                      title="Circle Module Opacity"
+                    />
+                    <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.circleModuleOpacity * 100)}%</span>
                   </div>
                 </div>}
                 {(isParentMode || isChildRect || isChildCircle) && <div className="flex items-center gap-2">

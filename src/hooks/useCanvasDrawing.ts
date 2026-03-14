@@ -649,6 +649,58 @@ export function useCanvasDrawing() {
     ctx.restore();
   }, []);
 
+  const drawCircleModules = useCallback((
+    ctx: CanvasRenderingContext2D,
+    region: ChildRegion,
+    color: string,
+    opacity: number,
+    zoom: number,
+    unitBasis: 'height' | 'width',
+    parentRegion: ParentRegion | null
+  ) => {
+    if (region.shape !== 'circle') return;
+    if (!parentRegion) return;
+
+    const { x, y, width, height } = region.bounds;
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    const diameter = width;
+    if (diameter <= 0) return;
+
+    const parentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
+    const modules = calculateLineModules(diameter, parentBasis);
+    if (modules.length === 0) return;
+
+    ctx.save();
+    if (region.rotation !== 0) {
+      ctx.translate(cx, cy);
+      ctx.rotate(region.rotation);
+      ctx.translate(-cx, -cy);
+    }
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, width / 2, height / 2, 0, 0, 2 * Math.PI);
+    ctx.clip();
+
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = opacity;
+    ctx.lineWidth = 1 / zoom;
+
+    let currentPos = 0;
+    for (const entry of modules) {
+      const d = entry.radius * 2;
+      for (let i = 0; i < entry.count; i++) {
+        const t = currentPos + entry.radius;
+        const mcx = (x) + t;
+        ctx.beginPath();
+        ctx.arc(mcx, cy, entry.radius, 0, 2 * Math.PI);
+        ctx.stroke();
+        currentPos += d;
+      }
+    }
+
+    ctx.restore();
+  }, []);
+
   const drawPoints = useCallback((
     ctx: CanvasRenderingContext2D,
     points: RegionPoint[],
@@ -746,6 +798,9 @@ export function useCanvasDrawing() {
       if (isLine && childGridSettings?.lineModuleVisible && colorSettings) {
         drawLineModules(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom, unitBasis, parentRegion);
       }
+      if (isCircle && childGridSettings?.circleModuleVisible && colorSettings) {
+        drawCircleModules(ctx, region, colorSettings.circleModuleColor, colorSettings.circleModuleOpacity, zoom, unitBasis, parentRegion);
+      }
     });
 
     // Layer order control: Draw selected region on top with proper separation
@@ -781,7 +836,7 @@ export function useCanvasDrawing() {
 
     // Restore context state
     ctx.restore();
-  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid, drawLineModules, drawPoints]);
+  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid, drawLineModules, drawCircleModules, drawPoints]);
 
   const setImage = useCallback((image: HTMLImageElement) => {
     imageRef.current = image;
@@ -801,6 +856,7 @@ export function useCanvasDrawing() {
     drawChildRegion,
     drawChildGrid,
     drawLineModules,
+    drawCircleModules,
     drawTemporaryRegion,
     drawTemporaryCircle,
     drawTemporaryLine,
@@ -817,6 +873,7 @@ export function useCanvasDrawing() {
     drawChildRegion,
     drawChildGrid,
     drawLineModules,
+    drawCircleModules,
     drawTemporaryRegion,
     drawTemporaryCircle,
     drawTemporaryLine,

@@ -343,6 +343,11 @@ export function SidePanel({
                       const rLabel = cellSize ? (radiusX / cellSize).toFixed(2) : `${Math.round(radiusX)}px`;
                       const rxLabel = cellSize ? (radiusX / cellSize).toFixed(2) : `${Math.round(radiusX)}px`;
                       const ryLabel = cellSize ? (radiusY / cellSize).toFixed(2) : `${Math.round(radiusY)}px`;
+                      const parentBasis = parentRegion
+                        ? (unitBasis === 'width' ? parentRegion.width : parentRegion.height)
+                        : null;
+                      const modules = parentBasis ? calculateLineModules(region.bounds.width, parentBasis) : [];
+                      const totalCount = modules.reduce((s, m) => s + m.count, 0);
                       return (
                         <>
                           {centerGrid && (
@@ -380,6 +385,21 @@ export function SidePanel({
                             <span>Rotation</span>
                             <span className="font-mono text-gray-900 font-medium">{Math.round((region.rotation || 0) * 180 / Math.PI)}°</span>
                           </div>
+                          {modules.length > 0 && (
+                            <div className="mt-1 pt-1 border-t border-gray-100">
+                              <div className="text-xs text-gray-400 mb-1">Modules (diameter)</div>
+                              {modules.map(m => (
+                                <div key={m.level} className="flex justify-between items-center">
+                                  <span className="font-mono text-xs">{m.fraction}</span>
+                                  <span className="font-mono text-gray-900 font-medium text-xs">× {m.count}</span>
+                                </div>
+                              ))}
+                              <div className="flex justify-between items-center mt-1 pt-1 border-t border-gray-100">
+                                <span className="text-xs text-gray-400">Total</span>
+                                <span className="font-mono text-gray-900 font-medium text-xs">× {totalCount}</span>
+                              </div>
+                            </div>
+                          )}
                         </>
                       );
                     }

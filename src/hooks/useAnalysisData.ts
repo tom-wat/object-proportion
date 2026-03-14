@@ -204,7 +204,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     childGridSettings: {
       rectVisible: false,
       circleVisible: false,
-      lineModuleVisible: localStorage.getItem('lineModuleVisible') === 'true'
+      lineModuleVisible: localStorage.getItem('lineModuleVisible') === 'true',
+      circleModuleVisible: localStorage.getItem('circleModuleVisible') === 'true'
     },
     colorSettings: {
       parentColor: '#3b82f6',
@@ -222,7 +223,9 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       childRectGridOpacity: 0.3,
       childCircleGridOpacity: 0.3,
       lineModuleColor: localStorage.getItem('lineModuleColor') ?? '#3b82f6',
-      lineModuleOpacity: parseFloat(localStorage.getItem('lineModuleOpacity') ?? '0.5')
+      lineModuleOpacity: parseFloat(localStorage.getItem('lineModuleOpacity') ?? '0.5'),
+      circleModuleColor: localStorage.getItem('circleModuleColor') ?? '#3b82f6',
+      circleModuleOpacity: parseFloat(localStorage.getItem('circleModuleOpacity') ?? '0.5')
     },
     imageInfo: null,
     imageRotation: 0
@@ -419,6 +422,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
 
   const handleChildGridSettingsChange = useCallback((settings: ChildGridSettings) => {
     localStorage.setItem('lineModuleVisible', String(settings.lineModuleVisible));
+    localStorage.setItem('circleModuleVisible', String(settings.circleModuleVisible));
     setAnalysisData(prev => ({
       ...prev,
       childGridSettings: settings
@@ -430,6 +434,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     localStorage.setItem('childLineColorOpacity', String(settings.childLineColorOpacity));
     localStorage.setItem('lineModuleColor', settings.lineModuleColor);
     localStorage.setItem('lineModuleOpacity', String(settings.lineModuleOpacity));
+    localStorage.setItem('circleModuleColor', settings.circleModuleColor);
+    localStorage.setItem('circleModuleOpacity', String(settings.circleModuleOpacity));
     setAnalysisData(prev => ({
       ...prev,
       colorSettings: settings

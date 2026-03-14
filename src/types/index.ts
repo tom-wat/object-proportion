@@ -67,6 +67,7 @@ export interface ChildGridSettings {
   rectVisible: boolean;
   circleVisible: boolean;
   lineModuleVisible: boolean;
+  circleModuleVisible: boolean;
 }
 
 export interface ColorSettings {
@@ -86,6 +87,8 @@ export interface ColorSettings {
   childCircleGridOpacity: number;
   lineModuleColor: string;
   lineModuleOpacity: number;
+  circleModuleColor: string;
+  circleModuleOpacity: number;
 }
 
 export interface AnalysisData {
