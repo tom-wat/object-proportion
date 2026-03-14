@@ -122,6 +122,24 @@ export function Toolbar({
               </div>
             )}
 
+            {/* Module Controls: Line mode only */}
+            {isChildLine && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Modules</span>
+                <button
+                  onClick={() => onChildGridSettingsChange({ ...childGridSettings, lineModuleVisible: !childGridSettings.lineModuleVisible })}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                    childGridSettings.lineModuleVisible
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  disabled={childCount === 0}
+                >
+                  {childGridSettings.lineModuleVisible ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            )}
+
             {/* Grid Controls: Parent Grid in parent mode, Child Grid in child rect/circle mode */}
             {(isParentMode || isChildRect || isChildCircle) && (
               <div className="flex items-center gap-4">
@@ -295,6 +313,27 @@ export function Toolbar({
                     )}
                   </div>
                 </div>
+                {isChildLine && <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Modules</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="color"
+                      value={colorSettings.lineModuleColor}
+                      onChange={(e) => onColorSettingsChange({ ...colorSettings, lineModuleColor: e.target.value })}
+                      className="w-6 h-6 rounded border-0 cursor-pointer"
+                      title="Module Color"
+                    />
+                    <input
+                      type="range"
+                      min="0" max="1" step="0.05"
+                      value={colorSettings.lineModuleOpacity}
+                      onChange={(e) => onColorSettingsChange({ ...colorSettings, lineModuleOpacity: parseFloat(e.target.value) })}
+                      className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                      title="Module Opacity"
+                    />
+                    <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.lineModuleOpacity * 100)}%</span>
+                  </div>
+                </div>}
                 {(isParentMode || isChildRect || isChildCircle) && <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">Grids</span>
                   <div className="flex items-center gap-1">

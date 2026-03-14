@@ -1,6 +1,7 @@
 import { useCallback, useRef, useMemo } from 'react';
 import type { ParentRegion, ChildRegion, ColorSettings, GridSettings, ChildGridSettings, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
+import { calculateLineModules } from '../utils/geometry';
 
 function hexToRgba(hex: string, opacity: number): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -600,6 +601,54 @@ export function useCanvasDrawing() {
     ctx.restore();
   }, []);
 
+  const drawLineModules = useCallback((
+    ctx: CanvasRenderingContext2D,
+    region: ChildRegion,
+    color: string,
+    opacity: number,
+    zoom: number,
+    unitBasis: 'height' | 'width',
+    parentRegion: ParentRegion | null
+  ) => {
+    if (region.shape !== 'line' || !region.lineStart || !region.lineEnd) return;
+    if (!parentRegion) return;
+
+    const lineLength = region.lineLength ?? 0;
+    if (lineLength <= 0) return;
+
+    const parentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
+    const modules = calculateLineModules(lineLength, parentBasis);
+    if (modules.length === 0) return;
+
+    const dx = region.lineEnd.x - region.lineStart.x;
+    const dy = region.lineEnd.y - region.lineStart.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len === 0) return;
+    const ux = dx / len;
+    const uy = dy / len;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = opacity;
+    ctx.lineWidth = 1 / zoom;
+
+    let currentPos = 0;
+    for (const entry of modules) {
+      const diameter = entry.radius * 2;
+      for (let i = 0; i < entry.count; i++) {
+        const t = currentPos + entry.radius;
+        const cx = region.lineStart!.x + ux * t;
+        const cy = region.lineStart!.y + uy * t;
+        ctx.beginPath();
+        ctx.arc(cx, cy, entry.radius, 0, 2 * Math.PI);
+        ctx.stroke();
+        currentPos += diameter;
+      }
+    }
+
+    ctx.restore();
+  }, []);
+
   const drawPoints = useCallback((
     ctx: CanvasRenderingContext2D,
     points: RegionPoint[],
@@ -687,11 +736,15 @@ export function useCanvasDrawing() {
     childRegions.forEach((region) => {
       const isRect = !region.shape || region.shape === 'rectangle';
       const isCircle = region.shape === 'circle';
+      const isLine = region.shape === 'line';
       const gridVisible = (isRect && childGridSettings?.rectVisible) || (isCircle && childGridSettings?.circleVisible);
       if (gridVisible && colorSettings) {
         const gridColor = isCircle ? colorSettings.childCircleGridColor : colorSettings.childRectGridColor;
         const gridOpacity = isCircle ? colorSettings.childCircleGridOpacity : colorSettings.childRectGridOpacity;
         drawChildGrid(ctx, region, gridColor, gridOpacity, zoom, unitBasis, parentRegion);
+      }
+      if (isLine && childGridSettings?.lineModuleVisible && colorSettings) {
+        drawLineModules(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom, unitBasis, parentRegion);
       }
     });
 
@@ -728,7 +781,7 @@ export function useCanvasDrawing() {
 
     // Restore context state
     ctx.restore();
-  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid, drawPoints]);
+  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid, drawLineModules, drawPoints]);
 
   const setImage = useCallback((image: HTMLImageElement) => {
     imageRef.current = image;
@@ -747,6 +800,7 @@ export function useCanvasDrawing() {
     drawParentRegion,
     drawChildRegion,
     drawChildGrid,
+    drawLineModules,
     drawTemporaryRegion,
     drawTemporaryCircle,
     drawTemporaryLine,
@@ -762,6 +816,7 @@ export function useCanvasDrawing() {
     drawParentRegion,
     drawChildRegion,
     drawChildGrid,
+    drawLineModules,
     drawTemporaryRegion,
     drawTemporaryCircle,
     drawTemporaryLine,

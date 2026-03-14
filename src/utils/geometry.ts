@@ -181,6 +181,32 @@ export function calculateEdgePositions(
   };
 }
 
+export interface LineModuleEntry {
+  level: number;
+  fraction: string;
+  count: number;
+  radius: number;
+}
+
+const MODULE_FRACTIONS = ['1', '1/2', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256', '1/512'];
+
+export function calculateLineModules(lineLength: number, parentBasis: number): LineModuleEntry[] {
+  const result: LineModuleEntry[] = [];
+  let remaining = lineLength;
+  for (let level = 0; level <= 9; level++) {
+    const radius = parentBasis / Math.pow(2, level + 1);
+    const diameter = radius * 2;
+    if (diameter < 0.5) break;
+    const count = Math.floor(remaining / diameter);
+    if (count > 0) {
+      result.push({ level, fraction: MODULE_FRACTIONS[level], count, radius });
+      remaining -= count * diameter;
+    }
+    if (remaining < 0.5) break;
+  }
+  return result;
+}
+
 export function calculateGridDimensions(child: Bounds, parent: ParentRegion, gridSize: number = 16): {
   gridWidth: number;
   gridHeight: number;

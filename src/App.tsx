@@ -8,7 +8,7 @@ import { useImageHandling } from './hooks/useImageHandling';
 import { useExport } from './hooks/useExport';
 import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { Download, Undo, Redo } from 'lucide-react';
+import { Download, Undo, Redo, Copy } from 'lucide-react';
 import type { ChildDrawMode } from './types';
 
 function App() {
@@ -23,6 +23,7 @@ function App() {
     handleParentRegionChange,
     handleParentRegionRename,
     handleChildRegionAdd,
+    handleChildRegionCopy,
     handleChildRegionChange,
     handleChildRegionDelete,
     handleChildRegionRename,
@@ -201,6 +202,22 @@ function App() {
                   />
                 </div>
               </div>
+
+              {/* Copy Button */}
+              <button
+                onClick={() => {
+                  if (selectedChildId === null) return;
+                  const newId = Math.max(0, ...analysisData.childRegions.map(c => c.id)) + 1;
+                  handleChildRegionCopy(selectedChildId);
+                  handleChildRegionSelect(newId);
+                }}
+                disabled={selectedChildId === null}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                title="Duplicate selected region"
+              >
+                <Copy size={16} />
+                Copy
+              </button>
 
               {/* Undo/Redo Buttons */}
               <button

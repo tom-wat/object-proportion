@@ -203,7 +203,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     },
     childGridSettings: {
       rectVisible: false,
-      circleVisible: false
+      circleVisible: false,
+      lineModuleVisible: localStorage.getItem('lineModuleVisible') === 'true'
     },
     colorSettings: {
       parentColor: '#3b82f6',
@@ -212,14 +213,16 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       childRectColorOpacity: 1,
       childCircleColor: '#3b82f6',
       childCircleColorOpacity: 1,
-      childLineColor: '#3b82f6',
-      childLineColorOpacity: 1,
+      childLineColor: localStorage.getItem('childLineColor') ?? '#3b82f6',
+      childLineColorOpacity: parseFloat(localStorage.getItem('childLineColorOpacity') ?? '1'),
       gridColor: '#ffffff',
       gridOpacity: 0.5,
       childRectGridColor: '#ffffff',
       childCircleGridColor: '#ffffff',
       childRectGridOpacity: 0.3,
-      childCircleGridOpacity: 0.3
+      childCircleGridOpacity: 0.3,
+      lineModuleColor: localStorage.getItem('lineModuleColor') ?? '#3b82f6',
+      lineModuleOpacity: parseFloat(localStorage.getItem('lineModuleOpacity') ?? '0.5')
     },
     imageInfo: null,
     imageRotation: 0
@@ -333,6 +336,17 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     }));
   }, [updateStateWithHistory]);
 
+  const handleChildRegionCopy = useCallback((id: number) => {
+    updateStateWithHistory(prev => {
+      if (!prev.parentRegion) return prev;
+      const source = prev.childRegions.find(c => c.id === id);
+      if (!source) return prev;
+      const newId = Math.max(0, ...prev.childRegions.map(c => c.id)) + 1;
+      const copy: ChildRegion = { ...source, id: newId, name: `${source.name} copy` };
+      return { ...prev, childRegions: [...prev.childRegions, copy] };
+    });
+  }, [updateStateWithHistory]);
+
   const handleChildRegionAdd = useCallback((region: ChildRegion) => {
     updateStateWithHistory(prev => {
       if (!prev.parentRegion) return prev;
@@ -404,6 +418,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, [updateChildRegionData]);
 
   const handleChildGridSettingsChange = useCallback((settings: ChildGridSettings) => {
+    localStorage.setItem('lineModuleVisible', String(settings.lineModuleVisible));
     setAnalysisData(prev => ({
       ...prev,
       childGridSettings: settings
@@ -411,6 +426,10 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, []);
 
   const handleColorSettingsChange = useCallback((settings: ColorSettings) => {
+    localStorage.setItem('childLineColor', settings.childLineColor);
+    localStorage.setItem('childLineColorOpacity', String(settings.childLineColorOpacity));
+    localStorage.setItem('lineModuleColor', settings.lineModuleColor);
+    localStorage.setItem('lineModuleOpacity', String(settings.lineModuleOpacity));
     setAnalysisData(prev => ({
       ...prev,
       colorSettings: settings
@@ -655,6 +674,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     handleParentRegionChange,
     handleParentRegionRename,
     handleChildRegionAdd,
+    handleChildRegionCopy,
     handleChildRegionChange,
     handleChildRegionDelete,
     handleChildRegionRename,
