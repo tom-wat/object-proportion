@@ -65,6 +65,7 @@ export function useCanvasInteraction({
   const startScreenPointRef = useRef<Point>({ x: 0, y: 0 });
   const dragTypeRef = useRef<'new' | 'move' | 'resize' | 'rotate' | 'pan' | 'line-endpoint' | null>(null);
   const selectedHandleRef = useRef<ResizeHandleInfo | null>(null);
+  const dragStartBoundsRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const initialRotationRef = useRef<number>(0);
   const initialAngleRef = useRef<number>(0);
   const clickedChildIdRef = useRef<number | null>(null);
@@ -346,6 +347,7 @@ export function useCanvasInteraction({
         if (handle) {
           dragTypeRef.current = 'resize';
           selectedHandleRef.current = handle;
+          dragStartBoundsRef.current = { x: parentRegion.x, y: parentRegion.y, width: parentRegion.width, height: parentRegion.height };
           return;
         }
       }
@@ -415,6 +417,7 @@ export function useCanvasInteraction({
           if (handle) {
             dragTypeRef.current = 'resize';
             selectedHandleRef.current = handle;
+            dragStartBoundsRef.current = { ...selectedChild.bounds };
             return;
           }
         }
@@ -601,18 +604,21 @@ export function useCanvasInteraction({
         }
         startPointRef.current = point;
       }
-    } else if (dragTypeRef.current === 'resize' && selectedHandleRef.current && calculateResize) {
+    } else if (dragTypeRef.current === 'resize' && selectedHandleRef.current && calculateResize && dragStartBoundsRef.current) {
+      // Use total delta from drag start (not incremental) to prevent floating-point drift
+      const totalDx = point.x - startPointRef.current.x;
+      const totalDy = point.y - startPointRef.current.y;
       if (selectionMode === 'parent' && parentRegion) {
         const resized = calculateResize(
-          parentRegion,
+          dragStartBoundsRef.current,
           selectedHandleRef.current.type,
-          dx,
-          dy,
+          totalDx,
+          totalDy,
           CANVAS_CONSTANTS.MIN_REGION_SIZE,
           CANVAS_CONSTANTS.MIN_REGION_SIZE,
           parentRegion.rotation
         );
-        
+
         const newRegion = {
           ...parentRegion,
           ...resized,
@@ -620,15 +626,14 @@ export function useCanvasInteraction({
           aspectRatioDecimal: resized.width / resized.height
         };
         onParentRegionChange(newRegion);
-        startPointRef.current = point; // Update start point to prevent cumulative delta
       } else if (selectionMode === 'child' && selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
         if (selectedChild) {
           let resized = calculateResize(
-            selectedChild.bounds,
+            dragStartBoundsRef.current,
             selectedHandleRef.current.type,
-            dx,
-            dy,
+            totalDx,
+            totalDy,
             CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE,
             CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE,
             selectedChild.rotation
@@ -637,14 +642,13 @@ export function useCanvasInteraction({
           // For circle shapes with corner handles, maintain current aspect ratio (supports ellipses)
           const cornerHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
           if (selectedChild.shape === 'circle' && cornerHandles.includes(selectedHandleRef.current.type)) {
-            const origW = selectedChild.bounds.width;
-            const origH = selectedChild.bounds.height;
+            const origW = dragStartBoundsRef.current.width;
+            const origH = dragStartBoundsRef.current.height;
             const scaleW = resized.width / origW;
             const scaleH = resized.height / origH;
             const scale = Math.max(scaleW, scaleH);
             const newW = origW * scale;
             const newH = origH * scale;
-            // Keep the center from calculateResize (rotation-aware) and scale uniformly
             const rCX = resized.x + resized.width / 2;
             const rCY = resized.y + resized.height / 2;
             resized = { x: rCX - newW / 2, y: rCY - newH / 2, width: newW, height: newH };
@@ -658,7 +662,6 @@ export function useCanvasInteraction({
           if (onChildRegionChange) {
             onChildRegionChange(updatedChild);
           }
-          startPointRef.current = point; // Update start point to prevent cumulative delta
         }
       }
     } else if (dragTypeRef.current === 'rotate' && selectionMode === 'parent' && parentRegion) {
