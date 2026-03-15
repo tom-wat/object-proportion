@@ -6,10 +6,11 @@ import { SidePanel } from './components/SidePanel';
 import { useAnalysisData } from './hooks/useAnalysisData';
 import { useImageHandling } from './hooks/useImageHandling';
 import { useExport } from './hooks/useExport';
+import { useImport } from './hooks/useImport';
 import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { Download, Undo, Redo, Copy } from 'lucide-react';
-import type { ChildDrawMode } from './types';
+import { Download, Upload, Undo, Redo, Copy } from 'lucide-react';
+import type { ChildDrawMode, LayoutFile } from './types';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -44,6 +45,7 @@ function App() {
     handleCreateFullCanvasParent,
     handleFitChildHeightToImage,
     handleFitChildWidthToImage,
+    handleImportLayout,
   } = useAnalysisData(unitBasis);
 
   const {
@@ -67,8 +69,18 @@ function App() {
     onImageInfoSet: setImageInfo
   });
 
-  const { handleExportJSON, handleExportPNG, handleExportPNGOverlayOnly } = useExport({ analysisData, canvasRef, cachedImage, unitBasis });
+  const { handleExportPNG, handleExportPNGOverlayOnly, handleExportLayout } = useExport({ analysisData, canvasRef, cachedImage, unitBasis });
   const { exportSingleRegion } = usePanelExport();
+
+  const handleImport = useCallback((layout: LayoutFile) => {
+    const result = handleImportLayout(layout);
+    setUnitBasis(result.unitBasis);
+    setSelectedChildId(null);
+    setIsParentSelected(false);
+    setSelectionMode('parent');
+  }, [handleImportLayout, setUnitBasis, setSelectedChildId, setIsParentSelected, setSelectionMode]);
+
+  const { fileInputRef, handleImportClick, handleFileChange } = useImport({ onImportLayout: handleImport });
 
   // Handle child region selection with deselection support
   const handleChildRegionSelect = useCallback((id: number) => {
@@ -256,13 +268,29 @@ function App() {
                 PNG (overlay)
               </button>
               <button
-                onClick={handleExportJSON}
+                onClick={handleExportLayout}
                 disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
-                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-green-50 hover:text-green-700 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                title="Export layout (regions & settings)"
               >
                 <Download size={16} />
-                JSON
+                Layout
               </button>
+              <button
+                onClick={handleImportClick}
+                className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all flex items-center gap-2"
+                title="Import layout"
+              >
+                <Upload size={16} />
+                Import
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
           )}
         </div>

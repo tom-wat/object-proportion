@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import type { AnalysisData } from '../types';
-import { exportToJSON, exportToCSV, downloadFile } from '../utils/export';
+import { downloadFile } from '../utils/export';
 import { calculateLineModules } from '../utils/geometry';
+import { exportLayout } from '../utils/layoutIO';
 
 interface UseExportProps {
   analysisData: AnalysisData;
@@ -11,18 +12,6 @@ interface UseExportProps {
 }
 
 export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'height' }: UseExportProps) {
-  const handleExportJSON = useCallback(() => {
-    const json = exportToJSON(analysisData);
-    downloadFile(json, `analysis-${Date.now()}.json`, 'application/json');
-  }, [analysisData]);
-
-  const handleExportCSV = useCallback(() => {
-    const csv = exportToCSV(analysisData);
-    if (csv) {
-      downloadFile(csv, `analysis-${Date.now()}.csv`, 'text/csv');
-    }
-  }, [analysisData]);
-
   const handleExportPNG = useCallback(() => {
     if (!analysisData.imageInfo || !cachedImage) {
       alert('Image not loaded');
@@ -719,10 +708,23 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
     }
   }, [analysisData, canvasRef]);
 
+  const handleExportLayout = useCallback(() => {
+    if (!analysisData.imageInfo) {
+      alert('Image not loaded');
+      return;
+    }
+    try {
+      const json = exportLayout(analysisData, unitBasis);
+      downloadFile(json, `layout-${Date.now()}.json`, 'application/json');
+    } catch (error) {
+      console.error('Failed to export layout:', error);
+      alert('Failed to export layout');
+    }
+  }, [analysisData, unitBasis]);
+
   return {
-    handleExportJSON,
-    handleExportCSV,
     handleExportPNG,
     handleExportPNGOverlayOnly,
+    handleExportLayout,
   };
 }

@@ -106,6 +106,24 @@ export interface AnalysisData {
   imageRotation: number; // Rotation angle in radians (0, π/2, π, 3π/2)
 }
 
+export interface LayoutFile {
+  version: '1.0';
+  exportedAt: string;
+  sourceImageInfo: {
+    width: number;
+    height: number;
+    name: string;
+  };
+  parentRegion: ParentRegion | null;
+  childRegions: ChildRegion[];
+  points: RegionPoint[];
+  gridSettings: GridSettings;
+  childGridSettings: ChildGridSettings;
+  colorSettings: ColorSettings;
+  imageRotation: number;
+  unitBasis: 'height' | 'width';
+}
+
 export type SelectionMode = 'parent' | 'child';
 export type ChildDrawMode = 'rectangle' | 'circle' | 'line';
 export type ResizeHandle = 

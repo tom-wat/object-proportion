@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useHistory } from './useHistory';
-import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, Point } from '../types';
+import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, Point, LayoutFile } from '../types';
 import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
+import { applyLayoutToState } from '../utils/layoutIO';
 
 // Helper function to update point coordinates based on child region changes
 const updatePointCoordinatesForChildChange = (
@@ -511,6 +512,35 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     }));
   }, [commitPending, clearHistory]);
 
+  const handleImportLayout = useCallback((layout: LayoutFile): { scaled: boolean; unitBasis: 'height' | 'width' } => {
+    const result = applyLayoutToState(layout);
+
+    commitPending();
+    clearHistory();
+
+    localStorage.setItem('lineModuleVisible', String(result.childGridSettings.lineModuleVisible));
+    localStorage.setItem('circleModuleVisible', String(result.childGridSettings.circleModuleVisible));
+    localStorage.setItem('childLineColor', result.colorSettings.childLineColor);
+    localStorage.setItem('childLineColorOpacity', String(result.colorSettings.childLineColorOpacity));
+    localStorage.setItem('lineModuleColor', result.colorSettings.lineModuleColor);
+    localStorage.setItem('lineModuleOpacity', String(result.colorSettings.lineModuleOpacity));
+    localStorage.setItem('circleModuleColor', result.colorSettings.circleModuleColor);
+    localStorage.setItem('circleModuleOpacity', String(result.colorSettings.circleModuleOpacity));
+
+    setAnalysisData(prev => ({
+      ...prev,
+      parentRegion: result.parentRegion,
+      childRegions: result.childRegions,
+      points: result.points,
+      gridSettings: result.gridSettings,
+      childGridSettings: result.childGridSettings,
+      colorSettings: result.colorSettings,
+      imageRotation: result.imageRotation,
+    }));
+
+    return { scaled: result.scaled, unitBasis: result.unitBasis };
+  }, [commitPending, clearHistory]);
+
   // Undo/Redo functions
   const handleUndo = useCallback(() => {
     commitPending(); // Commit any pending history before undo
@@ -701,5 +731,6 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     handleCreateFullCanvasParent,
     handleFitChildHeightToImage,
     handleFitChildWidthToImage,
+    handleImportLayout,
   };
 }
