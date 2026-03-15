@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { AnalysisData } from '../types';
 import { exportToJSON, exportToCSV, downloadFile } from '../utils/export';
+import { calculateLineModules } from '../utils/geometry';
 
 interface UseExportProps {
   analysisData: AnalysisData;
@@ -217,6 +218,81 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
             parentCellSize0,
             isChildCircle0
           );
+        }
+
+        // Draw line modules if visible
+        if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
+            analysisData.parentRegion && child.lineStart && child.lineEnd) {
+          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
+          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
+          const sdx = scaledLE.x - scaledLS.x;
+          const sdy = scaledLE.y - scaledLS.y;
+          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
+          if (scaledLen > 0) {
+            const scaledParentBasis = unitBasis === 'height'
+              ? analysisData.parentRegion.height * scaleY
+              : analysisData.parentRegion.width * scaleX;
+            const modules = calculateLineModules(scaledLen, scaledParentBasis);
+            if (modules.length > 0) {
+              const ux = sdx / scaledLen;
+              const uy = sdy / scaledLen;
+              ctx.save();
+              ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
+              ctx.globalAlpha = analysisData.colorSettings.lineModuleOpacity;
+              ctx.lineWidth = 1;
+              let currentPos = 0;
+              for (const entry of modules) {
+                const diameter = entry.radius * 2;
+                for (let i = 0; i < entry.count; i++) {
+                  const t = currentPos + entry.radius;
+                  ctx.beginPath();
+                  ctx.arc(scaledLS.x + ux * t, scaledLS.y + uy * t, entry.radius, 0, 2 * Math.PI);
+                  ctx.stroke();
+                  currentPos += diameter;
+                }
+              }
+              ctx.restore();
+            }
+          }
+        }
+
+        // Draw circle modules if visible
+        if (isChildCircle0 && analysisData.childGridSettings.circleModuleVisible && analysisData.parentRegion) {
+          const diameter = scaledChild.width;
+          if (diameter > 0) {
+            const scaledParentBasis = unitBasis === 'height'
+              ? analysisData.parentRegion.height * scaleY
+              : analysisData.parentRegion.width * scaleX;
+            const modules = calculateLineModules(diameter, scaledParentBasis);
+            if (modules.length > 0) {
+              const cx = scaledChild.x + scaledChild.width / 2;
+              const cy = scaledChild.y + scaledChild.height / 2;
+              ctx.save();
+              if (scaledChild.rotation !== 0) {
+                ctx.translate(cx, cy);
+                ctx.rotate(scaledChild.rotation);
+                ctx.translate(-cx, -cy);
+              }
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, scaledChild.width / 2, scaledChild.height / 2, 0, 0, 2 * Math.PI);
+              ctx.clip();
+              ctx.strokeStyle = analysisData.colorSettings.circleModuleColor;
+              ctx.globalAlpha = analysisData.colorSettings.circleModuleOpacity;
+              ctx.lineWidth = 1;
+              let currentPos = 0;
+              for (const entry of modules) {
+                const d = entry.radius * 2;
+                for (let i = 0; i < entry.count; i++) {
+                  const t = currentPos + entry.radius;
+                  ctx.beginPath();
+                  ctx.arc(scaledChild.x + t, cy, entry.radius, 0, 2 * Math.PI);
+                  ctx.stroke();
+                  currentPos += d;
+                }
+              }
+              ctx.restore();
+            }
+          }
         }
 
         // Draw child region frame based on shape
@@ -478,6 +554,82 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           const childGridOpacity1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridOpacity : analysisData.colorSettings.childRectGridOpacity;
           drawGrid(scaledChild, childGridColor1, childGridOpacity1, parentCellSize1, isChildCircle1);
         }
+
+        // Draw line modules if visible
+        if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
+            analysisData.parentRegion && child.lineStart && child.lineEnd) {
+          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
+          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
+          const sdx = scaledLE.x - scaledLS.x;
+          const sdy = scaledLE.y - scaledLS.y;
+          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
+          if (scaledLen > 0) {
+            const scaledParentBasis = unitBasis === 'height'
+              ? analysisData.parentRegion.height * scaleY
+              : analysisData.parentRegion.width * scaleX;
+            const modules = calculateLineModules(scaledLen, scaledParentBasis);
+            if (modules.length > 0) {
+              const ux = sdx / scaledLen;
+              const uy = sdy / scaledLen;
+              ctx.save();
+              ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
+              ctx.globalAlpha = analysisData.colorSettings.lineModuleOpacity;
+              ctx.lineWidth = 1;
+              let currentPos = 0;
+              for (const entry of modules) {
+                const diameter = entry.radius * 2;
+                for (let i = 0; i < entry.count; i++) {
+                  const t = currentPos + entry.radius;
+                  ctx.beginPath();
+                  ctx.arc(scaledLS.x + ux * t, scaledLS.y + uy * t, entry.radius, 0, 2 * Math.PI);
+                  ctx.stroke();
+                  currentPos += diameter;
+                }
+              }
+              ctx.restore();
+            }
+          }
+        }
+
+        // Draw circle modules if visible
+        if (isChildCircle1 && analysisData.childGridSettings.circleModuleVisible && analysisData.parentRegion) {
+          const diameter = scaledChild.width;
+          if (diameter > 0) {
+            const scaledParentBasis = unitBasis === 'height'
+              ? analysisData.parentRegion.height * scaleY
+              : analysisData.parentRegion.width * scaleX;
+            const modules = calculateLineModules(diameter, scaledParentBasis);
+            if (modules.length > 0) {
+              const cx = scaledChild.x + scaledChild.width / 2;
+              const cy = scaledChild.y + scaledChild.height / 2;
+              ctx.save();
+              if (scaledChild.rotation !== 0) {
+                ctx.translate(cx, cy);
+                ctx.rotate(scaledChild.rotation);
+                ctx.translate(-cx, -cy);
+              }
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, scaledChild.width / 2, scaledChild.height / 2, 0, 0, 2 * Math.PI);
+              ctx.clip();
+              ctx.strokeStyle = analysisData.colorSettings.circleModuleColor;
+              ctx.globalAlpha = analysisData.colorSettings.circleModuleOpacity;
+              ctx.lineWidth = 1;
+              let currentPos = 0;
+              for (const entry of modules) {
+                const d = entry.radius * 2;
+                for (let i = 0; i < entry.count; i++) {
+                  const t = currentPos + entry.radius;
+                  ctx.beginPath();
+                  ctx.arc(scaledChild.x + t, cy, entry.radius, 0, 2 * Math.PI);
+                  ctx.stroke();
+                  currentPos += d;
+                }
+              }
+              ctx.restore();
+            }
+          }
+        }
+
         ctx.save();
         const childShapeColor1 = isChildCircle1
           ? analysisData.colorSettings.childCircleColor
