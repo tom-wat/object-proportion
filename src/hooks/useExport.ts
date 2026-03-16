@@ -341,8 +341,9 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           const cs = analysisData.colorSettings;
           let pointColor: string;
           if (point.parentRegionId === undefined) {
-            const op = cs.parentColorOpacity ?? 1;
-            pointColor = op < 1 ? `rgba(${parseInt(cs.parentColor.slice(1,3),16)},${parseInt(cs.parentColor.slice(3,5),16)},${parseInt(cs.parentColor.slice(5,7),16)},${op})` : cs.parentColor;
+            const hex = cs.dotColor ?? '#ffffff';
+            const op = cs.dotColorOpacity ?? 1;
+            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
           } else {
             const region = analysisData.childRegions.find(r => r.id === point.parentRegionId);
             const [hex, op] = region?.shape === 'circle'
@@ -673,8 +674,9 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           const cs = analysisData.colorSettings;
           let pointColor: string;
           if (point.parentRegionId === undefined) {
-            const op = cs.parentColorOpacity ?? 1;
-            pointColor = op < 1 ? `rgba(${parseInt(cs.parentColor.slice(1,3),16)},${parseInt(cs.parentColor.slice(3,5),16)},${parseInt(cs.parentColor.slice(5,7),16)},${op})` : cs.parentColor;
+            const hex = cs.dotColor ?? '#ffffff';
+            const op = cs.dotColorOpacity ?? 1;
+            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
           } else {
             const region = analysisData.childRegions.find(r => r.id === point.parentRegionId);
             const [hex, op] = region?.shape === 'circle'

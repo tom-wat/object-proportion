@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Point, ParentRegion, ChildRegion, SelectionMode, ResizeHandle, ResizeHandleInfo, RegionPoint, ChildDrawMode } from '../types';
 import { isPointInRotatedBounds, convertToGridCoordinates, distanceToSegment } from '../utils/geometry';
 import { CANVAS_CONSTANTS } from '../utils/constants';
@@ -70,28 +70,10 @@ export function useCanvasInteraction({
   const initialAngleRef = useRef<number>(0);
   const clickedChildIdRef = useRef<number | null>(null);
   const clickedParentRef = useRef<boolean>(false);
-  const lastClickTimeRef = useRef<number>(0);
-  const lastClickPointRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const lineFirstPointRef = useRef<Point | null>(null);
-  const didDeselectRef = useRef(false);
   const dragLineEndpointRef = useRef<'start' | 'end' | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    lineFirstPointRef.current = null;
-  }, [childDrawMode]);
-
-  // Cancel line drawing on Escape (capture phase – fires before other keydown listeners)
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && childDrawMode === 'line' && lineFirstPointRef.current !== null) {
-        lineFirstPointRef.current = null;
-        onRedraw();
-        event.stopImmediatePropagation();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [childDrawMode, onRedraw]);
 
   const getCanvasPoint = useCallback((event: MouseEvent, canvas: HTMLCanvasElement): Point => {
     const rect = canvas.getBoundingClientRect();
@@ -298,13 +280,6 @@ export function useCanvasInteraction({
       return;
     }
 
-    // In line mode with first point already placed, skip ALL region interaction.
-    // The next mouseUp is always the second click of the new line.
-    if (selectionMode === 'child' && childDrawMode === 'line' && lineFirstPointRef.current !== null) {
-      dragTypeRef.current = 'new';
-      return;
-    }
-
     // First priority: Check for handles (rotation, resize) even if outside region bounds
     // This ensures handles work even when they extend beyond the visible region
 
@@ -486,6 +461,17 @@ export function useCanvasInteraction({
       }
       
       if (clickedChild) {
+        if (childDrawMode === 'dot') {
+          // Long press selects the child; short click creates a dot
+          longPressTriggeredRef.current = false;
+          const childId = clickedChild.id;
+          longPressTimerRef.current = setTimeout(() => {
+            longPressTriggeredRef.current = true;
+            onChildRegionSelect(childId);
+          }, 400);
+          dragTypeRef.current = 'new';
+          return;
+        }
         // If this child is already selected, handle move interaction
         if (selectedChildId === clickedChild.id) {
           dragTypeRef.current = 'move';
@@ -500,14 +486,11 @@ export function useCanvasInteraction({
     }
     
     // Third priority: Handle empty space clicks - deselect current selections
-    didDeselectRef.current = false;
     if (selectedChildId !== null) {
       onChildRegionSelect(-1);
-      didDeselectRef.current = true;
     }
     if (parentRegion && isParentSelected && onParentDeselect) {
       onParentDeselect();
-      didDeselectRef.current = true;
     }
 
     dragTypeRef.current = 'new';
@@ -519,17 +502,16 @@ export function useCanvasInteraction({
     // Update cursor when not drawing
     if (!isDrawingRef.current) {
       updateCursor(point);
-      // Line preview: show temporary line from first click to current cursor
-      if (childDrawMode === 'line' && lineFirstPointRef.current !== null) {
-        onRedraw();
-        if (onTemporaryLineDraw) {
-          onTemporaryLineDraw(lineFirstPointRef.current.x, lineFirstPointRef.current.y, point.x, point.y);
-        }
-      }
       return;
     }
     const dx = point.x - startPointRef.current.x;
     const dy = point.y - startPointRef.current.y;
+
+    // Cancel long press timer if mouse moves significantly
+    if (longPressTimerRef.current !== null && Math.sqrt(dx * dx + dy * dy) > 5) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
 
     // Handle pan mode
     if (dragTypeRef.current === 'pan' && onPanChange) {
@@ -573,8 +555,11 @@ export function useCanvasInteraction({
         if (onTemporaryCircleDraw) {
           onTemporaryCircleDraw(startPointRef.current.x, startPointRef.current.y, radius);
         }
+      } else if (childDrawMode === 'line') {
+        if (onTemporaryLineDraw) {
+          onTemporaryLineDraw(startPointRef.current.x, startPointRef.current.y, point.x, point.y);
+        }
       }
-      // 'line': no drag preview (two-click model)
     } else if (dragTypeRef.current === 'move' && selectionMode === 'parent' && parentRegion) {
       const newRegion = {
         ...parentRegion,
@@ -786,47 +771,50 @@ export function useCanvasInteraction({
           }
         }
       } else if (childDrawMode === 'line') {
-        if (dragDistance < 5 && clickedChildIdRef.current !== null) {
-          // Clicked on existing child – select it and reset any pending first point
-          onChildRegionSelect(clickedChildIdRef.current);
-          lineFirstPointRef.current = null;
-        } else if (dragDistance < 5) {
-          // Two-click model
-          if (lineFirstPointRef.current === null) {
-            // Record first click only if this mousedown didn't just deselect a region
-            if (!didDeselectRef.current) {
-              lineFirstPointRef.current = { x: startPointRef.current.x, y: startPointRef.current.y };
-            }
-          } else {
-            // Second click – create line
-            const fp = lineFirstPointRef.current;
-            const lx = point.x - fp.x;
-            const ly = point.y - fp.y;
-            const length = Math.sqrt(lx * lx + ly * ly);
-            const angle = Math.atan2(ly, lx) * 180 / Math.PI;
-            const minX = Math.min(fp.x, point.x);
-            const minY = Math.min(fp.y, point.y);
-            const bWidth = Math.max(1, Math.abs(lx));
-            const bHeight = Math.max(1, Math.abs(ly));
-            const newChild: ChildRegion = {
-              id: childRegions.length + 1,
-              name: `Line ${childRegions.filter(c => c.shape === 'line').length + 1}`,
-              shape: 'line',
-              lineStart: { x: fp.x, y: fp.y },
-              lineEnd: { x: point.x, y: point.y },
-              lineLength: length,
-              lineAngle: angle,
-              centerCoordinates: { grid: { x: 0, y: 0 }, pixel: { x: (fp.x + point.x) / 2, y: (fp.y + point.y) / 2 } },
-              bounds: { x: minX, y: minY, width: bWidth, height: bHeight },
-              rotation: 0,
-              ratios: { areaRatio: 0, widthRatio: 0, heightRatio: 0 }
-            };
-            onChildRegionAdd(newChild);
-            lineFirstPointRef.current = null;
+        if (dragDistance < 5) {
+          // Single click: select child if clicked on one
+          if (clickedChildIdRef.current !== null) {
+            onChildRegionSelect(clickedChildIdRef.current);
           }
-        } else if (lineFirstPointRef.current !== null) {
-          // Large drag after first click – cancel
-          lineFirstPointRef.current = null;
+        } else {
+          // Drag: create line
+          const fp = startPointRef.current;
+          const lx = point.x - fp.x;
+          const ly = point.y - fp.y;
+          const length = Math.sqrt(lx * lx + ly * ly);
+          const angle = Math.atan2(ly, lx) * 180 / Math.PI;
+          const newChild: ChildRegion = {
+            id: childRegions.length + 1,
+            name: `Line ${childRegions.filter(c => c.shape === 'line').length + 1}`,
+            shape: 'line',
+            lineStart: { x: fp.x, y: fp.y },
+            lineEnd: { x: point.x, y: point.y },
+            lineLength: length,
+            lineAngle: angle,
+            centerCoordinates: { grid: { x: 0, y: 0 }, pixel: { x: (fp.x + point.x) / 2, y: (fp.y + point.y) / 2 } },
+            bounds: { x: Math.min(fp.x, point.x), y: Math.min(fp.y, point.y), width: Math.max(1, Math.abs(lx)), height: Math.max(1, Math.abs(ly)) },
+            rotation: 0,
+            ratios: { areaRatio: 0, widthRatio: 0, heightRatio: 0 }
+          };
+          onChildRegionAdd(newChild);
+        }
+      } else if (childDrawMode === 'dot') {
+        // Cancel any pending long press timer
+        if (longPressTimerRef.current !== null) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        // If long press was triggered, skip dot creation
+        if (longPressTriggeredRef.current) {
+          longPressTriggeredRef.current = false;
+        } else if (dragDistance < 5 && onPointAdd && parentRegion && isPointInRotatedBounds(point, parentRegion)) {
+          const gridCoords = convertToGridCoordinates(point, parentRegion, 16, undefined);
+          const newPoint: Omit<RegionPoint, 'id'> = {
+            name: '',
+            parentRegionId: undefined,
+            coordinates: { pixel: point, grid: gridCoords }
+          };
+          onPointAdd(newPoint);
         }
       } else {
         // Rectangle (default)
@@ -847,101 +835,6 @@ export function useCanvasInteraction({
             ratios: { areaRatio: 0, widthRatio: 0, heightRatio: 0 }
           };
           onChildRegionAdd(newChild);
-        }
-      }
-    }
-
-    // Handle double-click for point creation
-    const dragDistance = Math.sqrt(dx * dx + dy * dy);
-    
-    // Check for double-click (only on small drag distance)
-    if (dragDistance < 5 && onPointAdd) {
-      const currentTime = Date.now();
-      const timeDiff = currentTime - lastClickTimeRef.current;
-      const distanceFromLastClick = Math.sqrt(
-        Math.pow(point.x - lastClickPointRef.current.x, 2) + 
-        Math.pow(point.y - lastClickPointRef.current.y, 2)
-      );
-      
-      // Update last click info
-      lastClickTimeRef.current = currentTime;
-      lastClickPointRef.current = { x: point.x, y: point.y };
-      
-      // Double-click detected (within 500ms and 10px distance)
-      if (timeDiff < 500 && distanceFromLastClick < 10) {
-        // Determine which region the point belongs to
-        let targetRegion: ParentRegion | null = null;
-        let parentRegionId: number | undefined = undefined;
-        
-        // Check if point is inside selected parent region
-        if (parentRegion && isParentSelected && isPointInRotatedBounds(point, parentRegion)) {
-          targetRegion = parentRegion;
-          parentRegionId = undefined; // null indicates parent region point
-        }
-        // Check if point is inside selected child region (line regions do not support points)
-        else if (selectedChildId !== null) {
-          const selectedChild = childRegions.find(c => c.id === selectedChildId);
-          if (selectedChild && selectedChild.shape !== 'line') {
-            let isInsideChild = false;
-            
-            if (selectedChild.rotation !== 0) {
-              // For rotated child regions
-              const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
-              const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
-              const cos = Math.cos(-selectedChild.rotation);
-              const sin = Math.sin(-selectedChild.rotation);
-              const dx_local = point.x - centerX;
-              const dy_local = point.y - centerY;
-              const rotatedX = centerX + dx_local * cos - dy_local * sin;
-              const rotatedY = centerY + dx_local * sin + dy_local * cos;
-              
-              isInsideChild = rotatedX >= selectedChild.bounds.x && 
-                             rotatedX <= selectedChild.bounds.x + selectedChild.bounds.width &&
-                             rotatedY >= selectedChild.bounds.y && 
-                             rotatedY <= selectedChild.bounds.y + selectedChild.bounds.height;
-            } else {
-              // Simple bounds check for non-rotated child
-              isInsideChild = point.x >= selectedChild.bounds.x && 
-                             point.x <= selectedChild.bounds.x + selectedChild.bounds.width &&
-                             point.y >= selectedChild.bounds.y && 
-                             point.y <= selectedChild.bounds.y + selectedChild.bounds.height;
-            }
-            
-            if (isInsideChild) {
-              targetRegion = {
-                x: selectedChild.bounds.x,
-                y: selectedChild.bounds.y,
-                width: selectedChild.bounds.width,
-                height: selectedChild.bounds.height,
-                rotation: selectedChild.rotation,
-                aspectRatio: '',
-                aspectRatioDecimal: 0
-              };
-              parentRegionId = selectedChildId;
-            }
-          }
-        }
-        
-        // Create point if we have a target region
-        if (targetRegion) {
-          // Child region points: origin = child center, unit = parent cell size (parentBasis/16)
-          let cellSizeOverride: number | undefined;
-          if (parentRegionId !== undefined && parentRegion) {
-            const parentBasis = unitBasis === 'width' ? parentRegion.width : parentRegion.height;
-            cellSizeOverride = parentBasis / 16;
-          }
-          const gridCoords = convertToGridCoordinates(point, targetRegion, 16, cellSizeOverride);
-          
-          const newPoint: Omit<RegionPoint, 'id'> = {
-            name: '', // Will be set by handlePointAdd
-            parentRegionId,
-            coordinates: {
-              pixel: point,
-              grid: gridCoords
-            }
-          };
-          
-          onPointAdd(newPoint);
         }
       }
     }

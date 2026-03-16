@@ -114,9 +114,20 @@ export function Toolbar({
                         ? 'bg-blue-500 text-white shadow-sm'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                     }`}
-                    title="Draw line (two clicks)"
+                    title="Draw line (drag)"
                   >
                     / Line
+                  </button>
+                  <button
+                    onClick={() => onChildDrawModeChange('dot')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      childDrawMode === 'dot'
+                        ? 'bg-blue-500 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    }`}
+                    title="Place dot (single click)"
+                  >
+                    · Dot
                   </button>
                 </div>
               </div>
@@ -312,6 +323,26 @@ export function Toolbar({
                           title="Line Opacity"
                         />
                         <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childLineColorOpacity * 100)}%</span>
+                      </div>
+                    )}
+                    {selectionMode === 'child' && childDrawMode === 'dot' && (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="color"
+                          value={colorSettings.dotColor}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, dotColor: e.target.value })}
+                          className="w-6 h-6 rounded border-0 cursor-pointer"
+                          title="Dot Color"
+                        />
+                        <input
+                          type="range"
+                          min="0" max="1" step="0.05"
+                          value={colorSettings.dotColorOpacity}
+                          onChange={(e) => onColorSettingsChange({ ...colorSettings, dotColorOpacity: parseFloat(e.target.value) })}
+                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
+                          title="Dot Opacity"
+                        />
+                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.dotColorOpacity * 100)}%</span>
                       </div>
                     )}
                   </div>

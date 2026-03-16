@@ -676,9 +676,9 @@ export function useCanvasDrawing() {
 
       let color: string;
       if (isSelected) {
-        color = '#ef4444';
+        color = '#3b82f6';
       } else if (point.parentRegionId === undefined) {
-        color = hexToRgba(colorSettings.parentColor, colorSettings.parentColorOpacity ?? 1);
+        color = hexToRgba(colorSettings.dotColor ?? '#ffffff', colorSettings.dotColorOpacity ?? 1);
       } else {
         const region = childRegions.find(r => r.id === point.parentRegionId);
         if (region?.shape === 'circle') {
@@ -691,7 +691,7 @@ export function useCanvasDrawing() {
       }
 
       ctx.strokeStyle = color;
-      ctx.lineWidth = (isSelected ? 1.5 : 1) / zoom;
+      ctx.lineWidth = (isSelected ? 2.5 : 1) / zoom;
 
       const arm = 6 / zoom;
 

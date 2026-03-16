@@ -89,6 +89,8 @@ export interface ColorSettings {
   lineModuleOpacity: number;
   circleModuleColor: string;
   circleModuleOpacity: number;
+  dotColor: string;
+  dotColorOpacity: number;
 }
 
 export interface AnalysisData {
@@ -125,7 +127,7 @@ export interface LayoutFile {
 }
 
 export type SelectionMode = 'parent' | 'child';
-export type ChildDrawMode = 'rectangle' | 'circle' | 'line';
+export type ChildDrawMode = 'rectangle' | 'circle' | 'line' | 'dot';
 export type ResizeHandle = 
   | 'top-left' | 'top-center' | 'top-right'
   | 'middle-left' | 'middle-right'

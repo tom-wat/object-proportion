@@ -570,7 +570,6 @@ export function SidePanel({
       <div className="panel-export-hide bg-blue-50 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-800 mb-3">Controls</h4>
         <ul className="text-sm text-blue-700 space-y-2">
-          <li>• Points: Double-click inside region</li>
           <li>• Rotate: Use top handle</li>
           <li>• Resize: Corner handles</li>
           <li>• Move: Drag inside region</li>

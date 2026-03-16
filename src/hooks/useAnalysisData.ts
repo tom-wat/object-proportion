@@ -226,7 +226,9 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       lineModuleColor: localStorage.getItem('lineModuleColor') ?? '#3b82f6',
       lineModuleOpacity: parseFloat(localStorage.getItem('lineModuleOpacity') ?? '0.5'),
       circleModuleColor: localStorage.getItem('circleModuleColor') ?? '#3b82f6',
-      circleModuleOpacity: parseFloat(localStorage.getItem('circleModuleOpacity') ?? '0.5')
+      circleModuleOpacity: parseFloat(localStorage.getItem('circleModuleOpacity') ?? '0.5'),
+      dotColor: localStorage.getItem('dotColor') ?? '#ffffff',
+      dotColorOpacity: parseFloat(localStorage.getItem('dotColorOpacity') ?? '1')
     },
     imageInfo: null,
     imageRotation: 0
@@ -437,6 +439,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     localStorage.setItem('lineModuleOpacity', String(settings.lineModuleOpacity));
     localStorage.setItem('circleModuleColor', settings.circleModuleColor);
     localStorage.setItem('circleModuleOpacity', String(settings.circleModuleOpacity));
+    localStorage.setItem('dotColor', settings.dotColor);
+    localStorage.setItem('dotColorOpacity', String(settings.dotColorOpacity));
     setAnalysisData(prev => ({
       ...prev,
       colorSettings: settings
@@ -534,7 +538,11 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       points: result.points,
       gridSettings: result.gridSettings,
       childGridSettings: result.childGridSettings,
-      colorSettings: result.colorSettings,
+      colorSettings: {
+          dotColor: '#ffffff',
+          dotColorOpacity: 1,
+          ...(result.colorSettings as Partial<typeof result.colorSettings>),
+        } as typeof result.colorSettings,
       imageRotation: result.imageRotation,
     }));
 
