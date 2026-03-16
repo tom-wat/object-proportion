@@ -4,6 +4,12 @@ import { downloadFile } from '../utils/export';
 import { calculateLineModules } from '../utils/geometry';
 import { exportLayout } from '../utils/layoutIO';
 
+function hexToRgba(hex: string, opacity: number): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return hex;
+  return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})`;
+}
+
 interface UseExportProps {
   analysisData: AnalysisData;
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
@@ -174,7 +180,8 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         }
 
         // Draw parent region frame
-        drawRotatedRect(scaledParent, analysisData.colorSettings.parentColor, 2);
+        const parentFrameColor0 = hexToRgba(analysisData.colorSettings.parentColor, analysisData.colorSettings.parentColorOpacity ?? 1);
+        drawRotatedRect(scaledParent, parentFrameColor0, 2);
       }
 
       // Compute parent cell size for child grids
@@ -286,11 +293,12 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
 
         // Draw child region frame based on shape
         ctx.save();
+        const cs0 = analysisData.colorSettings;
         const childShapeColor0 = isChildCircle0
-          ? analysisData.colorSettings.childCircleColor
+          ? hexToRgba(cs0.childCircleColor, cs0.childCircleColorOpacity ?? 1)
           : child.shape === 'line'
-            ? analysisData.colorSettings.childLineColor
-            : analysisData.colorSettings.childRectColor;
+            ? hexToRgba(cs0.childLineColor, cs0.childLineColorOpacity ?? 1)
+            : hexToRgba(cs0.childRectColor, cs0.childRectColorOpacity ?? 1);
         ctx.strokeStyle = childShapeColor0;
         ctx.lineWidth = 2;
 
@@ -318,7 +326,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           ctx.stroke();
         } else {
           // Rectangle (default)
-          drawRotatedRect(scaledChild, analysisData.colorSettings.childRectColor, 2);
+          drawRotatedRect(scaledChild, childShapeColor0, 2);
         }
 
         ctx.restore();
@@ -519,7 +527,8 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         if (analysisData.gridSettings.visible) {
           drawGrid(scaledParent, analysisData.colorSettings.gridColor, analysisData.colorSettings.gridOpacity);
         }
-        drawRotatedRect(scaledParent, analysisData.colorSettings.parentColor, 2);
+        const parentFrameColor1 = hexToRgba(analysisData.colorSettings.parentColor, analysisData.colorSettings.parentColorOpacity ?? 1);
+        drawRotatedRect(scaledParent, parentFrameColor1, 2);
       }
 
       const parentBasis1 = analysisData.parentRegion
@@ -620,11 +629,12 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         }
 
         ctx.save();
+        const cs1 = analysisData.colorSettings;
         const childShapeColor1 = isChildCircle1
-          ? analysisData.colorSettings.childCircleColor
+          ? hexToRgba(cs1.childCircleColor, cs1.childCircleColorOpacity ?? 1)
           : child.shape === 'line'
-            ? analysisData.colorSettings.childLineColor
-            : analysisData.colorSettings.childRectColor;
+            ? hexToRgba(cs1.childLineColor, cs1.childLineColorOpacity ?? 1)
+            : hexToRgba(cs1.childRectColor, cs1.childRectColorOpacity ?? 1);
         ctx.strokeStyle = childShapeColor1;
         ctx.lineWidth = 2;
         if (child.shape === 'circle') {
@@ -650,7 +660,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           ctx.lineTo(ex, ey);
           ctx.stroke();
         } else {
-          drawRotatedRect(scaledChild, analysisData.colorSettings.childRectColor, 2);
+          drawRotatedRect(scaledChild, childShapeColor1, 2);
         }
         ctx.restore();
       });
