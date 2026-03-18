@@ -76,7 +76,9 @@ function App() {
   const { exportSingleRegion } = usePanelExport();
 
   const handleImport = useCallback((layout: LayoutFile) => {
-    const result = handleImportLayout(layout);
+    const canvas = canvasRef.current;
+    const currentCanvasSize = canvas ? { width: canvas.width, height: canvas.height } : undefined;
+    const result = handleImportLayout(layout, currentCanvasSize);
     setUnitBasis(result.unitBasis);
     setSelectedChildId(null);
     setIsParentSelected(false);

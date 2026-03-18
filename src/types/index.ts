@@ -115,6 +115,9 @@ export interface LayoutFile {
     height: number;
     name: string;
   };
+  // Canvas pixel dimensions at export time – used to scale coordinates on import
+  // when the canvas is a different size (e.g. DevTools open/closed).
+  canvasSize?: { width: number; height: number };
   parentRegion: ParentRegion | null;
   childRegions: ChildRegion[];
   points: RegionPoint[];

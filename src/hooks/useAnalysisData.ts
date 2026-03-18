@@ -503,8 +503,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     }));
   }, [commitPending, clearHistory]);
 
-  const handleImportLayout = useCallback((layout: LayoutFile): { scaled: boolean; unitBasis: 'height' | 'width' } => {
-    const result = applyLayoutToState(layout);
+  const handleImportLayout = useCallback((layout: LayoutFile, currentCanvasSize?: { width: number; height: number }): { scaled: boolean; unitBasis: 'height' | 'width' } => {
+    const result = applyLayoutToState(layout, currentCanvasSize);
 
     commitPending();
     clearHistory();

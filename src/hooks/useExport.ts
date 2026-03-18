@@ -726,13 +726,15 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
       return;
     }
     try {
-      const json = exportLayout(analysisData, unitBasis);
+      const canvas = canvasRef?.current;
+      const canvasSize = canvas ? { width: canvas.width, height: canvas.height } : undefined;
+      const json = exportLayout(analysisData, unitBasis, canvasSize);
       downloadFile(json, `layout-${Date.now()}.json`, 'application/json');
     } catch (error) {
       console.error('Failed to export layout:', error);
       alert('Failed to export layout');
     }
-  }, [analysisData, unitBasis]);
+  }, [analysisData, unitBasis, canvasRef]);
 
   return {
     handleExportPNG,
