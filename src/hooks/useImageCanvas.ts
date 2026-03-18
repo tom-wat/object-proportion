@@ -67,9 +67,16 @@ export function useImageCanvas({
   
   const drawing = useCanvasDrawing();
   const { getImageDrawInfo } = drawing;
-  const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, zoomByRatio, resetZoom, setZoomLevel, updateMaxZoom } = useZoom();
+  const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, zoomByRatioDirect, syncStateFromRefs, resetZoom, setZoomLevel, updateMaxZoom } = useZoom();
   const [drawVersion, setDrawVersion] = useState(0);
   const fitScaleRef = useRef<number>(1);
+
+  // Stable ref to drawing object and latest draw params – used by the pinch
+  // handler so it can draw directly without going through React state.
+  const drawingRef = useRef(drawing);
+  drawingRef.current = drawing;
+  const drawParamsRef = useRef({ parentRegion, childRegions, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis });
+  drawParamsRef.current = { parentRegion, childRegions, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis };
 
   const handleImageLoad = useCallback((image: HTMLImageElement, canvas: HTMLCanvasElement) => {
     drawing.setImage(image);
@@ -220,8 +227,11 @@ export function useImageCanvas({
       zoomAtPoint(e.deltaY, canvasPoint);
     };
 
-    // Pinch-to-zoom for touch devices (continuous ratio-based, smooth)
+    // Pinch-to-zoom for touch devices.
+    // Uses ref-based zoom update + direct RAF draw to bypass the React render
+    // cycle entirely, giving smooth 60fps pinch on mobile.
     let lastPinchDist = 0;
+    let pinchRafId: number | null = null;
 
     const handlePinchStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) return;
@@ -256,12 +266,25 @@ export function useImageCanvas({
       // Amplify sensitivity: 1.0 = natural, >1.0 = more responsive
       const PINCH_SENSITIVITY = 2.2;
       const amplifiedRatio = 1 + (ratio - 1) * PINCH_SENSITIVITY;
-      zoomByRatio(amplifiedRatio, canvasPoint);
+
+      // Update refs directly (no React setState) then draw on next animation frame
+      const result = zoomByRatioDirect(amplifiedRatio, canvasPoint);
+      if (result) {
+        if (pinchRafId !== null) cancelAnimationFrame(pinchRafId);
+        const { zoom: newZoom, pan: newPan } = result;
+        const dp = drawParamsRef.current;
+        pinchRafId = requestAnimationFrame(() => {
+          drawingRef.current.redraw(canvas, dp.parentRegion, dp.childRegions, newZoom, newPan, dp.selectedChildId, dp.colorSettings, dp.gridSettings, dp.childGridSettings, dp.isParentSelected, dp.points, dp.selectedPointId, dp.unitBasis);
+          pinchRafId = null;
+        });
+      }
     };
 
     const handlePinchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) {
         lastPinchDist = 0;
+        // Flush ref values into React state so UI (zoom %, etc.) updates
+        syncStateFromRefs();
       }
     };
 
@@ -271,13 +294,14 @@ export function useImageCanvas({
     canvas.addEventListener('touchend', handlePinchEnd, { passive: false });
 
     return () => {
+      if (pinchRafId !== null) cancelAnimationFrame(pinchRafId);
       cleanupInteraction();
       canvas.removeEventListener('wheel', handleWheel);
       canvas.removeEventListener('touchstart', handlePinchStart);
       canvas.removeEventListener('touchmove', handlePinchMove);
       canvas.removeEventListener('touchend', handlePinchEnd);
     };
-  }, [canvasRef, interaction, zoomAtPoint]);
+  }, [canvasRef, interaction, zoomAtPoint, zoomByRatioDirect, syncStateFromRefs]);
 
 
   const loadImage = useCallback((file: File) => {
