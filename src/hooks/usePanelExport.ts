@@ -42,13 +42,23 @@ function trimCanvasBottom(canvas: HTMLCanvasElement, bgColor = { r: 255, g: 255,
   return trimmed;
 }
 
+function findVisibleElement(elementId: string): HTMLElement | null {
+  const elements = document.querySelectorAll(`#${elementId}`);
+  for (const el of Array.from(elements)) {
+    if (el.getBoundingClientRect().height > 0) {
+      return el as HTMLElement;
+    }
+  }
+  return elements[0] as HTMLElement | null ?? null;
+}
+
 export function usePanelExport() {
   const exportPanelAsImage = useCallback(async (elementId: string, filename?: string) => {
     try {
       // Dynamic import of html2canvas
       const html2canvas = (await import('html2canvas')).default;
-      
-      const element = document.getElementById(elementId);
+
+      const element = findVisibleElement(elementId);
       if (!element) {
         console.error('Element not found:', elementId);
         return;
@@ -218,8 +228,8 @@ export function usePanelExport() {
     try {
       // Dynamic import of html2canvas
       const html2canvas = (await import('html2canvas')).default;
-      
-      const element = document.getElementById(elementId);
+
+      const element = findVisibleElement(elementId);
       if (!element) {
         console.error('Element not found:', elementId);
         return;

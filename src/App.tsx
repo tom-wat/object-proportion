@@ -3,13 +3,15 @@ import { ImageUploader } from './components/ImageUploader';
 import { ImageCanvas } from './components/ImageCanvas';
 import { Toolbar } from './components/Toolbar';
 import { SidePanel } from './components/SidePanel';
+import { MobileBottomToolbar } from './components/MobileBottomToolbar';
+import { MobileMenuDrawer } from './components/MobileMenuDrawer';
 import { useAnalysisData } from './hooks/useAnalysisData';
 import { useImageHandling } from './hooks/useImageHandling';
 import { useExport } from './hooks/useExport';
 import { useImport } from './hooks/useImport';
 import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { Download, Upload, Undo, Redo, Copy } from 'lucide-react';
+import { Download, Upload, Undo, Redo, Copy, X } from 'lucide-react';
 import type { ChildDrawMode, LayoutFile } from './types';
 
 function App() {
@@ -18,6 +20,8 @@ function App() {
   const [isPanMode, setIsPanMode] = useState(false);
   const [childDrawMode, setChildDrawMode] = useState<ChildDrawMode>('rectangle');
   const [unitBasis, setUnitBasis] = useState<'height' | 'width'>('height');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
 
   const {
     analysisData,
@@ -156,11 +160,21 @@ function App() {
     }
   }, [selectionMode, analysisData.parentRegion, setSelectionMode]);
 
+  const hasSelection = isParentSelected || selectedChildId !== null;
+  const canExport = !(!analysisData.parentRegion && analysisData.childRegions.length === 0);
+
+  const handleMobileCopy = useCallback(() => {
+    if (selectedChildId === null) return;
+    const newId = Math.max(0, ...analysisData.childRegions.map(c => c.id)) + 1;
+    handleChildRegionCopy(selectedChildId);
+    handleChildRegionSelect(newId);
+  }, [selectedChildId, analysisData.childRegions, handleChildRegionCopy, handleChildRegionSelect]);
+
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 h-14">
-        <div className="px-6 h-full flex items-center justify-between">
+      <header className="bg-white border-b border-gray-100 h-14 flex-shrink-0">
+        <div className="px-4 md:px-6 h-full flex items-center justify-between">
           <h1
             className={`text-lg font-semibold text-gray-800 ${imageLoaded ? 'cursor-pointer hover:text-gray-500 transition-colors' : ''}`}
             onClick={handleTitleClick}
@@ -169,10 +183,9 @@ function App() {
             Object Proportion
           </h1>
 
-          {/* Action Buttons */}
+          {/* Desktop Action Buttons */}
           {imageLoaded && (
-            <div className="flex items-center gap-4">
-              {/* Copy Button */}
+            <div className="hidden md:flex items-center gap-4">
               <button
                 onClick={() => {
                   if (selectedChildId === null) return;
@@ -187,8 +200,6 @@ function App() {
                 <Copy size={16} />
                 Copy
               </button>
-
-              {/* Undo/Redo Buttons */}
               <button
                 onClick={handleUndo}
                 disabled={!canUndo}
@@ -205,11 +216,9 @@ function App() {
                 <Redo size={16} />
                 Redo
               </button>
-
-              {/* Export Buttons */}
               <button
                 onClick={handleExportPNG}
-                disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
+                disabled={!canExport}
                 className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
               >
                 <Download size={16} />
@@ -217,7 +226,7 @@ function App() {
               </button>
               <button
                 onClick={handleExportPNGOverlayOnly}
-                disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
+                disabled={!canExport}
                 className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                 title="Download regions only (transparent background)"
               >
@@ -226,7 +235,7 @@ function App() {
               </button>
               <button
                 onClick={handleExportLayout}
-                disabled={!analysisData.parentRegion && analysisData.childRegions.length === 0}
+                disabled={!canExport}
                 className="px-3 py-1.5 text-sm font-medium bg-white text-gray-900 border border-gray-300 rounded-md hover:bg-green-50 hover:text-green-700 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all flex items-center gap-2"
                 title="Export layout (regions & settings)"
               >
@@ -241,74 +250,98 @@ function App() {
                 <Upload size={16} />
                 Import
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={handleFileChange}
-              />
             </div>
           )}
+
+          {/* Mobile Undo/Redo (always visible when image loaded) */}
+          {imageLoaded && (
+            <div className="flex md:hidden items-center gap-1">
+              <button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300 transition-colors"
+              >
+                <Undo size={20} />
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300 transition-colors"
+              >
+                <Redo size={20} />
+              </button>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleFileChange}
+          />
         </div>
       </header>
 
-      {/* Toolbar */}
+      {/* Desktop Toolbar */}
       {imageLoaded && (
-        <Toolbar
-          selectionMode={selectionMode}
-          onSelectionModeChange={handleSelectionModeChange}
-          childDrawMode={childDrawMode}
-          onChildDrawModeChange={setChildDrawMode}
-          gridSettings={analysisData.gridSettings}
-          onGridSettingsChange={handleGridSettingsChange}
-          childGridSettings={analysisData.childGridSettings}
-          onChildGridSettingsChange={handleChildGridSettingsChange}
-          colorSettings={analysisData.colorSettings}
-          onColorSettingsChange={handleColorSettingsChange}
-          hasParentRegion={!!analysisData.parentRegion}
-          childCount={analysisData.childRegions.length}
-          selectedChildId={selectedChildId}
-          onCreateFullCanvasParent={() => handleCreateFullCanvasParent(canvasRef)}
-          onFitChildHeightToImage={(childId) => handleFitChildHeightToImage(childId, canvasRef)}
-          onFitChildWidthToImage={(childId) => handleFitChildWidthToImage(childId, canvasRef)}
-          unitBasis={unitBasis}
-          onUnitBasisChange={setUnitBasis}
-        />
+        <div className="hidden md:block">
+          <Toolbar
+            selectionMode={selectionMode}
+            onSelectionModeChange={handleSelectionModeChange}
+            childDrawMode={childDrawMode}
+            onChildDrawModeChange={setChildDrawMode}
+            gridSettings={analysisData.gridSettings}
+            onGridSettingsChange={handleGridSettingsChange}
+            childGridSettings={analysisData.childGridSettings}
+            onChildGridSettingsChange={handleChildGridSettingsChange}
+            colorSettings={analysisData.colorSettings}
+            onColorSettingsChange={handleColorSettingsChange}
+            hasParentRegion={!!analysisData.parentRegion}
+            childCount={analysisData.childRegions.length}
+            selectedChildId={selectedChildId}
+            onCreateFullCanvasParent={() => handleCreateFullCanvasParent(canvasRef)}
+            onFitChildHeightToImage={(childId) => handleFitChildHeightToImage(childId, canvasRef)}
+            onFitChildWidthToImage={(childId) => handleFitChildWidthToImage(childId, canvasRef)}
+            unitBasis={unitBasis}
+            onUnitBasisChange={setUnitBasis}
+          />
+        </div>
       )}
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Side Panel - moved to left */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Desktop Side Panel */}
         {imageLoaded && (
-          <SidePanel
-            parentRegion={analysisData.parentRegion}
-            childRegions={analysisData.childRegions}
-            onChildRegionSelect={handleChildRegionSelect}
-            onChildRegionDelete={handleChildRegionDelete}
-            onChildRegionRename={handleChildRegionRename}
-            selectedChildId={selectedChildId}
-            onParentRegionSelect={handleParentRegionSelect}
-            onParentRegionRename={handleParentRegionRename}
-            isParentSelected={isParentSelected}
-            points={analysisData.points}
-            selectedPointId={selectedPointId}
-            onPointSelect={handlePointSelect}
-            onPointDelete={handlePointDelete}
-            onPointRename={handlePointRename}
-
-            onExportParentRegion={handleExportParentRegion}
-            onExportChildRegion={handleExportChildRegion}
-            onClearAll={handleClearAllWithReset}
-            imageInfo={analysisData.imageInfo}
-            canvasRef={canvasRef}
-            unitBasis={unitBasis}
-            className="w-72 h-full overflow-y-auto border-r border-gray-100 p-6"
-          />
+          <div className="hidden md:block">
+            <SidePanel
+              parentRegion={analysisData.parentRegion}
+              childRegions={analysisData.childRegions}
+              onChildRegionSelect={handleChildRegionSelect}
+              onChildRegionDelete={handleChildRegionDelete}
+              onChildRegionRename={handleChildRegionRename}
+              selectedChildId={selectedChildId}
+              onParentRegionSelect={handleParentRegionSelect}
+              onParentRegionRename={handleParentRegionRename}
+              isParentSelected={isParentSelected}
+              points={analysisData.points}
+              selectedPointId={selectedPointId}
+              onPointSelect={handlePointSelect}
+              onPointDelete={handlePointDelete}
+              onPointRename={handlePointRename}
+              onExportParentRegion={handleExportParentRegion}
+              onExportChildRegion={handleExportChildRegion}
+              onClearAll={handleClearAllWithReset}
+              imageInfo={analysisData.imageInfo}
+              canvasRef={canvasRef}
+              unitBasis={unitBasis}
+              className="w-72 h-full overflow-y-auto border-r border-gray-100 p-6"
+            />
+          </div>
         )}
 
         {/* Canvas Area */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-2 md:p-6 overflow-hidden">
           {!imageLoaded ? (
             <ImageUploader
               onImageLoad={handleImageLoad}
@@ -345,6 +378,98 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Mobile Bottom Toolbar */}
+      {imageLoaded && (
+        <div className="md:hidden">
+          <MobileBottomToolbar
+            selectionMode={selectionMode}
+            onSelectionModeChange={handleSelectionModeChange}
+            childDrawMode={childDrawMode}
+            onChildDrawModeChange={setChildDrawMode}
+            hasParentRegion={!!analysisData.parentRegion}
+            hasSelection={hasSelection}
+            onMenuOpen={() => setMobileMenuOpen(true)}
+            onInfoOpen={() => setMobileInfoOpen(true)}
+          />
+        </div>
+      )}
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden">
+          <MobileMenuDrawer
+            onClose={() => setMobileMenuOpen(false)}
+            canCopy={selectedChildId !== null}
+            onCopy={handleMobileCopy}
+            canUndo={canUndo}
+            onUndo={handleUndo}
+            canRedo={canRedo}
+            onRedo={handleRedo}
+            canExport={canExport}
+            onExportPNG={handleExportPNG}
+            onExportPNGOverlay={handleExportPNGOverlayOnly}
+            onExportLayout={handleExportLayout}
+            onImport={handleImportClick}
+            selectionMode={selectionMode}
+            childDrawMode={childDrawMode}
+            gridSettings={analysisData.gridSettings}
+            onGridSettingsChange={handleGridSettingsChange}
+            childGridSettings={analysisData.childGridSettings}
+            onChildGridSettingsChange={handleChildGridSettingsChange}
+            colorSettings={analysisData.colorSettings}
+            onColorSettingsChange={handleColorSettingsChange}
+            unitBasis={unitBasis}
+            onUnitBasisChange={setUnitBasis}
+            hasParentRegion={!!analysisData.parentRegion}
+            childCount={analysisData.childRegions.length}
+            selectedChildId={selectedChildId}
+            onCreateFullCanvasParent={() => handleCreateFullCanvasParent(canvasRef)}
+            onFitChildHeightToImage={(childId) => handleFitChildHeightToImage(childId, canvasRef)}
+            onFitChildWidthToImage={(childId) => handleFitChildWidthToImage(childId, canvasRef)}
+          />
+        </div>
+      )}
+
+      {/* Mobile Info Panel (SidePanel as full-screen overlay) */}
+      {mobileInfoOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-white flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+            <span className="font-semibold text-gray-800">Region Info</span>
+            <button
+              onClick={() => setMobileInfoOpen(false)}
+              className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <SidePanel
+              parentRegion={analysisData.parentRegion}
+              childRegions={analysisData.childRegions}
+              onChildRegionSelect={handleChildRegionSelect}
+              onChildRegionDelete={handleChildRegionDelete}
+              onChildRegionRename={handleChildRegionRename}
+              selectedChildId={selectedChildId}
+              onParentRegionSelect={handleParentRegionSelect}
+              onParentRegionRename={handleParentRegionRename}
+              isParentSelected={isParentSelected}
+              points={analysisData.points}
+              selectedPointId={selectedPointId}
+              onPointSelect={handlePointSelect}
+              onPointDelete={handlePointDelete}
+              onPointRename={handlePointRename}
+              onExportParentRegion={handleExportParentRegion}
+              onExportChildRegion={handleExportChildRegion}
+              onClearAll={handleClearAllWithReset}
+              imageInfo={analysisData.imageInfo}
+              canvasRef={canvasRef}
+              unitBasis={unitBasis}
+              className="p-4"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
