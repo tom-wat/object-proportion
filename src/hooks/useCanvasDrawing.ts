@@ -19,7 +19,7 @@ export function useCanvasDrawing() {
     rotation: number;
   } | null>(null);
 
-  const drawImage = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, imageRotation: number = 0) => {
+  const drawImage = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     const img = imageRef.current;
     
     if (!img || !img.complete || img.naturalWidth === 0) {
@@ -49,15 +49,6 @@ export function useCanvasDrawing() {
         offsetY = (canvas.height - drawHeight) / 2;
       }
       
-      // Simple rotation: just rotate the canvas context without changing coordinate system
-      if (imageRotation !== 0) {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        ctx.translate(centerX, centerY);
-        ctx.rotate(imageRotation);
-        ctx.translate(-centerX, -centerY);
-      }
-      
       // Draw the image
       ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
       
@@ -67,7 +58,7 @@ export function useCanvasDrawing() {
         offsetY,
         drawWidth,
         drawHeight,
-        rotation: imageRotation
+        rotation: 0
       };
       
       ctx.restore();
@@ -719,7 +710,6 @@ export function useCanvasDrawing() {
     isParentSelected: boolean = false,
     points: RegionPoint[] = [],
     selectedPointId: number | null = null,
-    imageRotation: number = 0,
     unitBasis: 'height' | 'width' = 'height'
   ) => {
     const ctx = canvas.getContext('2d');
@@ -736,7 +726,7 @@ export function useCanvasDrawing() {
     ctx.scale(zoom, zoom);
 
     // Draw image first
-    drawImage(ctx, canvas, imageRotation);
+    drawImage(ctx, canvas);
     
     // Draw grid second (behind frames)
     if (gridSettings?.visible && parentRegion && colorSettings?.gridColor && (colorSettings.gridOpacity || 0) > 0) {

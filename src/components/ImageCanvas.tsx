@@ -26,7 +26,6 @@ interface ImageCanvasProps {
   isParentSelected?: boolean;
   className?: string;
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
-  imageRotation?: number;
   isPanMode?: boolean;
   childDrawMode?: ChildDrawMode;
   unitBasis?: 'height' | 'width';
@@ -55,7 +54,6 @@ export function ImageCanvas({
   isParentSelected,
   className = '',
   canvasRef: externalCanvasRef,
-  imageRotation = 0,
   isPanMode = false,
   childDrawMode,
   unitBasis = 'height'
@@ -81,7 +79,6 @@ export function ImageCanvas({
     gridSettings,
     childGridSettings,
     externalCanvasRef,
-    imageRotation,
     isPanMode,
     childDrawMode,
     unitBasis

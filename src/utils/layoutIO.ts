@@ -19,7 +19,6 @@ export function exportLayout(analysisData: AnalysisData, unitBasis: 'height' | '
     gridSettings: analysisData.gridSettings,
     childGridSettings: analysisData.childGridSettings,
     colorSettings: analysisData.colorSettings,
-    imageRotation: analysisData.imageRotation,
     unitBasis,
   };
 
@@ -40,7 +39,7 @@ export function validateLayout(parsed: unknown): LayoutFile {
   const required = [
     'version', 'sourceImageInfo', 'parentRegion', 'childRegions',
     'points', 'gridSettings', 'childGridSettings', 'colorSettings',
-    'imageRotation', 'unitBasis',
+    'unitBasis',
   ];
   for (const key of required) {
     if (!(key in obj)) {
@@ -61,7 +60,7 @@ export function validateLayout(parsed: unknown): LayoutFile {
 
 export type ApplyLayoutResult = Pick<
   AnalysisData,
-  'parentRegion' | 'childRegions' | 'points' | 'gridSettings' | 'childGridSettings' | 'colorSettings' | 'imageRotation'
+  'parentRegion' | 'childRegions' | 'points' | 'gridSettings' | 'childGridSettings' | 'colorSettings'
 > & {
   unitBasis: 'height' | 'width';
   scaled: boolean;
@@ -75,7 +74,6 @@ export function applyLayoutToState(layout: LayoutFile): ApplyLayoutResult {
     gridSettings: layout.gridSettings,
     childGridSettings: layout.childGridSettings,
     colorSettings: layout.colorSettings,
-    imageRotation: layout.imageRotation,
     unitBasis: layout.unitBasis,
     scaled: false,
   };

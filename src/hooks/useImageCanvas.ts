@@ -25,7 +25,6 @@ interface UseImageCanvasProps {
   gridSettings?: { visible: boolean };
   childGridSettings?: ChildGridSettings;
   externalCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
-  imageRotation?: number;
   isPanMode?: boolean;
   childDrawMode?: ChildDrawMode;
   unitBasis?: 'height' | 'width';
@@ -51,7 +50,6 @@ export function useImageCanvas({
   gridSettings,
   childGridSettings,
   externalCanvasRef,
-  imageRotation = 0,
   isPanMode = false,
   childDrawMode,
   unitBasis = 'height' as 'height' | 'width'
@@ -78,7 +76,7 @@ export function useImageCanvas({
     imageLoadedRef.current = true;
 
     // Draw with zoom and pan
-    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
+    drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis);
 
     // Compute fit scale and update max zoom so actual scale caps at 500%
     const drawInfo = drawing.getImageDrawInfo();
@@ -89,7 +87,7 @@ export function useImageCanvas({
     }
 
     setDrawVersion(v => v + 1);
-  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, updateMaxZoom]);
+  }, [drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis, updateMaxZoom]);
 
   const setZoomToActualPct = useCallback((pct: number) => {
     if (fitScaleRef.current > 0) {
@@ -110,49 +108,49 @@ export function useImageCanvas({
   const handleRedraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis);
     }
-  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
-  
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis]);
+
   const handleTemporaryDraw = useCallback((x: number, y: number, width: number, height: number, isParent: boolean) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis);
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
       drawing.drawTemporaryRegion(ctx, x, y, width, height, isParent, zoom);
       ctx.restore();
     }
-  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis]);
 
   const handleTemporaryCircleDraw = useCallback((cx: number, cy: number, radius: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis);
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
       drawing.drawTemporaryCircle(ctx, cx, cy, radius, zoom);
       ctx.restore();
     }
-  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis]);
 
   const handleTemporaryLineDraw = useCallback((x1: number, y1: number, x2: number, y2: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis);
       ctx.save();
       ctx.translate(pan.x, pan.y);
       ctx.scale(zoom, zoom);
       drawing.drawTemporaryLine(ctx, x1, y1, x2, y2, zoom);
       ctx.restore();
     }
-  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation]);
-  
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis]);
+
   // Sync the canvas with React state after every relevant state/prop change.
   // Canvas is an imperative API, so we need this effect to re-draw whenever
   // the authoritative state changes (e.g. a new region is committed on mouseup).
@@ -163,9 +161,9 @@ export function useImageCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
-      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis);
+      drawing.redraw(canvas, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis);
     }
-  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, imageRotation, unitBasis]);
+  }, [canvasRef, drawing, parentRegion, childRegions, zoom, pan, selectedChildId, colorSettings, gridSettings, childGridSettings, isParentSelected, points, selectedPointId, unitBasis]);
 
   const interaction = useCanvasInteraction({
     selectionMode,

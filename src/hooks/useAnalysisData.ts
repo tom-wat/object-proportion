@@ -231,7 +231,6 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       dotColorOpacity: parseFloat(localStorage.getItem('dotColorOpacity') ?? '1')
     },
     imageInfo: null,
-    imageRotation: 0
   });
 
   const { 
@@ -504,18 +503,6 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     }));
   }, [commitPending, clearHistory]);
 
-  const handleImageRotationChange = useCallback((rotation: number) => {
-    commitPending(); // Commit any pending debounced history
-    clearHistory(); // Clear history when rotating image
-    setAnalysisData(prev => ({
-      ...prev,
-      imageRotation: rotation,
-      parentRegion: null, // Clear regions when rotating image
-      childRegions: [],
-      points: []
-    }));
-  }, [commitPending, clearHistory]);
-
   const handleImportLayout = useCallback((layout: LayoutFile): { scaled: boolean; unitBasis: 'height' | 'width' } => {
     const result = applyLayoutToState(layout);
 
@@ -543,7 +530,6 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
           dotColorOpacity: 1,
           ...(result.colorSettings as Partial<typeof result.colorSettings>),
         } as typeof result.colorSettings,
-      imageRotation: result.imageRotation,
     }));
 
     return { scaled: result.scaled, unitBasis: result.unitBasis };
@@ -731,7 +717,6 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     handlePointUpdate,
     handleClearAll,
     setImageInfo,
-    handleImageRotationChange,
     handleUndo,
     handleRedo,
     canUndo,

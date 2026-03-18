@@ -105,7 +105,6 @@ export interface AnalysisData {
     height: number;
     name: string;
   } | null;
-  imageRotation: number; // Rotation angle in radians (0, π/2, π, 3π/2)
 }
 
 export interface LayoutFile {
@@ -122,7 +121,6 @@ export interface LayoutFile {
   gridSettings: GridSettings;
   childGridSettings: ChildGridSettings;
   colorSettings: ColorSettings;
-  imageRotation: number;
   unitBasis: 'height' | 'width';
 }
 
