@@ -35,6 +35,19 @@ export function useZoom({
     }
   }, [zoom, pan]);
 
+  const zoomByRatio = useCallback((ratio: number, point: { x: number; y: number }) => {
+    const newZoom = Math.max(minZoomRef.current, Math.min(maxZoomRef.current, zoom * ratio));
+    if (newZoom !== zoom) {
+      const zoomChange = newZoom / zoom;
+      const newPan = {
+        x: point.x - (point.x - pan.x) * zoomChange,
+        y: point.y - (point.y - pan.y) * zoomChange
+      };
+      setZoom(newZoom);
+      setPan(newPan);
+    }
+  }, [zoom, pan]);
+
   const zoomIn = useCallback((centerPoint?: { x: number; y: number }) => {
     if (centerPoint) {
       zoomAtPoint(-1, centerPoint);
@@ -67,6 +80,7 @@ export function useZoom({
     zoomIn,
     zoomOut,
     zoomAtPoint,
+    zoomByRatio,
     resetZoom,
     setZoomLevel,
     updateMaxZoom,

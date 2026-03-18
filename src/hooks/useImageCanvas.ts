@@ -67,7 +67,7 @@ export function useImageCanvas({
   
   const drawing = useCanvasDrawing();
   const { getImageDrawInfo } = drawing;
-  const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, resetZoom, setZoomLevel, updateMaxZoom } = useZoom();
+  const { zoom, pan, setPan, zoomIn, zoomOut, zoomAtPoint, zoomByRatio, resetZoom, setZoomLevel, updateMaxZoom } = useZoom();
   const [drawVersion, setDrawVersion] = useState(0);
   const fitScaleRef = useRef<number>(1);
 
@@ -220,18 +220,14 @@ export function useImageCanvas({
       zoomAtPoint(e.deltaY, canvasPoint);
     };
 
-    // Pinch-to-zoom for touch devices
-    // Accumulate pinch delta and only fire a zoom step every PINCH_THRESHOLD pixels
-    const PINCH_THRESHOLD = 25;
+    // Pinch-to-zoom for touch devices (continuous ratio-based, smooth)
     let lastPinchDist = 0;
-    let pinchAccumulator = 0;
 
     const handlePinchStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) return;
       const dx = e.touches[1].clientX - e.touches[0].clientX;
       const dy = e.touches[1].clientY - e.touches[0].clientY;
       lastPinchDist = Math.sqrt(dx * dx + dy * dy);
-      pinchAccumulator = 0;
     };
 
     const handlePinchMove = (e: TouchEvent) => {
@@ -247,10 +243,8 @@ export function useImageCanvas({
         return;
       }
 
-      pinchAccumulator += dist - lastPinchDist;
+      const ratio = dist / lastPinchDist;
       lastPinchDist = dist;
-
-      if (Math.abs(pinchAccumulator) < PINCH_THRESHOLD) return;
 
       const rect = canvas.getBoundingClientRect();
       const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
@@ -259,15 +253,12 @@ export function useImageCanvas({
       const scaleY = canvas.height / rect.height;
       const canvasPoint = { x: midX * scaleX, y: midY * scaleY };
 
-      // Spread fingers (accumulator > 0) → zoom in (negative deltaY)
-      zoomAtPoint(-pinchAccumulator, canvasPoint);
-      pinchAccumulator = 0;
+      zoomByRatio(ratio, canvasPoint);
     };
 
     const handlePinchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) {
         lastPinchDist = 0;
-        pinchAccumulator = 0;
       }
     };
 
