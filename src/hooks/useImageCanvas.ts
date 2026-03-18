@@ -221,13 +221,17 @@ export function useImageCanvas({
     };
 
     // Pinch-to-zoom for touch devices
+    // Accumulate pinch delta and only fire a zoom step every PINCH_THRESHOLD pixels
+    const PINCH_THRESHOLD = 25;
     let lastPinchDist = 0;
+    let pinchAccumulator = 0;
 
     const handlePinchStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) return;
       const dx = e.touches[1].clientX - e.touches[0].clientX;
       const dy = e.touches[1].clientY - e.touches[0].clientY;
       lastPinchDist = Math.sqrt(dx * dx + dy * dy);
+      pinchAccumulator = 0;
     };
 
     const handlePinchMove = (e: TouchEvent) => {
@@ -243,6 +247,11 @@ export function useImageCanvas({
         return;
       }
 
+      pinchAccumulator += dist - lastPinchDist;
+      lastPinchDist = dist;
+
+      if (Math.abs(pinchAccumulator) < PINCH_THRESHOLD) return;
+
       const rect = canvas.getBoundingClientRect();
       const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
       const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
@@ -250,15 +259,15 @@ export function useImageCanvas({
       const scaleY = canvas.height / rect.height;
       const canvasPoint = { x: midX * scaleX, y: midY * scaleY };
 
-      // Spread fingers (dist increases) → zoom in (negative deltaY)
-      const scaleDelta = dist - lastPinchDist;
-      zoomAtPoint(-scaleDelta * 5, canvasPoint);
-      lastPinchDist = dist;
+      // Spread fingers (accumulator > 0) → zoom in (negative deltaY)
+      zoomAtPoint(-pinchAccumulator, canvasPoint);
+      pinchAccumulator = 0;
     };
 
     const handlePinchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) {
         lastPinchDist = 0;
+        pinchAccumulator = 0;
       }
     };
 
