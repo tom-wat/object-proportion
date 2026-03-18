@@ -11,7 +11,7 @@ import { useExport } from './hooks/useExport';
 import { useImport } from './hooks/useImport';
 import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { Download, Upload, Undo, Redo, Copy, X } from 'lucide-react';
+import { Download, Upload, Undo, Redo, Copy, X, Info } from 'lucide-react';
 import type { ChildDrawMode, LayoutFile } from './types';
 
 function App() {
@@ -170,7 +170,7 @@ function App() {
   }, [selectedChildId, analysisData.childRegions, handleChildRegionCopy, handleChildRegionSelect]);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 h-14 flex-shrink-0">
         <div className="px-4 md:px-6 h-full flex items-center justify-between">
@@ -268,6 +268,13 @@ function App() {
                 className="p-2 text-gray-600 hover:text-gray-900 disabled:text-gray-300 transition-colors"
               >
                 <Redo size={20} />
+              </button>
+              <button
+                onClick={() => setMobileInfoOpen(true)}
+                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                title="Region info"
+              >
+                <Info size={20} />
               </button>
             </div>
           )}
@@ -387,8 +394,9 @@ function App() {
             childDrawMode={childDrawMode}
             onChildDrawModeChange={setChildDrawMode}
             hasParentRegion={!!analysisData.parentRegion}
+            isPanMode={isPanMode}
+            onPanModeToggle={() => setIsPanMode(v => !v)}
             onMenuOpen={() => setMobileMenuOpen(true)}
-            onInfoOpen={() => setMobileInfoOpen(true)}
           />
         </div>
       )}

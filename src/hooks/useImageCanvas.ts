@@ -199,16 +199,16 @@ export function useImageCanvas({
     if (!canvas) return;
 
     const cleanupInteraction = interaction.setupEventListeners(canvas);
-    
+
     // Add scroll wheel zoom with mouse position
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      
+
       // Get mouse position relative to canvas
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
+
       // Convert to canvas coordinates
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
@@ -216,15 +216,63 @@ export function useImageCanvas({
         x: mouseX * scaleX,
         y: mouseY * scaleY
       };
-      
+
       zoomAtPoint(e.deltaY, canvasPoint);
     };
-    
+
+    // Pinch-to-zoom for touch devices
+    let lastPinchDist = 0;
+
+    const handlePinchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      lastPinchDist = Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const handlePinchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (lastPinchDist === 0) {
+        lastPinchDist = dist;
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const canvasPoint = { x: midX * scaleX, y: midY * scaleY };
+
+      // Spread fingers (dist increases) → zoom in (negative deltaY)
+      const scaleDelta = dist - lastPinchDist;
+      zoomAtPoint(-scaleDelta * 5, canvasPoint);
+      lastPinchDist = dist;
+    };
+
+    const handlePinchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        lastPinchDist = 0;
+      }
+    };
+
     canvas.addEventListener('wheel', handleWheel, { passive: false });
-    
+    canvas.addEventListener('touchstart', handlePinchStart, { passive: false });
+    canvas.addEventListener('touchmove', handlePinchMove, { passive: false });
+    canvas.addEventListener('touchend', handlePinchEnd, { passive: false });
+
     return () => {
       cleanupInteraction();
       canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('touchstart', handlePinchStart);
+      canvas.removeEventListener('touchmove', handlePinchMove);
+      canvas.removeEventListener('touchend', handlePinchEnd);
     };
   }, [canvasRef, interaction, zoomAtPoint]);
 

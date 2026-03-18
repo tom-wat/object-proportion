@@ -3,6 +3,11 @@ import type { Point, ParentRegion, ChildRegion, SelectionMode, ResizeHandle, Res
 import { isPointInRotatedBounds, convertToGridCoordinates, distanceToSegment } from '../utils/geometry';
 import { CANVAS_CONSTANTS } from '../utils/constants';
 
+interface PointerCoords {
+  clientX: number;
+  clientY: number;
+}
+
 interface UseCanvasInteractionProps {
   selectionMode: SelectionMode;
   parentRegion: ParentRegion | null;
@@ -73,51 +78,49 @@ export function useCanvasInteraction({
   const dragLineEndpointRef = useRef<'start' | 'end' | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
+  const isTouchInteractionRef = useRef<boolean>(false);
 
 
-  const getCanvasPoint = useCallback((event: MouseEvent, canvas: HTMLCanvasElement): Point => {
+  const getCanvasPoint = useCallback((event: PointerCoords, canvas: HTMLCanvasElement): Point => {
     const rect = canvas.getBoundingClientRect();
-    
+
     const screenX = event.clientX - rect.left;
     const screenY = event.clientY - rect.top;
-    
+
     // Convert screen coordinates to canvas coordinates
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     const canvasX = screenX * scaleX;
     const canvasY = screenY * scaleY;
-    
+
     // Apply inverse zoom and pan transformations only
     const x = (canvasX - pan.x) / zoom;
     const y = (canvasY - pan.y) / zoom;
-    
-    // Don't apply rotation transformation for mouse coordinates
-    // This keeps region creation coordinates aligned with visual display
-    
+
     return { x, y };
   }, [zoom, pan]);
 
 
   const updateCursor = useCallback((point: Point) => {
     if (!onCursorChange) return;
-    
+
     // Pan mode takes priority
     if (isPanMode) {
       onCursorChange('grab');
       return;
     }
-    
+
     let cursor = 'crosshair'; // default cursor
-    
+
     if (selectionMode === 'parent' && parentRegion && isParentSelected) {
       const centerX = parentRegion.x + parentRegion.width / 2;
       const centerY = parentRegion.y + parentRegion.height / 2;
-      
+
       // Check rotation handle (transform point to local coordinate system)
       let localX = point.x;
       let localY = point.y;
-      
+
       if (parentRegion.rotation !== 0) {
         // Apply inverse rotation to point
         const cos = Math.cos(-parentRegion.rotation);
@@ -127,19 +130,19 @@ export function useCanvasInteraction({
         localX = centerX + dx * cos - dy * sin;
         localY = centerY + dx * sin + dy * cos;
       }
-      
+
       const handleY = parentRegion.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
       const distToRotHandle = Math.sqrt(
-        Math.pow(localX - (parentRegion.x + parentRegion.width/2), 2) + 
+        Math.pow(localX - (parentRegion.x + parentRegion.width/2), 2) +
         Math.pow(localY - handleY, 2)
       );
-      
+
       if (distToRotHandle <= 10 / zoom) {
         cursor = 'grab';
         onCursorChange(cursor);
         return;
       }
-      
+
       // Check resize handles - use simple cursor
       if (getHandleAtPoint) {
         const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0, zoom);
@@ -149,7 +152,7 @@ export function useCanvasInteraction({
           return;
         }
       }
-      
+
       // Check if inside region for move
       if (isPointInRotatedBounds(point, parentRegion)) {
         cursor = 'move';
@@ -217,7 +220,7 @@ export function useCanvasInteraction({
           }
         }
       }
-      
+
       // Check if hovering over selected child region (move cursor only for selected child)
       if (selectedChildId !== null) {
         const selectedChild = childRegions.find(c => c.id === selectedChildId);
@@ -233,7 +236,7 @@ export function useCanvasInteraction({
             const dy = point.y - centerY;
             const rotatedX = centerX + dx * cos - dy * sin;
             const rotatedY = centerY + dx * sin + dy * cos;
-            
+
             if (rotatedX >= selectedChild.bounds.x && rotatedX <= selectedChild.bounds.x + selectedChild.bounds.width &&
                 rotatedY >= selectedChild.bounds.y && rotatedY <= selectedChild.bounds.y + selectedChild.bounds.height) {
               cursor = 'move';
@@ -248,17 +251,20 @@ export function useCanvasInteraction({
         }
       }
     }
-    
+
     onCursorChange(cursor);
   }, [selectionMode, parentRegion, childRegions, selectedChildId, getHandleAtPoint, onCursorChange, isParentSelected, zoom, isPanMode]);
 
-  const handleMouseDown = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
+  const handleMouseDown = useCallback((event: PointerCoords, canvas: HTMLCanvasElement) => {
     // If a color picker input is currently active, this mousedown is dismissing it.
     // document.activeElement still points to the input at mousedown time (before blur fires).
     const activeEl = document.activeElement;
     if (activeEl instanceof HTMLInputElement && activeEl.type === 'color') {
       return;
     }
+
+    // Touch hit threshold: larger tap target on touch devices
+    const hitThreshold = (isTouchInteractionRef.current ? 20 : 10) / zoom;
 
     const point = getCanvasPoint(event, canvas);
     isDrawingRef.current = true;
@@ -281,17 +287,16 @@ export function useCanvasInteraction({
     }
 
     // First priority: Check for handles (rotation, resize) even if outside region bounds
-    // This ensures handles work even when they extend beyond the visible region
 
     // Check parent rotation/resize handles if parent is selected
     if (parentRegion && isParentSelected) {
       const centerX = parentRegion.x + parentRegion.width / 2;
       const centerY = parentRegion.y + parentRegion.height / 2;
-      
+
       // Check rotation handle using local coordinates
       let localX = point.x;
       let localY = point.y;
-      
+
       if (parentRegion.rotation !== 0) {
         // Apply inverse rotation to point
         const cos = Math.cos(-parentRegion.rotation);
@@ -301,14 +306,14 @@ export function useCanvasInteraction({
         localX = centerX + dx * cos - dy * sin;
         localY = centerY + dx * sin + dy * cos;
       }
-      
+
       const handleY = parentRegion.y - CANVAS_CONSTANTS.ROTATION_HANDLE_DISTANCE / zoom;
       const distToRotHandle = Math.sqrt(
-        Math.pow(localX - (parentRegion.x + parentRegion.width/2), 2) + 
+        Math.pow(localX - (parentRegion.x + parentRegion.width/2), 2) +
         Math.pow(localY - handleY, 2)
       );
-      
-      if (distToRotHandle <= 10 / zoom) {
+
+      if (distToRotHandle <= hitThreshold) {
         dragTypeRef.current = 'rotate';
         // Store initial rotation and angle for relative calculation
         initialRotationRef.current = parentRegion.rotation;
@@ -327,24 +332,23 @@ export function useCanvasInteraction({
         }
       }
     }
-    
+
     // Check line endpoint handles if line child is selected
     if (selectedChildId !== null) {
       const selectedChild = childRegions.find(c => c.id === selectedChildId);
       if (selectedChild?.shape === 'line' && selectedChild.lineStart && selectedChild.lineEnd) {
-        const threshold = 10 / zoom;
         const distToStart = Math.sqrt(
           (point.x - selectedChild.lineStart.x) ** 2 + (point.y - selectedChild.lineStart.y) ** 2
         );
         const distToEnd = Math.sqrt(
           (point.x - selectedChild.lineEnd.x) ** 2 + (point.y - selectedChild.lineEnd.y) ** 2
         );
-        if (distToStart <= threshold) {
+        if (distToStart <= hitThreshold) {
           dragTypeRef.current = 'line-endpoint';
           dragLineEndpointRef.current = 'start';
           return;
         }
-        if (distToEnd <= threshold) {
+        if (distToEnd <= hitThreshold) {
           dragTypeRef.current = 'line-endpoint';
           dragLineEndpointRef.current = 'end';
           return;
@@ -379,7 +383,7 @@ export function useCanvasInteraction({
           Math.pow(localY - handleY, 2)
         );
 
-        if (distToRotHandle <= 10 / zoom) {
+        if (distToRotHandle <= hitThreshold) {
           dragTypeRef.current = 'rotate';
           initialRotationRef.current = selectedChild.rotation;
           initialAngleRef.current = Math.atan2(point.y - centerY, point.x - centerX);
@@ -400,7 +404,7 @@ export function useCanvasInteraction({
     }
 
     // Second priority: Mode-restricted region selection
-    
+
     // In parent mode: Only check parent region clicks
     if (selectionMode === 'parent' && parentRegion && isPointInRotatedBounds(point, parentRegion)) {
       // If parent is selected, check for move interaction
@@ -414,12 +418,12 @@ export function useCanvasInteraction({
         return;
       }
     }
-    
+
     // In child mode: Only check child region clicks with selection priority
     if (selectionMode === 'child') {
       let clickedChild: ChildRegion | null = null;
-      
-      const LINE_HIT_PX = 8 / zoom;
+
+      const LINE_HIT_PX = (isTouchInteractionRef.current ? 16 : 8) / zoom;
 
       const isPointInChild = (child: ChildRegion, p: Point): boolean => {
         if (child.shape === 'line' && child.lineStart && child.lineEnd) {
@@ -459,7 +463,7 @@ export function useCanvasInteraction({
           }
         }
       }
-      
+
       if (clickedChild) {
         if (childDrawMode === 'dot') {
           // Long press selects the child; short click creates a dot
@@ -484,7 +488,7 @@ export function useCanvasInteraction({
         }
       }
     }
-    
+
     // Third priority: Handle empty space clicks - deselect current selections
     if (selectedChildId !== null) {
       onChildRegionSelect(-1);
@@ -496,7 +500,7 @@ export function useCanvasInteraction({
     dragTypeRef.current = 'new';
   }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onChildRegionSelect, selectedChildId, getHandleAtPoint, isParentSelected, zoom, onParentDeselect, isPanMode, childDrawMode]);
 
-  const handleMouseMove = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
+  const handleMouseMove = useCallback((event: PointerCoords, canvas: HTMLCanvasElement) => {
     const point = getCanvasPoint(event, canvas);
 
     // Update cursor when not drawing
@@ -525,15 +529,15 @@ export function useCanvasInteraction({
         x: screenX * scaleX,
         y: screenY * scaleY
       };
-      
+
       const screenDx = currentScreenPoint.x - startScreenPointRef.current.x;
       const screenDy = currentScreenPoint.y - startScreenPointRef.current.y;
-      
+
       onPanChange({
         x: pan.x + screenDx,
         y: pan.y + screenDy
       });
-      
+
       // Update stored screen point for next movement
       startScreenPointRef.current = currentScreenPoint;
       return;
@@ -653,7 +657,7 @@ export function useCanvasInteraction({
       const centerX = parentRegion.x + parentRegion.width / 2;
       const centerY = parentRegion.y + parentRegion.height / 2;
       const currentAngle = Math.atan2(point.y - centerY, point.x - centerX);
-      
+
       // Simple relative rotation
       const angleDelta = currentAngle - initialAngleRef.current;
       const newAngle = initialRotationRef.current + angleDelta;
@@ -669,7 +673,7 @@ export function useCanvasInteraction({
         const centerX = selectedChild.bounds.x + selectedChild.bounds.width / 2;
         const centerY = selectedChild.bounds.y + selectedChild.bounds.height / 2;
         const currentAngle = Math.atan2(point.y - centerY, point.x - centerX);
-        
+
         // Simple relative rotation
         const angleDelta = currentAngle - initialAngleRef.current;
         const newAngle = initialRotationRef.current + angleDelta;
@@ -678,7 +682,7 @@ export function useCanvasInteraction({
           ...selectedChild,
           rotation: newAngle
         };
-        
+
         if (onChildRegionChange) {
           onChildRegionChange(updatedChild);
         }
@@ -716,7 +720,7 @@ export function useCanvasInteraction({
     }
   }, [getCanvasPoint, onRedraw, onTemporaryDraw, onTemporaryCircleDraw, onTemporaryLineDraw, childDrawMode, selectionMode, parentRegion, childRegions, selectedChildId, onParentRegionChange, onChildRegionChange, onPanChange, pan, calculateResize, updateCursor]);
 
-  const handleMouseUp = useCallback((event: MouseEvent, canvas: HTMLCanvasElement) => {
+  const handleMouseUp = useCallback((event: PointerCoords, canvas: HTMLCanvasElement) => {
     if (!isDrawingRef.current) return;
 
     const point = getCanvasPoint(event, canvas);
@@ -727,7 +731,7 @@ export function useCanvasInteraction({
       const width = Math.abs(dx);
       const height = Math.abs(dy);
       const dragDistance = Math.sqrt(dx * dx + dy * dy);
-      
+
       // If drag distance is small and clicked inside parent region, select it
       if (dragDistance < 5 && clickedParentRef.current && onParentSelect) {
         onParentSelect();
@@ -735,7 +739,7 @@ export function useCanvasInteraction({
         // Create new parent region only if dragged significantly
         const x = dx < 0 ? point.x : startPointRef.current.x;
         const y = dy < 0 ? point.y : startPointRef.current.y;
-        
+
         const newRegion: ParentRegion = {
           x, y, width, height,
           rotation: 0,
@@ -849,10 +853,13 @@ export function useCanvasInteraction({
   }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected, childDrawMode, unitBasis, zoom]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
-    const mouseDownHandler = (e: MouseEvent) => handleMouseDown(e, canvas);
+    const mouseDownHandler = (e: MouseEvent) => {
+      isTouchInteractionRef.current = false;
+      handleMouseDown(e, canvas);
+    };
     const mouseMoveHandler = (e: MouseEvent) => handleMouseMove(e, canvas);
     const mouseUpHandler = (e: MouseEvent) => handleMouseUp(e, canvas);
-    
+
     // Add mouse leave handler to reset cursor
     const mouseLeaveHandler = () => {
       if (onCursorChange) {
@@ -860,16 +867,50 @@ export function useCanvasInteraction({
       }
     };
 
+    // Touch handlers: single-finger maps to mouse equivalents
+    const touchStartHandler = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        // Cancel any in-progress single-touch drawing when a second finger arrives
+        if (isDrawingRef.current) {
+          isDrawingRef.current = false;
+          dragTypeRef.current = null;
+        }
+        return;
+      }
+      e.preventDefault();
+      isTouchInteractionRef.current = true;
+      handleMouseDown(e.touches[0], canvas);
+    };
+
+    const touchMoveHandler = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      handleMouseMove(e.touches[0], canvas);
+    };
+
+    const touchEndHandler = (e: TouchEvent) => {
+      if (e.changedTouches.length === 0) return;
+      e.preventDefault();
+      handleMouseUp(e.changedTouches[0], canvas);
+      isTouchInteractionRef.current = false;
+    };
+
     canvas.addEventListener('mousedown', mouseDownHandler);
     canvas.addEventListener('mousemove', mouseMoveHandler);
     canvas.addEventListener('mouseup', mouseUpHandler);
     canvas.addEventListener('mouseleave', mouseLeaveHandler);
+    canvas.addEventListener('touchstart', touchStartHandler, { passive: false });
+    canvas.addEventListener('touchmove', touchMoveHandler, { passive: false });
+    canvas.addEventListener('touchend', touchEndHandler, { passive: false });
 
     return () => {
       canvas.removeEventListener('mousedown', mouseDownHandler);
       canvas.removeEventListener('mousemove', mouseMoveHandler);
       canvas.removeEventListener('mouseup', mouseUpHandler);
       canvas.removeEventListener('mouseleave', mouseLeaveHandler);
+      canvas.removeEventListener('touchstart', touchStartHandler);
+      canvas.removeEventListener('touchmove', touchMoveHandler);
+      canvas.removeEventListener('touchend', touchEndHandler);
     };
   }, [handleMouseDown, handleMouseMove, handleMouseUp, onCursorChange]);
 

@@ -1,4 +1,4 @@
-import { Menu, Info } from 'lucide-react';
+import { Menu, Hand } from 'lucide-react';
 import type { SelectionMode, ChildDrawMode } from '../types';
 
 interface MobileBottomToolbarProps {
@@ -7,8 +7,9 @@ interface MobileBottomToolbarProps {
   childDrawMode: ChildDrawMode;
   onChildDrawModeChange: (mode: ChildDrawMode) => void;
   hasParentRegion: boolean;
+  isPanMode: boolean;
+  onPanModeToggle: () => void;
   onMenuOpen: () => void;
-  onInfoOpen: () => void;
 }
 
 export function MobileBottomToolbar({
@@ -17,8 +18,9 @@ export function MobileBottomToolbar({
   childDrawMode,
   onChildDrawModeChange,
   hasParentRegion,
+  isPanMode,
+  onPanModeToggle,
   onMenuOpen,
-  onInfoOpen,
 }: MobileBottomToolbarProps) {
   const shapes: { mode: ChildDrawMode; label: string; title: string }[] = [
     { mode: 'rectangle', label: '□', title: 'Rectangle' },
@@ -76,13 +78,15 @@ export function MobileBottomToolbar({
 
       <div className="flex-1" />
 
-      {/* Info button */}
+      {/* Pan toggle button */}
       <button
-        onClick={onInfoOpen}
-        className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-        title="Region info"
+        onClick={onPanModeToggle}
+        className={`p-2 transition-colors ${
+          isPanMode ? 'text-blue-500' : 'text-gray-600 hover:text-gray-900'
+        }`}
+        title="Pan mode"
       >
-        <Info size={20} />
+        <Hand size={20} />
       </button>
 
       {/* Menu button */}
