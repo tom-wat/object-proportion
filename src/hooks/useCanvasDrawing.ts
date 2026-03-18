@@ -115,10 +115,11 @@ export function useCanvasDrawing() {
     point: { x: number; y: number },
     region: { x: number; y: number; width: number; height: number },
     rotation: number = 0,
-    zoom: number = 1
+    zoom: number = 1,
+    extraTolerance: number = 0
   ): ResizeHandleInfo | null => {
     const handles = getResizeHandles(region, rotation);
-    const tolerance = (CANVAS_CONSTANTS.HANDLE_SIZE / 2) / zoom;
+    const tolerance = (CANVAS_CONSTANTS.HANDLE_SIZE / 2 + extraTolerance) / zoom;
     
     for (const handle of handles) {
       const distance = Math.sqrt(

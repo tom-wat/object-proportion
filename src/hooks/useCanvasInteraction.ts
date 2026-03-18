@@ -30,7 +30,7 @@ interface UseCanvasInteractionProps {
   zoom?: number;
   pan?: { x: number; y: number };
   onPanChange?: (pan: { x: number; y: number }) => void;
-  getHandleAtPoint?: (point: { x: number; y: number }, region: { x: number; y: number; width: number; height: number }, zoom?: number, rotation?: number) => ResizeHandleInfo | null;
+  getHandleAtPoint?: (point: { x: number; y: number }, region: { x: number; y: number; width: number; height: number }, rotation?: number, zoom?: number, extraTolerance?: number) => ResizeHandleInfo | null;
   calculateResize?: (originalRegion: { x: number; y: number; width: number; height: number }, handleType: ResizeHandle, deltaX: number, deltaY: number, minWidth?: number, minHeight?: number, rotation?: number) => { x: number; y: number; width: number; height: number };
   onCursorChange?: (cursor: string) => void;
   isPanMode?: boolean;
@@ -102,6 +102,22 @@ export function useCanvasInteraction({
   }, [zoom, pan]);
 
 
+  const getResizeCursor = (handleType: string, rotation: number = 0): string => {
+    const baseCursors: Record<string, string> = {
+      'top-left': 'nwse-resize',
+      'bottom-right': 'nwse-resize',
+      'top-right': 'nesw-resize',
+      'bottom-left': 'nesw-resize',
+      'top-center': 'ns-resize',
+      'bottom-center': 'ns-resize',
+      'middle-left': 'ew-resize',
+      'middle-right': 'ew-resize',
+    };
+    // For rotated regions fall back to generic resize cursor
+    if (rotation !== 0) return 'move';
+    return baseCursors[handleType] ?? 'pointer';
+  };
+
   const updateCursor = useCallback((point: Point) => {
     if (!onCursorChange) return;
 
@@ -112,6 +128,7 @@ export function useCanvasInteraction({
     }
 
     let cursor = 'crosshair'; // default cursor
+    const extraTolerance = isTouchInteractionRef.current ? 20 : 15;
 
     if (selectionMode === 'parent' && parentRegion && isParentSelected) {
       const centerX = parentRegion.x + parentRegion.width / 2;
@@ -143,11 +160,11 @@ export function useCanvasInteraction({
         return;
       }
 
-      // Check resize handles - use simple cursor
+      // Check resize handles - directional cursor
       if (getHandleAtPoint) {
-        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0, zoom);
+        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0, zoom, extraTolerance);
         if (handle) {
-          cursor = 'pointer'; // Resize handle cursor
+          cursor = getResizeCursor(handle.type, parentRegion.rotation);
           onCursorChange(cursor);
           return;
         }
@@ -209,11 +226,11 @@ export function useCanvasInteraction({
             return;
           }
 
-          // Check resize handles - use simple cursor
+          // Check resize handles - directional cursor
           if (getHandleAtPoint) {
-            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0, zoom);
+            const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0, zoom, extraTolerance);
             if (handle) {
-              cursor = 'pointer'; // Resize handle cursor
+              cursor = getResizeCursor(handle.type, selectedChild.rotation);
               onCursorChange(cursor);
               return;
             }
@@ -265,6 +282,7 @@ export function useCanvasInteraction({
 
     // Touch hit threshold: larger tap target on touch devices
     const hitThreshold = (isTouchInteractionRef.current ? 20 : 10) / zoom;
+    const handleExtraTolerance = isTouchInteractionRef.current ? 20 : 15;
 
     const point = getCanvasPoint(event, canvas);
     isDrawingRef.current = true;
@@ -323,7 +341,7 @@ export function useCanvasInteraction({
 
       // Check for resize handles using local coordinate system
       if (getHandleAtPoint) {
-        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0, zoom);
+        const handle = getHandleAtPoint({x: localX, y: localY}, parentRegion, 0, zoom, handleExtraTolerance);
         if (handle) {
           dragTypeRef.current = 'resize';
           selectedHandleRef.current = handle;
@@ -392,7 +410,7 @@ export function useCanvasInteraction({
 
         // Check for resize handles using local coordinate system
         if (getHandleAtPoint) {
-          const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0, zoom);
+          const handle = getHandleAtPoint({x: localX, y: localY}, selectedChild.bounds, 0, zoom, handleExtraTolerance);
           if (handle) {
             dragTypeRef.current = 'resize';
             selectedHandleRef.current = handle;
