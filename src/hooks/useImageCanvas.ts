@@ -254,7 +254,7 @@ export function useImageCanvas({
       const canvasPoint = { x: midX * scaleX, y: midY * scaleY };
 
       // Amplify sensitivity: 1.0 = natural, >1.0 = more responsive
-      const PINCH_SENSITIVITY = 1.8;
+      const PINCH_SENSITIVITY = 2.2;
       const amplifiedRatio = 1 + (ratio - 1) * PINCH_SENSITIVITY;
       zoomByRatio(amplifiedRatio, canvasPoint);
     };
