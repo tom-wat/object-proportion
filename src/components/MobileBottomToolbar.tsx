@@ -7,7 +7,6 @@ interface MobileBottomToolbarProps {
   childDrawMode: ChildDrawMode;
   onChildDrawModeChange: (mode: ChildDrawMode) => void;
   hasParentRegion: boolean;
-  hasSelection: boolean;
   onMenuOpen: () => void;
   onInfoOpen: () => void;
 }
@@ -18,7 +17,6 @@ export function MobileBottomToolbar({
   childDrawMode,
   onChildDrawModeChange,
   hasParentRegion,
-  hasSelection,
   onMenuOpen,
   onInfoOpen,
 }: MobileBottomToolbarProps) {

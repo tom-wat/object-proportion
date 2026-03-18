@@ -160,7 +160,6 @@ function App() {
     }
   }, [selectionMode, analysisData.parentRegion, setSelectionMode]);
 
-  const hasSelection = isParentSelected || selectedChildId !== null;
   const canExport = !(!analysisData.parentRegion && analysisData.childRegions.length === 0);
 
   const handleMobileCopy = useCallback(() => {
@@ -388,7 +387,6 @@ function App() {
             childDrawMode={childDrawMode}
             onChildDrawModeChange={setChildDrawMode}
             hasParentRegion={!!analysisData.parentRegion}
-            hasSelection={hasSelection}
             onMenuOpen={() => setMobileMenuOpen(true)}
             onInfoOpen={() => setMobileInfoOpen(true)}
           />
