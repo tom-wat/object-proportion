@@ -75,8 +75,8 @@ export function ImageUploader({ onImageLoad, className = '' }: ImageUploaderProp
           </div>
           <div className="space-y-2">
             <p className="text-lg font-medium text-gray-900">
-              <span className="hidden md:inline">Drop image here or click to select</span>
-              <span className="md:hidden">Tap to select image</span>
+              <span className="hidden lg:inline">Drop image here or click to select</span>
+              <span className="lg:hidden">Tap to select image</span>
             </p>
             <p className="text-sm text-gray-500">
               Supports: JPEG, PNG, GIF, WebP (Max: 10MB, 8000×8000px)

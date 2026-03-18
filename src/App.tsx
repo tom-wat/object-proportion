@@ -173,7 +173,7 @@ function App() {
     <div className="h-[100dvh] flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 h-14 flex-shrink-0">
-        <div className="px-4 md:px-6 h-full flex items-center justify-between">
+        <div className="px-4 lg:px-6 h-full flex items-center justify-between">
           <h1
             className={`text-lg font-semibold text-gray-800 ${imageLoaded ? 'cursor-pointer hover:text-gray-500 transition-colors' : ''}`}
             onClick={handleTitleClick}
@@ -184,7 +184,7 @@ function App() {
 
           {/* Desktop Action Buttons */}
           {imageLoaded && (
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4">
               <button
                 onClick={() => {
                   if (selectedChildId === null) return;
@@ -254,7 +254,7 @@ function App() {
 
           {/* Mobile Undo/Redo (always visible when image loaded) */}
           {imageLoaded && (
-            <div className="flex md:hidden items-center gap-1">
+            <div className="flex lg:hidden items-center gap-1">
               <button
                 onClick={handleUndo}
                 disabled={!canUndo}
@@ -291,7 +291,7 @@ function App() {
 
       {/* Desktop Toolbar */}
       {imageLoaded && (
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <Toolbar
             selectionMode={selectionMode}
             onSelectionModeChange={handleSelectionModeChange}
@@ -319,7 +319,7 @@ function App() {
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Desktop Side Panel */}
         {imageLoaded && (
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <SidePanel
               parentRegion={analysisData.parentRegion}
               childRegions={analysisData.childRegions}
@@ -347,7 +347,7 @@ function App() {
         )}
 
         {/* Canvas Area */}
-        <div className="flex-1 p-2 md:p-6 overflow-hidden">
+        <div className="flex-1 p-2 lg:p-6 overflow-hidden">
           {!imageLoaded ? (
             <ImageUploader
               onImageLoad={handleImageLoad}
@@ -387,7 +387,7 @@ function App() {
 
       {/* Mobile Bottom Toolbar */}
       {imageLoaded && (
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <MobileBottomToolbar
             selectionMode={selectionMode}
             onSelectionModeChange={handleSelectionModeChange}
@@ -403,7 +403,7 @@ function App() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <MobileMenuDrawer
             onClose={() => setMobileMenuOpen(false)}
             canCopy={selectedChildId !== null}
@@ -439,7 +439,7 @@ function App() {
 
       {/* Mobile Info Panel (SidePanel as full-screen overlay) */}
       {mobileInfoOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-white flex flex-col">
+        <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
             <span className="font-semibold text-gray-800">Region Info</span>
             <button
