@@ -50,7 +50,7 @@ export function useKeyboardShortcuts({
           onPanModeChange(true);
         }
         break;
-      case 'Shift':
+      case 'Control':
         event.preventDefault();
         if (selectionMode && onSelectionModeChange) {
           // Toggle between parent and child modes

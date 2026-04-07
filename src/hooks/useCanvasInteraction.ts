@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { Point, ParentRegion, ChildRegion, SelectionMode, ResizeHandle, ResizeHandleInfo, RegionPoint, ChildDrawMode } from '../types';
 import { isPointInRotatedBounds, convertToGridCoordinates, distanceToSegment } from '../utils/geometry';
 import { CANVAS_CONSTANTS } from '../utils/constants';
@@ -6,6 +6,17 @@ import { CANVAS_CONSTANTS } from '../utils/constants';
 interface PointerCoords {
   clientX: number;
   clientY: number;
+  shiftKey?: boolean;
+}
+
+function snapEndPointToAngle15(x1: number, y1: number, x2: number, y2: number): Point {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  const angle = Math.atan2(dy, dx);
+  const step = Math.PI / 12; // 15 degrees
+  const snapped = Math.round(angle / step) * step;
+  return { x: x1 + length * Math.cos(snapped), y: y1 + length * Math.sin(snapped) };
 }
 
 interface UseCanvasInteractionProps {
@@ -579,7 +590,10 @@ export function useCanvasInteraction({
         }
       } else if (childDrawMode === 'line') {
         if (onTemporaryLineDraw) {
-          onTemporaryLineDraw(startPointRef.current.x, startPointRef.current.y, point.x, point.y);
+          const endPoint = event.shiftKey
+            ? snapEndPointToAngle15(startPointRef.current.x, startPointRef.current.y, point.x, point.y)
+            : point;
+          onTemporaryLineDraw(startPointRef.current.x, startPointRef.current.y, endPoint.x, endPoint.y);
         }
       }
     } else if (dragTypeRef.current === 'move' && selectionMode === 'parent' && parentRegion) {
@@ -708,8 +722,13 @@ export function useCanvasInteraction({
     } else if (dragTypeRef.current === 'line-endpoint' && selectionMode === 'child' && selectedChildId !== null) {
       const selectedChild = childRegions.find(c => c.id === selectedChildId);
       if (selectedChild?.shape === 'line' && selectedChild.lineStart && selectedChild.lineEnd) {
-        const newStart = dragLineEndpointRef.current === 'start' ? point : selectedChild.lineStart;
-        const newEnd = dragLineEndpointRef.current === 'end' ? point : selectedChild.lineEnd;
+        let movedPoint = point;
+        if (event.shiftKey) {
+          const anchor = dragLineEndpointRef.current === 'start' ? selectedChild.lineEnd : selectedChild.lineStart;
+          movedPoint = snapEndPointToAngle15(anchor.x, anchor.y, point.x, point.y);
+        }
+        const newStart = dragLineEndpointRef.current === 'start' ? movedPoint : selectedChild.lineStart;
+        const newEnd = dragLineEndpointRef.current === 'end' ? movedPoint : selectedChild.lineEnd;
         const lx = newEnd.x - newStart.x;
         const ly = newEnd.y - newStart.y;
         const length = Math.sqrt(lx * lx + ly * ly);
@@ -801,8 +820,11 @@ export function useCanvasInteraction({
         } else {
           // Drag: create line
           const fp = startPointRef.current;
-          const lx = point.x - fp.x;
-          const ly = point.y - fp.y;
+          const endPoint = event.shiftKey
+            ? snapEndPointToAngle15(fp.x, fp.y, point.x, point.y)
+            : point;
+          const lx = endPoint.x - fp.x;
+          const ly = endPoint.y - fp.y;
           const length = Math.sqrt(lx * lx + ly * ly);
           const angle = Math.atan2(ly, lx) * 180 / Math.PI;
           const newChild: ChildRegion = {
@@ -810,11 +832,11 @@ export function useCanvasInteraction({
             name: `Line ${childRegions.filter(c => c.shape === 'line').length + 1}`,
             shape: 'line',
             lineStart: { x: fp.x, y: fp.y },
-            lineEnd: { x: point.x, y: point.y },
+            lineEnd: { x: endPoint.x, y: endPoint.y },
             lineLength: length,
             lineAngle: angle,
-            centerCoordinates: { grid: { x: 0, y: 0 }, pixel: { x: (fp.x + point.x) / 2, y: (fp.y + point.y) / 2 } },
-            bounds: { x: Math.min(fp.x, point.x), y: Math.min(fp.y, point.y), width: Math.max(1, Math.abs(lx)), height: Math.max(1, Math.abs(ly)) },
+            centerCoordinates: { grid: { x: 0, y: 0 }, pixel: { x: (fp.x + endPoint.x) / 2, y: (fp.y + endPoint.y) / 2 } },
+            bounds: { x: Math.min(fp.x, endPoint.x), y: Math.min(fp.y, endPoint.y), width: Math.max(1, Math.abs(lx)), height: Math.max(1, Math.abs(ly)) },
             rotation: 0,
             ratios: { areaRatio: 0, widthRatio: 0, heightRatio: 0 }
           };
@@ -932,7 +954,26 @@ export function useCanvasInteraction({
     };
   }, [handleMouseDown, handleMouseMove, handleMouseUp, onCursorChange]);
 
+  const cancelDraw = useCallback(() => {
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+    dragTypeRef.current = null;
+    selectedHandleRef.current = null;
+    dragStartBoundsRef.current = null;
+    dragLineEndpointRef.current = null;
+    clickedChildIdRef.current = null;
+    clickedParentRef.current = false;
+    onRedraw();
+  }, [onRedraw]);
+
+  // Cancel any in-progress draw when selection mode changes mid-drag
+  useEffect(() => {
+    cancelDraw();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectionMode]);
+
   return {
     setupEventListeners,
+    cancelDraw,
   };
 }

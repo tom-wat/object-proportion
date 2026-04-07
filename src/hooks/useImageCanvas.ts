@@ -361,5 +361,6 @@ export function useImageCanvas({
     getImageDrawInfo,
     drawVersion,
     setZoomToActualPct,
+    cancelDraw: interaction.cancelDraw,
   };
 }
