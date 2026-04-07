@@ -574,8 +574,9 @@ export function SidePanel({
           <li>• Resize: Corner handles</li>
           <li>• Move: Drag inside region</li>
           <li>• Mode Switch: Ctrl key</li>
+          <li>• Shape Cycle: Option key</li>
           <li>• Pan: Space + drag</li>
-          <li>• Line angle snap (15°): Shift + drag</li>
+          <li>• Line angle snap: Shift + drag</li>
         </ul>
       </div>
     </div>

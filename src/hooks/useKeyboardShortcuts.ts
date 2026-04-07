@@ -1,4 +1,7 @@
 import { useEffect, useCallback } from 'react';
+import type { ChildDrawMode } from '../types';
+
+const CHILD_DRAW_MODES: ChildDrawMode[] = ['rectangle', 'circle', 'line', 'dot'];
 
 interface UseKeyboardShortcutsProps {
   selectedChildId: number | null;
@@ -12,6 +15,8 @@ interface UseKeyboardShortcutsProps {
   selectionMode?: 'parent' | 'child';
   onSelectionModeChange?: (mode: 'parent' | 'child') => void;
   onPanModeChange?: (isPanMode: boolean) => void;
+  childDrawMode?: ChildDrawMode;
+  onChildDrawModeChange?: (mode: ChildDrawMode) => void;
   enabled?: boolean;
 }
 
@@ -27,6 +32,8 @@ export function useKeyboardShortcuts({
   selectionMode,
   onSelectionModeChange,
   onPanModeChange,
+  childDrawMode,
+  onChildDrawModeChange,
   enabled = true
 }: UseKeyboardShortcutsProps) {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -58,6 +65,13 @@ export function useKeyboardShortcuts({
           onSelectionModeChange(newMode);
         }
         break;
+      case 'Alt':
+        event.preventDefault();
+        if (selectionMode === 'child' && childDrawMode && onChildDrawModeChange) {
+          const idx = CHILD_DRAW_MODES.indexOf(childDrawMode);
+          onChildDrawModeChange(CHILD_DRAW_MODES[(idx + 1) % CHILD_DRAW_MODES.length]);
+        }
+        break;
       case 'Delete':
       case 'Backspace':
         if (selectedPointId !== null && selectedPointId !== undefined && onPointDelete) {
@@ -84,7 +98,7 @@ export function useKeyboardShortcuts({
         }
         break;
     }
-  }, [enabled, selectedChildId, selectedPointId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onPointDelete, onPointDeselect, onParentDeselect, selectionMode, onSelectionModeChange, onPanModeChange]);
+  }, [enabled, selectedChildId, selectedPointId, isParentSelected, onChildRegionDelete, onChildRegionSelect, onPointDelete, onPointDeselect, onParentDeselect, selectionMode, onSelectionModeChange, onPanModeChange, childDrawMode, onChildDrawModeChange]);
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
     if (!enabled) return;

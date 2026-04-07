@@ -128,6 +128,8 @@ function App() {
     selectionMode,
     onSelectionModeChange: handleSelectionModeChange,
     onPanModeChange: setIsPanMode,
+    childDrawMode,
+    onChildDrawModeChange: setChildDrawMode,
     enabled: imageLoaded
   });
 

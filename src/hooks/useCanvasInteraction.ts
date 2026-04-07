@@ -966,11 +966,11 @@ export function useCanvasInteraction({
     onRedraw();
   }, [onRedraw]);
 
-  // Cancel any in-progress draw when selection mode changes mid-drag
+  // Cancel any in-progress draw when selection mode or child draw mode changes mid-drag
   useEffect(() => {
     cancelDraw();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectionMode]);
+  }, [selectionMode, childDrawMode]);
 
   return {
     setupEventListeners,
