@@ -176,8 +176,8 @@ function App() {
   return (
     <div className="h-[100dvh] flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 h-14 flex-shrink-0">
-        <div className="px-4 lg:px-6 h-full flex items-center justify-between">
+      <header className="bg-white border-b border-gray-100 h-14 flex-shrink-0 overflow-x-auto">
+        <div className="px-4 lg:px-6 h-full flex items-center justify-between min-w-max">
           <h1
             className={`text-lg font-semibold text-gray-800 ${imageLoaded ? 'cursor-pointer hover:text-gray-500 transition-colors' : ''}`}
             onClick={handleTitleClick}

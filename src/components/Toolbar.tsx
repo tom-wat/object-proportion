@@ -48,8 +48,8 @@ export function Toolbar({
 
   return (
     <div className="bg-white border-b border-gray-100">
-      <div className="px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-6">
+      <div className="px-6 py-4 overflow-x-auto">
+        <div className="flex items-center justify-between gap-6 min-w-max">
           {/* Left Section: Mode, Grid Controls & Colors */}
           <div className="flex items-center gap-6">
             {/* Selection Mode */}

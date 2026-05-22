@@ -122,9 +122,9 @@ export function SidePanel({
                 value={parentRegion.name || "Parent Info"}
                 onChange={(e) => onParentRegionRename?.(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
-                className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 rounded-md py-1 flex-1"
+                className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 rounded-md py-1 flex-1 min-w-0"
               />
-              <div className="flex items-center gap-1 ml-1">
+              <div className="flex items-center gap-1 ml-1 flex-shrink-0">
                 {onExportParentRegion && (
                   <button
                     onClick={(e) => {
@@ -269,9 +269,9 @@ export function SidePanel({
                     value={region.name}
                     onChange={(e) => onChildRegionRename(region.id, e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 rounded-md py-1 flex-1"
+                    className="text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 rounded-md py-1 flex-1 min-w-0"
                   />
-                  
+
                   <div className="flex items-center gap-1 ml-1 flex-shrink-0">
                     {onExportChildRegion && (
                       <button
