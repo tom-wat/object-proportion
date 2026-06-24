@@ -95,7 +95,8 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         gridColor: string,
         gridOpacity: number,
         cellSizeOverride?: number,
-        clipToEllipse?: boolean
+        clipToEllipse?: boolean,
+        subdivide?: boolean
       ) => {
         const basisLength = unitBasis === 'width' ? region.width : region.height;
         const cellSize = cellSizeOverride ?? basisLength / 16;
@@ -131,29 +132,41 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
 
         const cx = region.x + region.width / 2;
         const cy = region.y + region.height / 2;
-        const lw = (k: number) => k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5;
+        // subdivide adds a finer 1/64 grid (4 sub-lines per 1/16 cell) for rects.
+        const sub = subdivide ? 4 : 1;
+        const fineCell = cellSize / sub;
+        const applyStyle = (k: number) => {
+          if (k % sub === 0) {
+            const m = k / sub;
+            ctx.lineWidth = m % 8 === 0 ? 1.5 : m % 4 === 0 ? 1.0 : 0.5;
+            ctx.globalAlpha = 1;
+          } else {
+            ctx.lineWidth = 0.25;
+            ctx.globalAlpha = 0.5;
+          }
+        };
 
         // Vertical lines from center outward
-        for (let k = 0; cx + k * cellSize <= region.x + region.width + 0.5; k++) {
-          const x = cx + k * cellSize;
-          ctx.lineWidth = lw(k);
+        for (let k = 0; cx + k * fineCell <= region.x + region.width + 0.5; k++) {
+          const x = cx + k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
         }
-        for (let k = 1; cx - k * cellSize >= region.x - 0.5; k++) {
-          const x = cx - k * cellSize;
-          ctx.lineWidth = lw(k);
+        for (let k = 1; cx - k * fineCell >= region.x - 0.5; k++) {
+          const x = cx - k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
         }
 
         // Horizontal lines from center outward
-        for (let k = 0; cy + k * cellSize <= region.y + region.height + 0.5; k++) {
-          const y = cy + k * cellSize;
-          ctx.lineWidth = lw(k);
+        for (let k = 0; cy + k * fineCell <= region.y + region.height + 0.5; k++) {
+          const y = cy + k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
         }
-        for (let k = 1; cy - k * cellSize >= region.y - 0.5; k++) {
-          const y = cy - k * cellSize;
-          ctx.lineWidth = lw(k);
+        for (let k = 1; cy - k * fineCell >= region.y - 0.5; k++) {
+          const y = cy - k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
         }
 
@@ -212,7 +225,8 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
             childGridColor0,
             childGridOpacity0,
             parentCellSize0,
-            isChildCircle0
+            isChildCircle0,
+            !isChildCircle0
           );
         }
 
@@ -500,7 +514,8 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         gridColor: string,
         gridOpacity: number,
         cellSizeOverride?: number,
-        clipToEllipse?: boolean
+        clipToEllipse?: boolean,
+        subdivide?: boolean
       ) => {
         const basisLength = unitBasis === 'width' ? region.width : region.height;
         const cellSize = cellSizeOverride ?? basisLength / 16;
@@ -530,25 +545,37 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
         const cx = region.x + region.width / 2;
         const cy = region.y + region.height / 2;
-        const lw = (k: number) => k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5;
-        for (let k = 0; cx + k * cellSize <= region.x + region.width + 0.5; k++) {
-          const x = cx + k * cellSize;
-          ctx.lineWidth = lw(k);
+        // subdivide adds a finer 1/64 grid (4 sub-lines per 1/16 cell) for rects.
+        const sub = subdivide ? 4 : 1;
+        const fineCell = cellSize / sub;
+        const applyStyle = (k: number) => {
+          if (k % sub === 0) {
+            const m = k / sub;
+            ctx.lineWidth = m % 8 === 0 ? 1.5 : m % 4 === 0 ? 1.0 : 0.5;
+            ctx.globalAlpha = 1;
+          } else {
+            ctx.lineWidth = 0.25;
+            ctx.globalAlpha = 0.5;
+          }
+        };
+        for (let k = 0; cx + k * fineCell <= region.x + region.width + 0.5; k++) {
+          const x = cx + k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
         }
-        for (let k = 1; cx - k * cellSize >= region.x - 0.5; k++) {
-          const x = cx - k * cellSize;
-          ctx.lineWidth = lw(k);
+        for (let k = 1; cx - k * fineCell >= region.x - 0.5; k++) {
+          const x = cx - k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
         }
-        for (let k = 0; cy + k * cellSize <= region.y + region.height + 0.5; k++) {
-          const y = cy + k * cellSize;
-          ctx.lineWidth = lw(k);
+        for (let k = 0; cy + k * fineCell <= region.y + region.height + 0.5; k++) {
+          const y = cy + k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
         }
-        for (let k = 1; cy - k * cellSize >= region.y - 0.5; k++) {
-          const y = cy - k * cellSize;
-          ctx.lineWidth = lw(k);
+        for (let k = 1; cy - k * fineCell >= region.y - 0.5; k++) {
+          const y = cy - k * fineCell;
+          applyStyle(k);
           ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
         }
         ctx.restore();
@@ -588,7 +615,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
             (isChildCircle1 && analysisData.childGridSettings.circleVisible)) {
           const childGridColor1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridColor : analysisData.colorSettings.childRectGridColor;
           const childGridOpacity1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridOpacity : analysisData.colorSettings.childRectGridOpacity;
-          drawGrid(scaledChild, childGridColor1, childGridOpacity1, parentCellSize1, isChildCircle1);
+          drawGrid(scaledChild, childGridColor1, childGridOpacity1, parentCellSize1, isChildCircle1, !isChildCircle1);
         }
 
         // Draw line modules if visible

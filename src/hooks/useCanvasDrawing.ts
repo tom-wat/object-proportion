@@ -455,29 +455,42 @@ export function useCanvasDrawing() {
 
     const cx = x + width / 2;
     const cy = y + height / 2;
-    const lw = (k: number) => (k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5) / zoom;
+    // Rectangles also get a finer 1/64 grid (4 sub-lines per 1/16 cell), drawn
+    // thinner and fainter; circles keep the 1/16 grid only.
+    const sub = childRegion.shape === 'circle' ? 1 : 4;
+    const fineCell = cellSize / sub;
+    const applyStyle = (k: number) => {
+      if (k % sub === 0) {
+        const m = k / sub;
+        ctx.lineWidth = (m % 8 === 0 ? 1.5 : m % 4 === 0 ? 1.0 : 0.5) / zoom;
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.lineWidth = 0.25 / zoom;
+        ctx.globalAlpha = 0.5;
+      }
+    };
 
     // Vertical lines from center outward
-    for (let k = 0; cx + k * cellSize <= x + width + 0.5; k++) {
-      const lx = cx + k * cellSize;
-      ctx.lineWidth = lw(k);
+    for (let k = 0; cx + k * fineCell <= x + width + 0.5; k++) {
+      const lx = cx + k * fineCell;
+      applyStyle(k);
       ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
     }
-    for (let k = 1; cx - k * cellSize >= x - 0.5; k++) {
-      const lx = cx - k * cellSize;
-      ctx.lineWidth = lw(k);
+    for (let k = 1; cx - k * fineCell >= x - 0.5; k++) {
+      const lx = cx - k * fineCell;
+      applyStyle(k);
       ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
     }
 
     // Horizontal lines from center outward
-    for (let k = 0; cy + k * cellSize <= y + height + 0.5; k++) {
-      const ly = cy + k * cellSize;
-      ctx.lineWidth = lw(k);
+    for (let k = 0; cy + k * fineCell <= y + height + 0.5; k++) {
+      const ly = cy + k * fineCell;
+      applyStyle(k);
       ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
     }
-    for (let k = 1; cy - k * cellSize >= y - 0.5; k++) {
-      const ly = cy - k * cellSize;
-      ctx.lineWidth = lw(k);
+    for (let k = 1; cy - k * fineCell >= y - 0.5; k++) {
+      const ly = cy - k * fineCell;
+      applyStyle(k);
       ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
     }
 
