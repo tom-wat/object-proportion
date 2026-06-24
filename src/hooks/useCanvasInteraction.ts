@@ -812,7 +812,7 @@ export function useCanvasInteraction({
           }
         }
       } else if (childDrawMode === 'line') {
-        if (dragDistance < 5) {
+        if (dragDistance < CANVAS_CONSTANTS.MIN_CHILD_REGION_SIZE / zoom) {
           // Single click: select child if clicked on one
           if (clickedChildIdRef.current !== null) {
             onChildRegionSelect(clickedChildIdRef.current);

@@ -207,6 +207,46 @@ export function calculateLineModules(lineLength: number, parentBasis: number): L
   return result;
 }
 
+// Level of the fixed-size module used for drawing (1/16 of the parent basis).
+const UNIFORM_MODULE_LEVEL = 4; // 1/16
+
+/**
+ * Tiles a fixed-size 1/16 module along the length and nests four 1/64 modules
+ * (each 1/4 the diameter) inside every 1/16 module. Every module of a given
+ * level is the same size; the final 1/16 may overflow the end and get cut off,
+ * so the length need not be an exact multiple of the module size. Each returned
+ * entry is tiled independently from the start, so the 1/64 row lines up four-per
+ * -1/16. Callers share the same drawing loop as calculateLineModules.
+ */
+export function calculateUniformModules(length: number, parentBasis: number): LineModuleEntry[] {
+  const radius = parentBasis / Math.pow(2, UNIFORM_MODULE_LEVEL + 1);
+  const diameter = radius * 2;
+  if (diameter < 0.5 || length <= 0) return [];
+  const count = Math.ceil(length / diameter);
+  const innerLevel = UNIFORM_MODULE_LEVEL + 2; // 1/64
+  return [
+    { level: UNIFORM_MODULE_LEVEL, fraction: MODULE_FRACTIONS[UNIFORM_MODULE_LEVEL], count, radius },
+    { level: innerLevel, fraction: MODULE_FRACTIONS[innerLevel], count: count * 4, radius: radius / 4 },
+  ];
+}
+
+/**
+ * Like calculateUniformModules but the base module length is given directly (in
+ * px), decoupled from the parent basis. Used for line modules whose base length
+ * is user-configurable. The given length is one module (the 1/16-equivalent),
+ * and four nested 1/64 modules are placed inside it.
+ */
+export function calculateLineModuleColumns(lineLength: number, moduleLength: number): LineModuleEntry[] {
+  if (moduleLength < 0.5 || lineLength <= 0) return [];
+  const radius = moduleLength / 2;
+  const count = Math.ceil(lineLength / moduleLength);
+  const innerLevel = UNIFORM_MODULE_LEVEL + 2; // 1/64
+  return [
+    { level: UNIFORM_MODULE_LEVEL, fraction: MODULE_FRACTIONS[UNIFORM_MODULE_LEVEL], count, radius },
+    { level: innerLevel, fraction: MODULE_FRACTIONS[innerLevel], count: count * 4, radius: radius / 4 },
+  ];
+}
+
 export function calculateGridDimensions(child: Bounds, parent: ParentRegion, gridSize: number = 16): {
   gridWidth: number;
   gridHeight: number;

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { AnalysisData } from '../types';
 import { downloadFile } from '../utils/export';
-import { calculateLineModules } from '../utils/geometry';
+import { calculateUniformModules, calculateLineModuleColumns } from '../utils/geometry';
 import { exportLayout } from '../utils/layoutIO';
 
 function hexToRgba(hex: string, opacity: number): string {
@@ -228,23 +228,32 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
             const scaledParentBasis = unitBasis === 'height'
               ? analysisData.parentRegion.height * scaleY
               : analysisData.parentRegion.width * scaleX;
-            const modules = calculateLineModules(scaledLen, scaledParentBasis);
+            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
+            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
             if (modules.length > 0) {
               const ux = sdx / scaledLen;
               const uy = sdy / scaledLen;
               ctx.save();
+              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
+              const px = -uy;
+              const py = ux;
+              const columnHalf = scaledParentBasis / 128; // fixed column height = 1/4 grid unit, independent of base length
               ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
-              ctx.globalAlpha = analysisData.colorSettings.lineModuleOpacity;
-              ctx.lineWidth = 1;
-              let currentPos = 0;
               for (const entry of modules) {
                 const diameter = entry.radius * 2;
-                for (let i = 0; i < entry.count; i++) {
-                  const t = currentPos + entry.radius;
+                const isInner = entry.level !== modules[0].level;
+                ctx.lineWidth = isInner ? 0.5 : 1;
+                ctx.globalAlpha = isInner ? lineOpacity * 0.6 : lineOpacity;
+                for (let i = 0; i <= entry.count; i++) {
+                  if (isInner && i % 4 === 0) continue;
+                  const t = i * diameter;
+                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
+                  const bx = scaledLS.x + ux * t;
+                  const by = scaledLS.y + uy * t;
                   ctx.beginPath();
-                  ctx.arc(scaledLS.x + ux * t, scaledLS.y + uy * t, entry.radius, 0, 2 * Math.PI);
+                  ctx.moveTo(bx - px * columnHalf, by - py * columnHalf);
+                  ctx.lineTo(bx + px * columnHalf, by + py * columnHalf);
                   ctx.stroke();
-                  currentPos += diameter;
                 }
               }
               ctx.restore();
@@ -259,7 +268,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
             const scaledParentBasis = unitBasis === 'height'
               ? analysisData.parentRegion.height * scaleY
               : analysisData.parentRegion.width * scaleX;
-            const modules = calculateLineModules(diameter, scaledParentBasis);
+            const modules = calculateUniformModules(diameter, scaledParentBasis);
             if (modules.length > 0) {
               const cx = scaledChild.x + scaledChild.width / 2;
               const cy = scaledChild.y + scaledChild.height / 2;
@@ -272,18 +281,20 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
               ctx.beginPath();
               ctx.ellipse(cx, cy, scaledChild.width / 2, scaledChild.height / 2, 0, 0, 2 * Math.PI);
               ctx.clip();
+              const circleOpacity = analysisData.colorSettings.circleModuleOpacity;
               ctx.strokeStyle = analysisData.colorSettings.circleModuleColor;
-              ctx.globalAlpha = analysisData.colorSettings.circleModuleOpacity;
-              ctx.lineWidth = 1;
-              let currentPos = 0;
               for (const entry of modules) {
                 const d = entry.radius * 2;
-                for (let i = 0; i < entry.count; i++) {
-                  const t = currentPos + entry.radius;
+                const isInner = entry.level !== modules[0].level;
+                ctx.lineWidth = isInner ? 0.5 : 1;
+                ctx.globalAlpha = isInner ? circleOpacity * 0.6 : circleOpacity;
+                for (let i = 0; i <= entry.count; i++) {
+                  if (isInner && i % 4 === 0) continue;
+                  const lineX = scaledChild.x + i * d;
                   ctx.beginPath();
-                  ctx.arc(scaledChild.x + t, cy, entry.radius, 0, 2 * Math.PI);
+                  ctx.moveTo(lineX, scaledChild.y);
+                  ctx.lineTo(lineX, scaledChild.y + scaledChild.height);
                   ctx.stroke();
-                  currentPos += d;
                 }
               }
               ctx.restore();
@@ -566,23 +577,32 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
             const scaledParentBasis = unitBasis === 'height'
               ? analysisData.parentRegion.height * scaleY
               : analysisData.parentRegion.width * scaleX;
-            const modules = calculateLineModules(scaledLen, scaledParentBasis);
+            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
+            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
             if (modules.length > 0) {
               const ux = sdx / scaledLen;
               const uy = sdy / scaledLen;
               ctx.save();
+              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
+              const px = -uy;
+              const py = ux;
+              const columnHalf = scaledParentBasis / 128; // fixed column height = 1/4 grid unit, independent of base length
               ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
-              ctx.globalAlpha = analysisData.colorSettings.lineModuleOpacity;
-              ctx.lineWidth = 1;
-              let currentPos = 0;
               for (const entry of modules) {
                 const diameter = entry.radius * 2;
-                for (let i = 0; i < entry.count; i++) {
-                  const t = currentPos + entry.radius;
+                const isInner = entry.level !== modules[0].level;
+                ctx.lineWidth = isInner ? 0.5 : 1;
+                ctx.globalAlpha = isInner ? lineOpacity * 0.6 : lineOpacity;
+                for (let i = 0; i <= entry.count; i++) {
+                  if (isInner && i % 4 === 0) continue;
+                  const t = i * diameter;
+                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
+                  const bx = scaledLS.x + ux * t;
+                  const by = scaledLS.y + uy * t;
                   ctx.beginPath();
-                  ctx.arc(scaledLS.x + ux * t, scaledLS.y + uy * t, entry.radius, 0, 2 * Math.PI);
+                  ctx.moveTo(bx - px * columnHalf, by - py * columnHalf);
+                  ctx.lineTo(bx + px * columnHalf, by + py * columnHalf);
                   ctx.stroke();
-                  currentPos += diameter;
                 }
               }
               ctx.restore();
@@ -597,7 +617,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
             const scaledParentBasis = unitBasis === 'height'
               ? analysisData.parentRegion.height * scaleY
               : analysisData.parentRegion.width * scaleX;
-            const modules = calculateLineModules(diameter, scaledParentBasis);
+            const modules = calculateUniformModules(diameter, scaledParentBasis);
             if (modules.length > 0) {
               const cx = scaledChild.x + scaledChild.width / 2;
               const cy = scaledChild.y + scaledChild.height / 2;
@@ -610,18 +630,20 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
               ctx.beginPath();
               ctx.ellipse(cx, cy, scaledChild.width / 2, scaledChild.height / 2, 0, 0, 2 * Math.PI);
               ctx.clip();
+              const circleOpacity = analysisData.colorSettings.circleModuleOpacity;
               ctx.strokeStyle = analysisData.colorSettings.circleModuleColor;
-              ctx.globalAlpha = analysisData.colorSettings.circleModuleOpacity;
-              ctx.lineWidth = 1;
-              let currentPos = 0;
               for (const entry of modules) {
                 const d = entry.radius * 2;
-                for (let i = 0; i < entry.count; i++) {
-                  const t = currentPos + entry.radius;
+                const isInner = entry.level !== modules[0].level;
+                ctx.lineWidth = isInner ? 0.5 : 1;
+                ctx.globalAlpha = isInner ? circleOpacity * 0.6 : circleOpacity;
+                for (let i = 0; i <= entry.count; i++) {
+                  if (isInner && i % 4 === 0) continue;
+                  const lineX = scaledChild.x + i * d;
                   ctx.beginPath();
-                  ctx.arc(scaledChild.x + t, cy, entry.radius, 0, 2 * Math.PI);
+                  ctx.moveTo(lineX, scaledChild.y);
+                  ctx.lineTo(lineX, scaledChild.y + scaledChild.height);
                   ctx.stroke();
-                  currentPos += d;
                 }
               }
               ctx.restore();

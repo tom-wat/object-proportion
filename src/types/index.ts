@@ -68,6 +68,7 @@ export interface ChildGridSettings {
   circleVisible: boolean;
   lineModuleVisible: boolean;
   circleModuleVisible: boolean;
+  lineModuleLength: number; // grid units (0.1–16): base length of one line module; 1 = parentBasis/16
 }
 
 export interface ColorSettings {

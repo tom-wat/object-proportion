@@ -151,6 +151,35 @@ export function Toolbar({
                 >
                   {(isChildLine ? childGridSettings.lineModuleVisible : childGridSettings.circleModuleVisible) ? 'ON' : 'OFF'}
                 </button>
+                {isChildLine && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">Base</span>
+                    <input
+                      type="number"
+                      min={0.1}
+                      max={16}
+                      step={0.1}
+                      value={childGridSettings.lineModuleLength ?? 1}
+                      onChange={(e) => onChildGridSettingsChange({ ...childGridSettings, lineModuleLength: Math.min(16, Math.max(0.1, Number(e.target.value) || 0.1)) })}
+                      className="w-16 px-1 py-0.5 text-xs border border-gray-200 rounded"
+                      title="Line module base length (grid units, 0.1–16)"
+                      disabled={childCount === 0}
+                    />
+                    <span className="text-xs text-gray-500">Preset</span>
+                    <select
+                      value={Number.isInteger(childGridSettings.lineModuleLength ?? 1) ? String(childGridSettings.lineModuleLength) : ''}
+                      onChange={(e) => onChildGridSettingsChange({ ...childGridSettings, lineModuleLength: Number(e.target.value) })}
+                      className="px-1 py-0.5 text-xs border border-gray-200 rounded bg-white"
+                      title="Pick an integer base length"
+                      disabled={childCount === 0}
+                    >
+                      {!Number.isInteger(childGridSettings.lineModuleLength ?? 1) && <option value="" disabled>–</option>}
+                      {Array.from({ length: 16 }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
 

@@ -1,7 +1,7 @@
 import { useCallback, useRef, useMemo } from 'react';
 import type { ParentRegion, ChildRegion, ColorSettings, GridSettings, ChildGridSettings, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
-import { calculateLineModules } from '../utils/geometry';
+import { calculateUniformModules, calculateLineModuleColumns } from '../utils/geometry';
 
 function hexToRgba(hex: string, opacity: number): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -558,17 +558,15 @@ export function useCanvasDrawing() {
     color: string,
     opacity: number,
     zoom: number,
-    unitBasis: 'height' | 'width',
-    parentRegion: ParentRegion | null
+    moduleLength: number,
+    columnHalf: number
   ) => {
     if (region.shape !== 'line' || !region.lineStart || !region.lineEnd) return;
-    if (!parentRegion) return;
 
     const lineLength = region.lineLength ?? 0;
     if (lineLength <= 0) return;
 
-    const parentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
-    const modules = calculateLineModules(lineLength, parentBasis);
+    const modules = calculateLineModuleColumns(lineLength, moduleLength);
     if (modules.length === 0) return;
 
     const dx = region.lineEnd.x - region.lineStart.x;
@@ -578,22 +576,31 @@ export function useCanvasDrawing() {
     const ux = dx / len;
     const uy = dy / len;
 
+    // Experimental "column" rendering: vertical divider lines perpendicular to
+    // the line at each module boundary, instead of circles. The 1/16 columns
+    // are drawn thicker/opaque; the nested 1/64 columns are thinner and slightly
+    // more transparent, skipping boundaries that coincide with a 1/16 line.
+    const px = -uy;
+    const py = ux;
+
     ctx.save();
     ctx.strokeStyle = color;
-    ctx.globalAlpha = opacity;
-    ctx.lineWidth = 1 / zoom;
 
-    let currentPos = 0;
     for (const entry of modules) {
       const diameter = entry.radius * 2;
-      for (let i = 0; i < entry.count; i++) {
-        const t = currentPos + entry.radius;
-        const cx = region.lineStart!.x + ux * t;
-        const cy = region.lineStart!.y + uy * t;
+      const isInner = entry.level !== modules[0].level;
+      ctx.lineWidth = (isInner ? 0.5 : 1) / zoom;
+      ctx.globalAlpha = isInner ? opacity * 0.6 : opacity;
+      for (let i = 0; i <= entry.count; i++) {
+        if (isInner && i % 4 === 0) continue;
+        const t = i * diameter;
+        if (t > len + 0.01) continue; // don't draw past the line end
+        const bx = region.lineStart!.x + ux * t;
+        const by = region.lineStart!.y + uy * t;
         ctx.beginPath();
-        ctx.arc(cx, cy, entry.radius, 0, 2 * Math.PI);
+        ctx.moveTo(bx - px * columnHalf, by - py * columnHalf);
+        ctx.lineTo(bx + px * columnHalf, by + py * columnHalf);
         ctx.stroke();
-        currentPos += diameter;
       }
     }
 
@@ -619,7 +626,7 @@ export function useCanvasDrawing() {
     if (diameter <= 0) return;
 
     const parentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
-    const modules = calculateLineModules(diameter, parentBasis);
+    const modules = calculateUniformModules(diameter, parentBasis);
     if (modules.length === 0) return;
 
     ctx.save();
@@ -632,20 +639,22 @@ export function useCanvasDrawing() {
     ctx.ellipse(cx, cy, width / 2, height / 2, 0, 0, 2 * Math.PI);
     ctx.clip();
 
+    // Experimental "column" rendering: vertical divider lines across the circle
+    // (clipped to the ellipse) at each module boundary, instead of circles.
     ctx.strokeStyle = color;
-    ctx.globalAlpha = opacity;
-    ctx.lineWidth = 1 / zoom;
 
-    let currentPos = 0;
     for (const entry of modules) {
       const d = entry.radius * 2;
-      for (let i = 0; i < entry.count; i++) {
-        const t = currentPos + entry.radius;
-        const mcx = (x) + t;
+      const isInner = entry.level !== modules[0].level;
+      ctx.lineWidth = (isInner ? 0.5 : 1) / zoom;
+      ctx.globalAlpha = isInner ? opacity * 0.6 : opacity;
+      for (let i = 0; i <= entry.count; i++) {
+        if (isInner && i % 4 === 0) continue;
+        const lineX = x + i * d;
         ctx.beginPath();
-        ctx.arc(mcx, cy, entry.radius, 0, 2 * Math.PI);
+        ctx.moveTo(lineX, y);
+        ctx.lineTo(lineX, y + height);
         ctx.stroke();
-        currentPos += d;
       }
     }
 
@@ -745,8 +754,13 @@ export function useCanvasDrawing() {
         const gridOpacity = isCircle ? colorSettings.childCircleGridOpacity : colorSettings.childRectGridOpacity;
         drawChildGrid(ctx, region, gridColor, gridOpacity, zoom, unitBasis, parentRegion);
       }
-      if (isLine && childGridSettings?.lineModuleVisible && colorSettings) {
-        drawLineModules(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom, unitBasis, parentRegion);
+      if (isLine && childGridSettings?.lineModuleVisible && colorSettings && parentRegion) {
+        // lineModuleLength is in grid units (same scale as child width/height);
+        // 1 unit = parentBasis/16 (the original 1/16 module).
+        const lineParentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
+        const lineModuleLengthPx = (childGridSettings.lineModuleLength ?? 1) * lineParentBasis / 16;
+        const lineColumnHalf = lineParentBasis / 128; // fixed column height = 1/4 grid unit, independent of base length
+        drawLineModules(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom, lineModuleLengthPx, lineColumnHalf);
       }
       if (isCircle && childGridSettings?.circleModuleVisible && colorSettings) {
         drawCircleModules(ctx, region, colorSettings.circleModuleColor, colorSettings.circleModuleOpacity, zoom, unitBasis, parentRegion);

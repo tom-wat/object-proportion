@@ -206,7 +206,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       rectVisible: false,
       circleVisible: false,
       lineModuleVisible: localStorage.getItem('lineModuleVisible') === 'true',
-      circleModuleVisible: localStorage.getItem('circleModuleVisible') === 'true'
+      circleModuleVisible: localStorage.getItem('circleModuleVisible') === 'true',
+      lineModuleLength: Number(localStorage.getItem('lineModuleLength')) || 1
     },
     colorSettings: {
       parentColor: '#3b82f6',
@@ -425,6 +426,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   const handleChildGridSettingsChange = useCallback((settings: ChildGridSettings) => {
     localStorage.setItem('lineModuleVisible', String(settings.lineModuleVisible));
     localStorage.setItem('circleModuleVisible', String(settings.circleModuleVisible));
+    localStorage.setItem('lineModuleLength', String(settings.lineModuleLength));
     setAnalysisData(prev => ({
       ...prev,
       childGridSettings: settings
@@ -509,8 +511,13 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     commitPending();
     clearHistory();
 
-    localStorage.setItem('lineModuleVisible', String(result.childGridSettings.lineModuleVisible));
-    localStorage.setItem('circleModuleVisible', String(result.childGridSettings.circleModuleVisible));
+    const importedChildGridSettings = {
+      ...result.childGridSettings,
+      lineModuleLength: result.childGridSettings.lineModuleLength || 1
+    };
+    localStorage.setItem('lineModuleVisible', String(importedChildGridSettings.lineModuleVisible));
+    localStorage.setItem('circleModuleVisible', String(importedChildGridSettings.circleModuleVisible));
+    localStorage.setItem('lineModuleLength', String(importedChildGridSettings.lineModuleLength));
     localStorage.setItem('childLineColor', result.colorSettings.childLineColor);
     localStorage.setItem('childLineColorOpacity', String(result.colorSettings.childLineColorOpacity));
     localStorage.setItem('lineModuleColor', result.colorSettings.lineModuleColor);
@@ -524,7 +531,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       childRegions: result.childRegions,
       points: result.points,
       gridSettings: result.gridSettings,
-      childGridSettings: result.childGridSettings,
+      childGridSettings: importedChildGridSettings,
       colorSettings: {
           dotColor: '#ffffff',
           dotColorOpacity: 1,
