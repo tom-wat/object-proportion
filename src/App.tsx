@@ -19,7 +19,7 @@ function App() {
 
   const [isPanMode, setIsPanMode] = useState(false);
   const [childDrawMode, setChildDrawMode] = useState<ChildDrawMode>('rectangle');
-  const [unitBasis, setUnitBasis] = useState<'height' | 'width'>('height');
+  const [unitBasis, setUnitBasis] = useState<'height' | 'width'>(() => (localStorage.getItem('unitBasis') === 'width' ? 'width' : 'height'));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
 
@@ -75,15 +75,20 @@ function App() {
   const { handleExportPNG, handleExportPNGOverlayOnly, handleExportLayout } = useExport({ analysisData, canvasRef, cachedImage, unitBasis });
   const { exportSingleRegion } = usePanelExport();
 
+  const handleUnitBasisChange = useCallback((basis: 'height' | 'width') => {
+    localStorage.setItem('unitBasis', basis);
+    setUnitBasis(basis);
+  }, []);
+
   const handleImport = useCallback((layout: LayoutFile) => {
     const canvas = canvasRef.current;
     const currentCanvasSize = canvas ? { width: canvas.width, height: canvas.height } : undefined;
     const result = handleImportLayout(layout, currentCanvasSize);
-    setUnitBasis(result.unitBasis);
+    handleUnitBasisChange(result.unitBasis);
     setSelectedChildId(null);
     setIsParentSelected(false);
     setSelectionMode('parent');
-  }, [handleImportLayout, setUnitBasis, setSelectedChildId, setIsParentSelected, setSelectionMode]);
+  }, [handleImportLayout, handleUnitBasisChange, setSelectedChildId, setIsParentSelected, setSelectionMode]);
 
   const { fileInputRef, handleImportClick, handleFileChange } = useImport({ onImportLayout: handleImport });
 
@@ -314,7 +319,7 @@ function App() {
             onFitChildHeightToImage={(childId) => handleFitChildHeightToImage(childId, canvasRef)}
             onFitChildWidthToImage={(childId) => handleFitChildWidthToImage(childId, canvasRef)}
             unitBasis={unitBasis}
-            onUnitBasisChange={setUnitBasis}
+            onUnitBasisChange={handleUnitBasisChange}
           />
         </div>
       )}
@@ -430,7 +435,7 @@ function App() {
             colorSettings={analysisData.colorSettings}
             onColorSettingsChange={handleColorSettingsChange}
             unitBasis={unitBasis}
-            onUnitBasisChange={setUnitBasis}
+            onUnitBasisChange={handleUnitBasisChange}
             hasParentRegion={!!analysisData.parentRegion}
             childCount={analysisData.childRegions.length}
             selectedChildId={selectedChildId}

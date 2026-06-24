@@ -200,31 +200,31 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     childRegions: [],
     points: [],
     gridSettings: {
-      visible: true
+      visible: localStorage.getItem('parentGridVisible') !== 'false'
     },
     childGridSettings: {
-      rectVisible: false,
-      circleVisible: false,
+      rectVisible: localStorage.getItem('rectVisible') === 'true',
+      circleVisible: localStorage.getItem('circleVisible') === 'true',
       lineModuleVisible: localStorage.getItem('lineModuleVisible') === 'true',
       circleModuleVisible: localStorage.getItem('circleModuleVisible') === 'true',
       lineModuleLength: Number(localStorage.getItem('lineModuleLength')) || 1,
       lineAngleGuideVisible: localStorage.getItem('lineAngleGuideVisible') === 'true'
     },
     colorSettings: {
-      parentColor: '#3b82f6',
-      parentColorOpacity: 1,
-      childRectColor: '#3b82f6',
-      childRectColorOpacity: 1,
-      childCircleColor: '#3b82f6',
-      childCircleColorOpacity: 1,
+      parentColor: localStorage.getItem('parentColor') ?? '#3b82f6',
+      parentColorOpacity: parseFloat(localStorage.getItem('parentColorOpacity') ?? '1'),
+      childRectColor: localStorage.getItem('childRectColor') ?? '#3b82f6',
+      childRectColorOpacity: parseFloat(localStorage.getItem('childRectColorOpacity') ?? '1'),
+      childCircleColor: localStorage.getItem('childCircleColor') ?? '#3b82f6',
+      childCircleColorOpacity: parseFloat(localStorage.getItem('childCircleColorOpacity') ?? '1'),
       childLineColor: localStorage.getItem('childLineColor') ?? '#3b82f6',
       childLineColorOpacity: parseFloat(localStorage.getItem('childLineColorOpacity') ?? '1'),
-      gridColor: '#ffffff',
-      gridOpacity: 0.5,
-      childRectGridColor: '#ffffff',
-      childCircleGridColor: '#ffffff',
-      childRectGridOpacity: 0.3,
-      childCircleGridOpacity: 0.3,
+      gridColor: localStorage.getItem('gridColor') ?? '#ffffff',
+      gridOpacity: parseFloat(localStorage.getItem('gridOpacity') ?? '0.5'),
+      childRectGridColor: localStorage.getItem('childRectGridColor') ?? '#ffffff',
+      childCircleGridColor: localStorage.getItem('childCircleGridColor') ?? '#ffffff',
+      childRectGridOpacity: parseFloat(localStorage.getItem('childRectGridOpacity') ?? '0.3'),
+      childCircleGridOpacity: parseFloat(localStorage.getItem('childCircleGridOpacity') ?? '0.3'),
       lineModuleColor: localStorage.getItem('lineModuleColor') ?? '#3b82f6',
       lineModuleOpacity: parseFloat(localStorage.getItem('lineModuleOpacity') ?? '0.5'),
       circleModuleColor: localStorage.getItem('circleModuleColor') ?? '#3b82f6',
@@ -415,6 +415,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, [updateStateWithHistory]);
 
   const handleGridSettingsChange = useCallback((settings: GridSettings) => {
+    localStorage.setItem('parentGridVisible', String(settings.visible));
     setAnalysisData(prev => ({
       ...prev,
       gridSettings: settings,
@@ -425,6 +426,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, [updateChildRegionData]);
 
   const handleChildGridSettingsChange = useCallback((settings: ChildGridSettings) => {
+    localStorage.setItem('rectVisible', String(settings.rectVisible));
+    localStorage.setItem('circleVisible', String(settings.circleVisible));
     localStorage.setItem('lineModuleVisible', String(settings.lineModuleVisible));
     localStorage.setItem('circleModuleVisible', String(settings.circleModuleVisible));
     localStorage.setItem('lineModuleLength', String(settings.lineModuleLength));
@@ -436,8 +439,20 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, []);
 
   const handleColorSettingsChange = useCallback((settings: ColorSettings) => {
+    localStorage.setItem('parentColor', settings.parentColor);
+    localStorage.setItem('parentColorOpacity', String(settings.parentColorOpacity));
+    localStorage.setItem('childRectColor', settings.childRectColor);
+    localStorage.setItem('childRectColorOpacity', String(settings.childRectColorOpacity));
+    localStorage.setItem('childCircleColor', settings.childCircleColor);
+    localStorage.setItem('childCircleColorOpacity', String(settings.childCircleColorOpacity));
     localStorage.setItem('childLineColor', settings.childLineColor);
     localStorage.setItem('childLineColorOpacity', String(settings.childLineColorOpacity));
+    localStorage.setItem('gridColor', settings.gridColor);
+    localStorage.setItem('gridOpacity', String(settings.gridOpacity));
+    localStorage.setItem('childRectGridColor', settings.childRectGridColor);
+    localStorage.setItem('childRectGridOpacity', String(settings.childRectGridOpacity));
+    localStorage.setItem('childCircleGridColor', settings.childCircleGridColor);
+    localStorage.setItem('childCircleGridOpacity', String(settings.childCircleGridOpacity));
     localStorage.setItem('lineModuleColor', settings.lineModuleColor);
     localStorage.setItem('lineModuleOpacity', String(settings.lineModuleOpacity));
     localStorage.setItem('circleModuleColor', settings.circleModuleColor);
@@ -518,16 +533,33 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       lineModuleLength: result.childGridSettings.lineModuleLength || 1,
       lineAngleGuideVisible: result.childGridSettings.lineAngleGuideVisible ?? false
     };
+    localStorage.setItem('rectVisible', String(importedChildGridSettings.rectVisible));
+    localStorage.setItem('circleVisible', String(importedChildGridSettings.circleVisible));
     localStorage.setItem('lineModuleVisible', String(importedChildGridSettings.lineModuleVisible));
     localStorage.setItem('circleModuleVisible', String(importedChildGridSettings.circleModuleVisible));
     localStorage.setItem('lineModuleLength', String(importedChildGridSettings.lineModuleLength));
     localStorage.setItem('lineAngleGuideVisible', String(importedChildGridSettings.lineAngleGuideVisible));
+    localStorage.setItem('parentGridVisible', String(result.gridSettings.visible));
+    localStorage.setItem('parentColor', result.colorSettings.parentColor);
+    localStorage.setItem('parentColorOpacity', String(result.colorSettings.parentColorOpacity));
+    localStorage.setItem('childRectColor', result.colorSettings.childRectColor);
+    localStorage.setItem('childRectColorOpacity', String(result.colorSettings.childRectColorOpacity));
+    localStorage.setItem('childCircleColor', result.colorSettings.childCircleColor);
+    localStorage.setItem('childCircleColorOpacity', String(result.colorSettings.childCircleColorOpacity));
     localStorage.setItem('childLineColor', result.colorSettings.childLineColor);
     localStorage.setItem('childLineColorOpacity', String(result.colorSettings.childLineColorOpacity));
+    localStorage.setItem('gridColor', result.colorSettings.gridColor);
+    localStorage.setItem('gridOpacity', String(result.colorSettings.gridOpacity));
+    localStorage.setItem('childRectGridColor', result.colorSettings.childRectGridColor);
+    localStorage.setItem('childRectGridOpacity', String(result.colorSettings.childRectGridOpacity));
+    localStorage.setItem('childCircleGridColor', result.colorSettings.childCircleGridColor);
+    localStorage.setItem('childCircleGridOpacity', String(result.colorSettings.childCircleGridOpacity));
     localStorage.setItem('lineModuleColor', result.colorSettings.lineModuleColor);
     localStorage.setItem('lineModuleOpacity', String(result.colorSettings.lineModuleOpacity));
     localStorage.setItem('circleModuleColor', result.colorSettings.circleModuleColor);
     localStorage.setItem('circleModuleOpacity', String(result.colorSettings.circleModuleOpacity));
+    localStorage.setItem('dotColor', result.colorSettings.dotColor);
+    localStorage.setItem('dotColorOpacity', String(result.colorSettings.dotColorOpacity));
 
     setAnalysisData(prev => ({
       ...prev,
