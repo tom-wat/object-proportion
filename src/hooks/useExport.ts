@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { AnalysisData } from '../types';
 import { downloadFile } from '../utils/export';
-import { calculateUniformModules, calculateLineModuleColumns } from '../utils/geometry';
+import { calculateUniformModules, calculateLineModuleColumns, getLineAngleSquare } from '../utils/geometry';
 import { exportLayout } from '../utils/layoutIO';
 
 function hexToRgba(hex: string, opacity: number): string {
@@ -258,6 +258,32 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
               }
               ctx.restore();
             }
+          }
+        }
+
+        // Draw line angle guide if visible
+        if (child.shape === 'line' && analysisData.childGridSettings.lineAngleGuideVisible && child.lineStart && child.lineEnd) {
+          const gLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
+          const gLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
+          const sq = getLineAngleSquare(gLS, gLE);
+          if (sq) {
+            const { x, y, side } = sq;
+            const guideOpacity = analysisData.colorSettings.lineModuleOpacity;
+            ctx.save();
+            ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = guideOpacity * 0.4;
+            for (const k of [1, 3]) {
+              const g = (k * side) / 4;
+              ctx.beginPath(); ctx.moveTo(x + g, y); ctx.lineTo(x + g, y + side); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(x, y + g); ctx.lineTo(x + side, y + g); ctx.stroke();
+            }
+            ctx.globalAlpha = guideOpacity;
+            const mid = side / 2;
+            ctx.beginPath(); ctx.moveTo(x + mid, y); ctx.lineTo(x + mid, y + side); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y + mid); ctx.lineTo(x + side, y + mid); ctx.stroke();
+            ctx.strokeRect(x, y, side, side);
+            ctx.restore();
           }
         }
 
@@ -607,6 +633,32 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
               }
               ctx.restore();
             }
+          }
+        }
+
+        // Draw line angle guide if visible
+        if (child.shape === 'line' && analysisData.childGridSettings.lineAngleGuideVisible && child.lineStart && child.lineEnd) {
+          const gLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
+          const gLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
+          const sq = getLineAngleSquare(gLS, gLE);
+          if (sq) {
+            const { x, y, side } = sq;
+            const guideOpacity = analysisData.colorSettings.lineModuleOpacity;
+            ctx.save();
+            ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = guideOpacity * 0.4;
+            for (const k of [1, 3]) {
+              const g = (k * side) / 4;
+              ctx.beginPath(); ctx.moveTo(x + g, y); ctx.lineTo(x + g, y + side); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(x, y + g); ctx.lineTo(x + side, y + g); ctx.stroke();
+            }
+            ctx.globalAlpha = guideOpacity;
+            const mid = side / 2;
+            ctx.beginPath(); ctx.moveTo(x + mid, y); ctx.lineTo(x + mid, y + side); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y + mid); ctx.lineTo(x + side, y + mid); ctx.stroke();
+            ctx.strokeRect(x, y, side, side);
+            ctx.restore();
           }
         }
 

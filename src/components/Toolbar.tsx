@@ -135,7 +135,7 @@ export function Toolbar({
 
             {/* Module Controls: Line / Circle mode */}
             {(isChildLine || isChildCircle) && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">Modules</span>
                 <button
                   onClick={() => isChildLine
@@ -178,6 +178,22 @@ export function Toolbar({
                         <option key={n} value={n}>{n}</option>
                       ))}
                     </select>
+                  </div>
+                )}
+                {isChildLine && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-gray-500">Angle</span>
+                    <button
+                      onClick={() => onChildGridSettingsChange({ ...childGridSettings, lineAngleGuideVisible: !childGridSettings.lineAngleGuideVisible })}
+                      className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                        childGridSettings.lineAngleGuideVisible
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      disabled={childCount === 0}
+                    >
+                      {childGridSettings.lineAngleGuideVisible ? 'ON' : 'OFF'}
+                    </button>
                   </div>
                 )}
               </div>

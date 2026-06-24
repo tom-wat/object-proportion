@@ -1,7 +1,7 @@
 import { useCallback, useRef, useMemo } from 'react';
 import type { ParentRegion, ChildRegion, ColorSettings, GridSettings, ChildGridSettings, ResizeHandle, ResizeHandleInfo, RegionPoint } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
-import { calculateUniformModules, calculateLineModuleColumns } from '../utils/geometry';
+import { calculateUniformModules, calculateLineModuleColumns, getLineAngleSquare } from '../utils/geometry';
 
 function hexToRgba(hex: string, opacity: number): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -607,6 +607,43 @@ export function useCanvasDrawing() {
     ctx.restore();
   }, []);
 
+  // Angle guide: a square whose side is the larger of the line's width/height,
+  // with the line start at the corner the square extends from. A 1/2 grid and a
+  // fainter 1/4 grid are drawn inside.
+  const drawLineAngleGuide = useCallback((
+    ctx: CanvasRenderingContext2D,
+    region: ChildRegion,
+    color: string,
+    opacity: number,
+    zoom: number
+  ) => {
+    if (region.shape !== 'line' || !region.lineStart || !region.lineEnd) return;
+    const sq = getLineAngleSquare(region.lineStart, region.lineEnd);
+    if (!sq) return;
+    const { x, y, side } = sq;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1 / zoom;
+
+    // 1/4 grid (fainter)
+    ctx.globalAlpha = opacity * 0.4;
+    for (const k of [1, 3]) {
+      const g = (k * side) / 4;
+      ctx.beginPath(); ctx.moveTo(x + g, y); ctx.lineTo(x + g, y + side); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y + g); ctx.lineTo(x + side, y + g); ctx.stroke();
+    }
+
+    // 1/2 grid (center cross) + square outline
+    ctx.globalAlpha = opacity;
+    const mid = side / 2;
+    ctx.beginPath(); ctx.moveTo(x + mid, y); ctx.lineTo(x + mid, y + side); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y + mid); ctx.lineTo(x + side, y + mid); ctx.stroke();
+    ctx.strokeRect(x, y, side, side);
+
+    ctx.restore();
+  }, []);
+
   const drawCircleModules = useCallback((
     ctx: CanvasRenderingContext2D,
     region: ChildRegion,
@@ -762,6 +799,9 @@ export function useCanvasDrawing() {
         const lineColumnHalf = lineParentBasis / 128; // fixed column height = 1/4 grid unit, independent of base length
         drawLineModules(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom, lineModuleLengthPx, lineColumnHalf);
       }
+      if (isLine && childGridSettings?.lineAngleGuideVisible && colorSettings) {
+        drawLineAngleGuide(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom);
+      }
       if (isCircle && childGridSettings?.circleModuleVisible && colorSettings) {
         drawCircleModules(ctx, region, colorSettings.circleModuleColor, colorSettings.circleModuleOpacity, zoom, unitBasis, parentRegion);
       }
@@ -800,7 +840,7 @@ export function useCanvasDrawing() {
 
     // Restore context state
     ctx.restore();
-  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid, drawLineModules, drawCircleModules, drawPoints]);
+  }, [drawImage, drawGrid, drawParentRegion, drawChildRegion, drawChildGrid, drawLineModules, drawLineAngleGuide, drawCircleModules, drawPoints]);
 
   const setImage = useCallback((image: HTMLImageElement) => {
     imageRef.current = image;

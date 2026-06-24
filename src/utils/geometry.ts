@@ -231,6 +231,26 @@ export function calculateUniformModules(length: number, parentBasis: number): Li
 }
 
 /**
+ * Computes the axis-aligned square used as a line's angle guide. The side equals
+ * the larger of the line's horizontal/vertical extents, and the line start sits
+ * at the corner from which the square extends toward the line direction.
+ * Returns the top-left corner and side, or null for a zero-length line.
+ */
+export function getLineAngleSquare(lineStart: Point, lineEnd: Point): { x: number; y: number; side: number } | null {
+  const dx = lineEnd.x - lineStart.x;
+  const dy = lineEnd.y - lineStart.y;
+  const side = Math.max(Math.abs(dx), Math.abs(dy));
+  if (side <= 0) return null;
+  const xSign = dx >= 0 ? 1 : -1;
+  const ySign = dy >= 0 ? 1 : -1;
+  return {
+    x: Math.min(lineStart.x, lineStart.x + xSign * side),
+    y: Math.min(lineStart.y, lineStart.y + ySign * side),
+    side,
+  };
+}
+
+/**
  * Like calculateUniformModules but the base module length is given directly (in
  * px), decoupled from the parent basis. Used for line modules whose base length
  * is user-configurable. The given length is one module (the 1/16-equivalent),

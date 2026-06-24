@@ -226,6 +226,18 @@ export function MobileMenuDrawer({
                     </select>
                   </div>
                 )}
+                {isChildLine && (
+                  <div className="flex items-center gap-1 ml-1">
+                    <span className="text-sm text-gray-600">Angle</span>
+                    <button
+                      onClick={() => onChildGridSettingsChange({ ...childGridSettings, lineAngleGuideVisible: !childGridSettings.lineAngleGuideVisible })}
+                      disabled={childCount === 0}
+                      className={childGridSettings.lineAngleGuideVisible ? toggleBtnActive : toggleBtnInactive}
+                    >
+                      {childGridSettings.lineAngleGuideVisible ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

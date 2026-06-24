@@ -207,7 +207,8 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       circleVisible: false,
       lineModuleVisible: localStorage.getItem('lineModuleVisible') === 'true',
       circleModuleVisible: localStorage.getItem('circleModuleVisible') === 'true',
-      lineModuleLength: Number(localStorage.getItem('lineModuleLength')) || 1
+      lineModuleLength: Number(localStorage.getItem('lineModuleLength')) || 1,
+      lineAngleGuideVisible: localStorage.getItem('lineAngleGuideVisible') === 'true'
     },
     colorSettings: {
       parentColor: '#3b82f6',
@@ -427,6 +428,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     localStorage.setItem('lineModuleVisible', String(settings.lineModuleVisible));
     localStorage.setItem('circleModuleVisible', String(settings.circleModuleVisible));
     localStorage.setItem('lineModuleLength', String(settings.lineModuleLength));
+    localStorage.setItem('lineAngleGuideVisible', String(settings.lineAngleGuideVisible));
     setAnalysisData(prev => ({
       ...prev,
       childGridSettings: settings
@@ -513,11 +515,13 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
 
     const importedChildGridSettings = {
       ...result.childGridSettings,
-      lineModuleLength: result.childGridSettings.lineModuleLength || 1
+      lineModuleLength: result.childGridSettings.lineModuleLength || 1,
+      lineAngleGuideVisible: result.childGridSettings.lineAngleGuideVisible ?? false
     };
     localStorage.setItem('lineModuleVisible', String(importedChildGridSettings.lineModuleVisible));
     localStorage.setItem('circleModuleVisible', String(importedChildGridSettings.circleModuleVisible));
     localStorage.setItem('lineModuleLength', String(importedChildGridSettings.lineModuleLength));
+    localStorage.setItem('lineAngleGuideVisible', String(importedChildGridSettings.lineAngleGuideVisible));
     localStorage.setItem('childLineColor', result.colorSettings.childLineColor);
     localStorage.setItem('childLineColorOpacity', String(result.colorSettings.childLineColorOpacity));
     localStorage.setItem('lineModuleColor', result.colorSettings.lineModuleColor);
