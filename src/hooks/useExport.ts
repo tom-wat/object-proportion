@@ -289,7 +289,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
 
         // Draw circle modules if visible
         if (isChildCircle0 && analysisData.childGridSettings.circleModuleVisible && analysisData.parentRegion) {
-          const diameter = scaledChild.width;
+          const diameter = scaledChild.height;
           if (diameter > 0) {
             const scaledParentBasis = unitBasis === 'height'
               ? analysisData.parentRegion.height * scaleY
@@ -316,10 +316,10 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
                 ctx.globalAlpha = isInner ? circleOpacity * 0.6 : circleOpacity;
                 for (let i = 0; i <= entry.count; i++) {
                   if (isInner && i % 4 === 0) continue;
-                  const lineX = scaledChild.x + i * d;
+                  const lineY = (scaledChild.y + scaledChild.height) - i * d;
                   ctx.beginPath();
-                  ctx.moveTo(lineX, scaledChild.y);
-                  ctx.lineTo(lineX, scaledChild.y + scaledChild.height);
+                  ctx.moveTo(scaledChild.x, lineY);
+                  ctx.lineTo(scaledChild.x + scaledChild.width, lineY);
                   ctx.stroke();
                 }
               }
@@ -664,7 +664,7 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
 
         // Draw circle modules if visible
         if (isChildCircle1 && analysisData.childGridSettings.circleModuleVisible && analysisData.parentRegion) {
-          const diameter = scaledChild.width;
+          const diameter = scaledChild.height;
           if (diameter > 0) {
             const scaledParentBasis = unitBasis === 'height'
               ? analysisData.parentRegion.height * scaleY
@@ -691,10 +691,10 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
                 ctx.globalAlpha = isInner ? circleOpacity * 0.6 : circleOpacity;
                 for (let i = 0; i <= entry.count; i++) {
                   if (isInner && i % 4 === 0) continue;
-                  const lineX = scaledChild.x + i * d;
+                  const lineY = (scaledChild.y + scaledChild.height) - i * d;
                   ctx.beginPath();
-                  ctx.moveTo(lineX, scaledChild.y);
-                  ctx.lineTo(lineX, scaledChild.y + scaledChild.height);
+                  ctx.moveTo(scaledChild.x, lineY);
+                  ctx.lineTo(scaledChild.x + scaledChild.width, lineY);
                   ctx.stroke();
                 }
               }

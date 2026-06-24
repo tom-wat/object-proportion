@@ -659,11 +659,10 @@ export function useCanvasDrawing() {
     const { x, y, width, height } = region.bounds;
     const cx = x + width / 2;
     const cy = y + height / 2;
-    const diameter = width;
-    if (diameter <= 0) return;
+    if (height <= 0) return;
 
     const parentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
-    const modules = calculateUniformModules(diameter, parentBasis);
+    const modules = calculateUniformModules(height, parentBasis);
     if (modules.length === 0) return;
 
     ctx.save();
@@ -676,8 +675,8 @@ export function useCanvasDrawing() {
     ctx.ellipse(cx, cy, width / 2, height / 2, 0, 0, 2 * Math.PI);
     ctx.clip();
 
-    // Experimental "column" rendering: vertical divider lines across the circle
-    // (clipped to the ellipse) at each module boundary, instead of circles.
+    // "Row" rendering: horizontal divider lines across the circle (clipped to
+    // the ellipse) at each module boundary, tiled upward from the bottom edge.
     ctx.strokeStyle = color;
 
     for (const entry of modules) {
@@ -687,10 +686,10 @@ export function useCanvasDrawing() {
       ctx.globalAlpha = isInner ? opacity * 0.6 : opacity;
       for (let i = 0; i <= entry.count; i++) {
         if (isInner && i % 4 === 0) continue;
-        const lineX = x + i * d;
+        const lineY = (y + height) - i * d;
         ctx.beginPath();
-        ctx.moveTo(lineX, y);
-        ctx.lineTo(lineX, y + height);
+        ctx.moveTo(x, lineY);
+        ctx.lineTo(x + width, lineY);
         ctx.stroke();
       }
     }
