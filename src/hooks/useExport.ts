@@ -230,51 +230,6 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           );
         }
 
-        // Draw line modules if visible
-        if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
-            analysisData.parentRegion && child.lineStart && child.lineEnd) {
-          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
-          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
-          const sdx = scaledLE.x - scaledLS.x;
-          const sdy = scaledLE.y - scaledLS.y;
-          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
-          if (scaledLen > 0) {
-            const scaledParentBasis = unitBasis === 'height'
-              ? analysisData.parentRegion.height * scaleY
-              : analysisData.parentRegion.width * scaleX;
-            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
-            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
-            if (modules.length > 0) {
-              const ux = sdx / scaledLen;
-              const uy = sdy / scaledLen;
-              ctx.save();
-              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
-              const px = -uy;
-              const py = ux;
-              const columnHalf = scaledParentBasis / 128; // fixed column height = 1/4 grid unit, independent of base length
-              ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
-              for (const entry of modules) {
-                const diameter = entry.radius * 2;
-                const isInner = entry.level !== modules[0].level;
-                ctx.lineWidth = isInner ? 0.5 : 1;
-                ctx.globalAlpha = isInner ? lineOpacity * 0.6 : lineOpacity;
-                for (let i = 0; i <= entry.count; i++) {
-                  if (isInner && i % 4 === 0) continue;
-                  const t = i * diameter;
-                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
-                  const bx = scaledLS.x + ux * t;
-                  const by = scaledLS.y + uy * t;
-                  ctx.beginPath();
-                  ctx.moveTo(bx - px * columnHalf, by - py * columnHalf);
-                  ctx.lineTo(bx + px * columnHalf, by + py * columnHalf);
-                  ctx.stroke();
-                }
-              }
-              ctx.restore();
-            }
-          }
-        }
-
         // Draw line angle guide if visible
         if (child.shape === 'line' && analysisData.childGridSettings.lineAngleGuideVisible && child.lineStart && child.lineEnd) {
           const gLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
@@ -381,6 +336,48 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         }
 
         ctx.restore();
+
+        // Draw line module dots on top of the line stroke (dots sit on the
+        // line's centerline, so they must be drawn after the line itself).
+        if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
+            analysisData.parentRegion && child.lineStart && child.lineEnd) {
+          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
+          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
+          const sdx = scaledLE.x - scaledLS.x;
+          const sdy = scaledLE.y - scaledLS.y;
+          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
+          if (scaledLen > 0) {
+            const scaledParentBasis = unitBasis === 'height'
+              ? analysisData.parentRegion.height * scaleY
+              : analysisData.parentRegion.width * scaleX;
+            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
+            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
+            if (modules.length > 0) {
+              const ux = sdx / scaledLen;
+              const uy = sdy / scaledLen;
+              ctx.save();
+              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
+              ctx.fillStyle = analysisData.colorSettings.lineModuleColor;
+              for (const entry of modules) {
+                const diameter = entry.radius * 2;
+                const isInner = entry.level !== modules[0].level;
+                const dotRadius = isInner ? 1 : 3;
+                ctx.globalAlpha = lineOpacity;
+                for (let i = 0; i <= entry.count; i++) {
+                  if (isInner && i % 4 === 0) continue;
+                  const t = i * diameter;
+                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
+                  const bx = scaledLS.x + ux * t;
+                  const by = scaledLS.y + uy * t;
+                  ctx.beginPath();
+                  ctx.arc(bx, by, dotRadius, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+              }
+              ctx.restore();
+            }
+          }
+        }
       });
 
       // Draw points
@@ -618,51 +615,6 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           drawGrid(scaledChild, childGridColor1, childGridOpacity1, parentCellSize1, isChildCircle1, !isChildCircle1);
         }
 
-        // Draw line modules if visible
-        if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
-            analysisData.parentRegion && child.lineStart && child.lineEnd) {
-          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
-          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
-          const sdx = scaledLE.x - scaledLS.x;
-          const sdy = scaledLE.y - scaledLS.y;
-          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
-          if (scaledLen > 0) {
-            const scaledParentBasis = unitBasis === 'height'
-              ? analysisData.parentRegion.height * scaleY
-              : analysisData.parentRegion.width * scaleX;
-            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
-            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
-            if (modules.length > 0) {
-              const ux = sdx / scaledLen;
-              const uy = sdy / scaledLen;
-              ctx.save();
-              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
-              const px = -uy;
-              const py = ux;
-              const columnHalf = scaledParentBasis / 128; // fixed column height = 1/4 grid unit, independent of base length
-              ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
-              for (const entry of modules) {
-                const diameter = entry.radius * 2;
-                const isInner = entry.level !== modules[0].level;
-                ctx.lineWidth = isInner ? 0.5 : 1;
-                ctx.globalAlpha = isInner ? lineOpacity * 0.6 : lineOpacity;
-                for (let i = 0; i <= entry.count; i++) {
-                  if (isInner && i % 4 === 0) continue;
-                  const t = i * diameter;
-                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
-                  const bx = scaledLS.x + ux * t;
-                  const by = scaledLS.y + uy * t;
-                  ctx.beginPath();
-                  ctx.moveTo(bx - px * columnHalf, by - py * columnHalf);
-                  ctx.lineTo(bx + px * columnHalf, by + py * columnHalf);
-                  ctx.stroke();
-                }
-              }
-              ctx.restore();
-            }
-          }
-        }
-
         // Draw line angle guide if visible
         if (child.shape === 'line' && analysisData.childGridSettings.lineAngleGuideVisible && child.lineStart && child.lineEnd) {
           const gLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
@@ -765,6 +717,48 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
           drawRotatedRect(scaledChild, childShapeColor1, 2);
         }
         ctx.restore();
+
+        // Draw line module dots on top of the line stroke (dots sit on the
+        // line's centerline, so they must be drawn after the line itself).
+        if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
+            analysisData.parentRegion && child.lineStart && child.lineEnd) {
+          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
+          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
+          const sdx = scaledLE.x - scaledLS.x;
+          const sdy = scaledLE.y - scaledLS.y;
+          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
+          if (scaledLen > 0) {
+            const scaledParentBasis = unitBasis === 'height'
+              ? analysisData.parentRegion.height * scaleY
+              : analysisData.parentRegion.width * scaleX;
+            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
+            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
+            if (modules.length > 0) {
+              const ux = sdx / scaledLen;
+              const uy = sdy / scaledLen;
+              ctx.save();
+              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
+              ctx.fillStyle = analysisData.colorSettings.lineModuleColor;
+              for (const entry of modules) {
+                const diameter = entry.radius * 2;
+                const isInner = entry.level !== modules[0].level;
+                const dotRadius = isInner ? 1 : 3;
+                ctx.globalAlpha = lineOpacity;
+                for (let i = 0; i <= entry.count; i++) {
+                  if (isInner && i % 4 === 0) continue;
+                  const t = i * diameter;
+                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
+                  const bx = scaledLS.x + ux * t;
+                  const by = scaledLS.y + uy * t;
+                  ctx.beginPath();
+                  ctx.arc(bx, by, dotRadius, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+              }
+              ctx.restore();
+            }
+          }
+        }
       });
 
       if (analysisData.points.length > 0) {

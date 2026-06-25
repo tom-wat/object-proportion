@@ -571,8 +571,7 @@ export function useCanvasDrawing() {
     color: string,
     opacity: number,
     zoom: number,
-    moduleLength: number,
-    columnHalf: number
+    moduleLength: number
   ) => {
     if (region.shape !== 'line' || !region.lineStart || !region.lineEnd) return;
 
@@ -589,21 +588,18 @@ export function useCanvasDrawing() {
     const ux = dx / len;
     const uy = dy / len;
 
-    // Experimental "column" rendering: vertical divider lines perpendicular to
-    // the line at each module boundary, instead of circles. The 1/16 columns
-    // are drawn thicker/opaque; the nested 1/64 columns are thinner and slightly
-    // more transparent, skipping boundaries that coincide with a 1/16 line.
-    const px = -uy;
-    const py = ux;
-
+    // Module boundaries are marked with a dot centered on the line at each
+    // boundary, instead of perpendicular divider lines. The 1/16 boundaries are
+    // drawn larger/opaque; the nested 1/64 boundaries are smaller and slightly
+    // more transparent, skipping boundaries that coincide with a 1/16 dot.
     ctx.save();
-    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
 
     for (const entry of modules) {
       const diameter = entry.radius * 2;
       const isInner = entry.level !== modules[0].level;
-      ctx.lineWidth = (isInner ? 0.5 : 1) / zoom;
-      ctx.globalAlpha = isInner ? opacity * 0.6 : opacity;
+      const dotRadius = (isInner ? 1 : 3) / zoom;
+      ctx.globalAlpha = opacity;
       for (let i = 0; i <= entry.count; i++) {
         if (isInner && i % 4 === 0) continue;
         const t = i * diameter;
@@ -611,9 +607,8 @@ export function useCanvasDrawing() {
         const bx = region.lineStart!.x + ux * t;
         const by = region.lineStart!.y + uy * t;
         ctx.beginPath();
-        ctx.moveTo(bx - px * columnHalf, by - py * columnHalf);
-        ctx.lineTo(bx + px * columnHalf, by + py * columnHalf);
-        ctx.stroke();
+        ctx.arc(bx, by, dotRadius, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
@@ -803,14 +798,6 @@ export function useCanvasDrawing() {
         const gridOpacity = isCircle ? colorSettings.childCircleGridOpacity : colorSettings.childRectGridOpacity;
         drawChildGrid(ctx, region, gridColor, gridOpacity, zoom, unitBasis, parentRegion);
       }
-      if (isLine && childGridSettings?.lineModuleVisible && colorSettings && parentRegion) {
-        // lineModuleLength is in grid units (same scale as child width/height);
-        // 1 unit = parentBasis/16 (the original 1/16 module).
-        const lineParentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
-        const lineModuleLengthPx = (childGridSettings.lineModuleLength ?? 1) * lineParentBasis / 16;
-        const lineColumnHalf = lineParentBasis / 128; // fixed column height = 1/4 grid unit, independent of base length
-        drawLineModules(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom, lineModuleLengthPx, lineColumnHalf);
-      }
       if (isLine && childGridSettings?.lineAngleGuideVisible && colorSettings) {
         drawLineAngleGuide(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom);
       }
@@ -843,6 +830,19 @@ export function useCanvasDrawing() {
     } else if (parentRegion && isParentSelected) {
       // Selected parent region on top with selection highlight
       drawParentRegion(ctx, parentRegion, colorSettings, true, zoom);
+    }
+
+    // Draw line module dots on top of the line stroke (the dots sit on the
+    // line's centerline, so they must be drawn after the line itself).
+    if (childGridSettings?.lineModuleVisible && colorSettings && parentRegion) {
+      childRegions.forEach((region) => {
+        if (region.shape !== 'line') return;
+        // lineModuleLength is in grid units (same scale as child width/height);
+        // 1 unit = parentBasis/16 (the original 1/16 module).
+        const lineParentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
+        const lineModuleLengthPx = (childGridSettings.lineModuleLength ?? 1) * lineParentBasis / 16;
+        drawLineModules(ctx, region, colorSettings.lineModuleColor, colorSettings.lineModuleOpacity, zoom, lineModuleLengthPx);
+      });
     }
 
     // Draw points on top of everything
