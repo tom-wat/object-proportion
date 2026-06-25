@@ -188,7 +188,7 @@ function App() {
             onClick={handleTitleClick}
             title={imageLoaded ? 'Click to return to start' : undefined}
           >
-            Object Proportion
+            Object Map
           </h1>
 
           {/* Desktop Action Buttons */}

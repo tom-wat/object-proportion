@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-192x192.png', 'icon-512x512.png'],
       manifest: {
-        name: 'Object Proportion',
-        short_name: 'ObjProp',
-        description: 'A drawing tool for object proportion',
+        name: 'Object Map',
+        short_name: 'ObjMap',
+        description: 'A drawing tool for mapping object proportions',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
