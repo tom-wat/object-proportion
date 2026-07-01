@@ -5,39 +5,6 @@ interface UseImageLoaderProps {
 }
 
 export function useImageLoader({ onImageLoad }: UseImageLoaderProps) {
-  const resizeCanvas = useCallback((canvas: HTMLCanvasElement, img: HTMLImageElement) => {
-    // Get parent container dimensions
-    const parentRect = canvas.parentElement?.getBoundingClientRect();
-    if (!parentRect) {
-      console.warn('Could not get parent container dimensions, using image size');
-      canvas.style.width = `${img.width}px`;
-      canvas.style.height = `${img.height}px`;
-      return;
-    }
-    
-    // Calculate scaling to fit parent width while maintaining aspect ratio
-    const containerWidth = parentRect.width - 32; // Account for padding
-    const containerHeight = parentRect.height - 32; // Account for padding
-    
-    const imageAspectRatio = img.width / img.height;
-    
-    // Scale to fit container width
-    let displayWidth = containerWidth;
-    let displayHeight = containerWidth / imageAspectRatio;
-    
-    // If height exceeds container, scale to fit height instead
-    if (displayHeight > containerHeight) {
-      displayHeight = containerHeight;
-      displayWidth = containerHeight * imageAspectRatio;
-    }
-    
-    // Set CSS size for display
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
-    
-    console.log('Canvas display size updated:', displayWidth, 'x', displayHeight);
-  }, []);
-
   const loadImageFromCached = useCallback((cachedImage: HTMLImageElement, canvas: HTMLCanvasElement | null) => {
     if (!cachedImage) {
       console.error('No cached image provided to loadImageFromCached');
@@ -136,7 +103,6 @@ export function useImageLoader({ onImageLoad }: UseImageLoaderProps) {
     
     try {
       img.src = URL.createObjectURL(file);
-      console.log('Loading image from:', img.src);
     } catch (error) {
       console.error('Failed to create object URL:', error);
     }
@@ -145,6 +111,5 @@ export function useImageLoader({ onImageLoad }: UseImageLoaderProps) {
   return {
     loadImage,
     loadImageFromCached,
-    resizeCanvas,
   };
 }

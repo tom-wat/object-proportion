@@ -17,7 +17,6 @@ interface UseImageCanvasProps {
   isParentSelected?: boolean;
   onParentDeselect?: () => void;
   onParentSelect?: () => void;
-  onSelectionModeChange?: (mode: SelectionMode) => void;
   points?: RegionPoint[];
   selectedPointId?: number | null;
   onPointAdd?: (point: Omit<RegionPoint, 'id'>) => void;
@@ -42,7 +41,6 @@ export function useImageCanvas({
   isParentSelected,
   onParentDeselect,
   onParentSelect,
-  onSelectionModeChange,
   points,
   selectedPointId,
   onPointAdd,
@@ -184,7 +182,6 @@ export function useImageCanvas({
     isParentSelected,
     onParentDeselect,
     onParentSelect,
-    onSelectionModeChange,
     onPointAdd,
     onTemporaryDraw: handleTemporaryDraw,
     onRedraw: handleRedraw,
@@ -197,8 +194,7 @@ export function useImageCanvas({
     getHandleAtPoint: drawing.getHandleAtPoint,
     calculateResize: drawing.calculateResize,
     onCursorChange: handleCursorChange,
-    isPanMode,
-    unitBasis
+    isPanMode
   });
 
   useEffect(() => {

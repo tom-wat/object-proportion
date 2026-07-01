@@ -1,12 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { AnalysisData } from '../types';
 
-export interface Command {
-  execute: () => void;
-  undo: () => void;
-  description: string;
-}
-
 interface HistoryState {
   undoStack: AnalysisData[];
   redoStack: AnalysisData[];

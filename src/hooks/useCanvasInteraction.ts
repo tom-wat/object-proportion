@@ -31,7 +31,6 @@ interface UseCanvasInteractionProps {
   isParentSelected?: boolean;
   onParentDeselect?: () => void;
   onParentSelect?: () => void;
-  onSelectionModeChange?: (mode: SelectionMode) => void;
   onPointAdd?: (point: Omit<RegionPoint, 'id'>) => void;
   onTemporaryDraw?: (x: number, y: number, width: number, height: number, isParent: boolean) => void;
   onRedraw: () => void;
@@ -45,7 +44,6 @@ interface UseCanvasInteractionProps {
   calculateResize?: (originalRegion: { x: number; y: number; width: number; height: number }, handleType: ResizeHandle, deltaX: number, deltaY: number, minWidth?: number, minHeight?: number, rotation?: number) => { x: number; y: number; width: number; height: number };
   onCursorChange?: (cursor: string) => void;
   isPanMode?: boolean;
-  unitBasis?: 'height' | 'width';
 }
 
 export function useCanvasInteraction({
@@ -60,7 +58,6 @@ export function useCanvasInteraction({
   isParentSelected,
   onParentDeselect,
   onParentSelect,
-  // onSelectionModeChange, // Currently unused due to mode restrictions
   onPointAdd,
   onTemporaryDraw,
   onRedraw,
@@ -73,8 +70,7 @@ export function useCanvasInteraction({
   getHandleAtPoint,
   calculateResize,
   onCursorChange,
-  isPanMode = false,
-  unitBasis = 'height'
+  isPanMode = false
 }: UseCanvasInteractionProps) {
   const isDrawingRef = useRef(false);
   const startPointRef = useRef<Point>({ x: 0, y: 0 });
@@ -890,7 +886,7 @@ export function useCanvasInteraction({
     clickedParentRef.current = false;
     dragLineEndpointRef.current = null;
     onRedraw();
-  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, selectedChildId, isParentSelected, childDrawMode, unitBasis, zoom]);
+  }, [getCanvasPoint, selectionMode, parentRegion, childRegions, onParentRegionChange, onChildRegionAdd, onChildRegionSelect, onParentSelect, onRedraw, onPointAdd, childDrawMode, zoom]);
 
   const setupEventListeners = useCallback((canvas: HTMLCanvasElement) => {
     const mouseDownHandler = (e: MouseEvent) => {

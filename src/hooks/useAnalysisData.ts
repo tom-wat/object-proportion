@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useHistory } from './useHistory';
-import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, Point, LayoutFile } from '../types';
+import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, LayoutFile } from '../types';
 import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
 import { applyLayoutToState } from '../utils/layoutIO';
 
@@ -492,15 +492,6 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     }));
   }, [updateStateWithHistory]);
 
-  const handlePointUpdate = useCallback((id: number, newCoordinates: { pixel: Point; grid: Point }) => {
-    updateStateWithHistory(prev => ({
-      ...prev,
-      points: prev.points.map(point => 
-        point.id === id ? { ...point, coordinates: newCoordinates } : point
-      )
-    }));
-  }, [updateStateWithHistory]);
-
   const handleClearAll = useCallback(() => {
     updateStateWithHistory(prev => ({
       ...prev,
@@ -757,7 +748,6 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
     handlePointAdd,
     handlePointDelete,
     handlePointRename,
-    handlePointUpdate,
     handleClearAll,
     setImageInfo,
     handleUndo,

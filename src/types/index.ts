@@ -141,12 +141,3 @@ export interface ResizeHandleInfo {
   x: number;
   y: number;
 }
-
-export interface AppState {
-  imageLoaded: boolean;
-  selectionMode: SelectionMode;
-  selectedChildId: number | null;
-  isRotating: boolean;
-  zoom: number;
-  pan: Point;
-}

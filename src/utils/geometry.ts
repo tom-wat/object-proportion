@@ -87,40 +87,6 @@ export function convertToGridCoordinates(
   };
 }
 
-/**
- * Convert grid coordinates back to pixel coordinates
- * @param gridPoint Grid coordinates
- * @param parent Parent region
- * @param gridSize Grid size (default 16)
- * @returns Pixel coordinates
- */
-export function convertToPixelCoordinates(
-  gridPoint: Point,
-  parent: ParentRegion,
-  gridSize: number = 16
-): Point {
-  const center = {
-    x: parent.x + parent.width / 2,
-    y: parent.y + parent.height / 2
-  };
-
-  const relativeX = (gridPoint.x / gridSize) * parent.width;
-  const relativeY = (-gridPoint.y / gridSize) * parent.height; // Negate Y to convert back
-
-  if (parent.rotation !== 0) {
-    const rotated = rotatePoint({ x: relativeX, y: relativeY }, { x: 0, y: 0 }, parent.rotation);
-    return {
-      x: center.x + rotated.x,
-      y: center.y + rotated.y
-    };
-  }
-
-  return {
-    x: center.x + relativeX,
-    y: center.y + relativeY
-  };
-}
-
 export function calculateChildRatios(child: Bounds, parent: ParentRegion) {
   const childArea = child.width * child.height;
   const parentArea = parent.width * parent.height;
@@ -190,23 +156,6 @@ export interface LineModuleEntry {
 
 const MODULE_FRACTIONS = ['1', '1/2', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256'];
 
-export function calculateLineModules(lineLength: number, parentBasis: number): LineModuleEntry[] {
-  const result: LineModuleEntry[] = [];
-  let remaining = lineLength;
-  for (let level = 0; level <= 8; level++) {
-    const radius = parentBasis / Math.pow(2, level + 1);
-    const diameter = radius * 2;
-    if (diameter < 0.5) break;
-    const count = Math.floor(remaining / diameter);
-    if (count > 0) {
-      result.push({ level, fraction: MODULE_FRACTIONS[level], count, radius });
-      remaining -= count * diameter;
-    }
-    if (remaining < 0.5) break;
-  }
-  return result;
-}
-
 // Level of the fixed-size module used for drawing (1/16 of the parent basis).
 const UNIFORM_MODULE_LEVEL = 4; // 1/16
 
@@ -216,7 +165,7 @@ const UNIFORM_MODULE_LEVEL = 4; // 1/16
  * level is the same size; the final 1/16 may overflow the end and get cut off,
  * so the length need not be an exact multiple of the module size. Each returned
  * entry is tiled independently from the start, so the 1/64 row lines up four-per
- * -1/16. Callers share the same drawing loop as calculateLineModules.
+ * -1/16.
  */
 export function calculateUniformModules(length: number, parentBasis: number): LineModuleEntry[] {
   const radius = parentBasis / Math.pow(2, UNIFORM_MODULE_LEVEL + 1);
