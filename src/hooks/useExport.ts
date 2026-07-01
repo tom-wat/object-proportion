@@ -1,10 +1,17 @@
 import { useCallback } from 'react';
-import type { AnalysisData } from '../types';
+import type { AnalysisData, Point, Bounds } from '../types';
 import { downloadFile } from '../utils/export';
-import { calculateUniformModules, calculateLineModuleColumns, getLineAngleSquare } from '../utils/geometry';
 import { exportLayout } from '../utils/layoutIO';
 import { hexToRgba } from '../utils/color';
 import { getImageFitLayout } from '../utils/imageFit';
+import {
+  drawGridLines,
+  drawCircleModuleRows,
+  drawLineModuleDots,
+  drawLineAngleGuide,
+  drawPointMarkers,
+  type RotatableRect,
+} from '../utils/overlayRenderer';
 
 interface UseExportProps {
   analysisData: AnalysisData;
@@ -14,8 +21,10 @@ interface UseExportProps {
 }
 
 export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'height' }: UseExportProps) {
-  const handleExportPNG = useCallback(() => {
-    if (!analysisData.imageInfo || !cachedImage) {
+  // Renders the image (optionally) plus all overlays onto an offscreen canvas
+  // at the original image resolution and downloads it as PNG.
+  const exportComposite = useCallback(({ drawBackground }: { drawBackground: boolean }) => {
+    if (!analysisData.imageInfo || (drawBackground && !cachedImage)) {
       alert('Image not loaded');
       return;
     }
@@ -24,6 +33,13 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
       alert('Canvas not available for export');
       return;
     }
+
+    if (!drawBackground && !analysisData.parentRegion && analysisData.childRegions.length === 0) {
+      alert('No regions to export');
+      return;
+    }
+
+    const errorMessage = drawBackground ? 'Failed to export PNG' : 'Failed to export overlay PNG';
 
     try {
       // Create offscreen canvas at original image size
@@ -37,8 +53,10 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         return;
       }
 
-      // Draw original image
-      ctx.drawImage(cachedImage, 0, 0);
+      if (drawBackground && cachedImage) {
+        ctx.drawImage(cachedImage, 0, 0);
+      }
+      // Otherwise: transparent background – do NOT draw the image
 
       // Calculate scaling factors from display canvas to original image
       const displayCanvas = canvasRef.current;
@@ -50,12 +68,22 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
       const scaleX = analysisData.imageInfo.width / drawWidth;
       const scaleY = analysisData.imageInfo.height / drawHeight;
 
-      // Helper function to draw rotated rectangle
-      const drawRotatedRect = (
-        region: { x: number; y: number; width: number; height: number; rotation: number },
-        color: string,
-        lineWidth: number
-      ) => {
+      // Map display-canvas coordinates into image space
+      const mapPoint = (p: Point): Point => ({
+        x: (p.x - offsetX) * scaleX,
+        y: (p.y - offsetY) * scaleY,
+      });
+      const mapRect = (bounds: Bounds, rotation: number): RotatableRect => ({
+        x: (bounds.x - offsetX) * scaleX,
+        y: (bounds.y - offsetY) * scaleY,
+        width: bounds.width * scaleX,
+        height: bounds.height * scaleY,
+        rotation,
+      });
+
+      // Region frames use a fixed 2px width in image space (intentionally
+      // different from the screen's 1.5/zoom) and stay export-local.
+      const drawRotatedRect = (region: RotatableRect, color: string, lineWidth: number) => {
         ctx.save();
 
         if (region.rotation !== 0) {
@@ -73,250 +101,85 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         ctx.restore();
       };
 
-      // Helper function to draw grid (square cells based on unitBasis)
-      const drawGrid = (
-        region: { x: number; y: number; width: number; height: number; rotation: number },
-        gridColor: string,
-        gridOpacity: number,
-        cellSizeOverride?: number,
-        clipToEllipse?: boolean,
-        subdivide?: boolean
-      ) => {
-        const basisLength = unitBasis === 'width' ? region.width : region.height;
-        const cellSize = cellSizeOverride ?? basisLength / 16;
-        if (cellSize <= 0) return;
-
-        ctx.save();
-
-        if (region.rotation !== 0) {
-          const centerX = region.x + region.width / 2;
-          const centerY = region.y + region.height / 2;
-          ctx.translate(centerX, centerY);
-          ctx.rotate(region.rotation);
-          ctx.translate(-centerX, -centerY);
-        }
-
-        if (clipToEllipse) {
-          ctx.beginPath();
-          ctx.ellipse(region.x + region.width / 2, region.y + region.height / 2, region.width / 2, region.height / 2, 0, 0, 2 * Math.PI);
-          ctx.clip();
-        }
-
-        const hexToRgb = (hex: string) => {
-          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-          return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-          } : { r: 255, g: 255, b: 255 };
-        };
-
-        const rgb = hexToRgb(gridColor);
-        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
-
-        const cx = region.x + region.width / 2;
-        const cy = region.y + region.height / 2;
-        // subdivide adds a finer 1/64 grid (4 sub-lines per 1/16 cell) for rects.
-        const sub = subdivide ? 4 : 1;
-        const fineCell = cellSize / sub;
-        const applyStyle = (k: number) => {
-          if (k % sub === 0) {
-            const m = k / sub;
-            ctx.lineWidth = m % 8 === 0 ? 1.5 : m % 4 === 0 ? 1.0 : 0.5;
-            ctx.globalAlpha = 1;
-          } else {
-            ctx.lineWidth = 0.25;
-            ctx.globalAlpha = 0.5;
-          }
-        };
-
-        // Vertical lines from center outward
-        for (let k = 0; cx + k * fineCell <= region.x + region.width + 0.5; k++) {
-          const x = cx + k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
-        }
-        for (let k = 1; cx - k * fineCell >= region.x - 0.5; k++) {
-          const x = cx - k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
-        }
-
-        // Horizontal lines from center outward
-        for (let k = 0; cy + k * fineCell <= region.y + region.height + 0.5; k++) {
-          const y = cy + k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
-        }
-        for (let k = 1; cy - k * fineCell >= region.y - 0.5; k++) {
-          const y = cy - k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
-        }
-
-        ctx.restore();
-      };
+      const cs = analysisData.colorSettings;
 
       // Draw parent region and grid if exists
       if (analysisData.parentRegion) {
-        const scaledParent = {
-          x: (analysisData.parentRegion.x - offsetX) * scaleX,
-          y: (analysisData.parentRegion.y - offsetY) * scaleY,
-          width: analysisData.parentRegion.width * scaleX,
-          height: analysisData.parentRegion.height * scaleY,
-          rotation: analysisData.parentRegion.rotation
-        };
+        const scaledParent = mapRect(analysisData.parentRegion, analysisData.parentRegion.rotation);
 
-        // Draw parent grid if visible
         if (analysisData.gridSettings.visible) {
-          drawGrid(
-            scaledParent,
-            analysisData.colorSettings.gridColor,
-            analysisData.colorSettings.gridOpacity
-          );
+          drawGridLines(ctx, scaledParent, cs.gridColor, cs.gridOpacity, 1, { unitBasis });
         }
 
-        // Draw parent region frame
-        const parentFrameColor0 = hexToRgba(analysisData.colorSettings.parentColor, analysisData.colorSettings.parentColorOpacity ?? 1);
-        drawRotatedRect(scaledParent, parentFrameColor0, 2);
+        drawRotatedRect(scaledParent, hexToRgba(cs.parentColor, cs.parentColorOpacity ?? 1), 2);
       }
 
-      // Compute parent cell size for child grids
-      const parentBasis0 = analysisData.parentRegion
+      // Parent basis in image space, shared by child grids and modules
+      const scaledParentBasis = analysisData.parentRegion
         ? (unitBasis === 'width' ? analysisData.parentRegion.width * scaleX : analysisData.parentRegion.height * scaleY)
         : undefined;
-      const parentCellSize0 = parentBasis0 !== undefined ? parentBasis0 / 16 : undefined;
+      const parentCellSize = scaledParentBasis !== undefined ? scaledParentBasis / 16 : undefined;
 
       // Draw child regions and grids
       analysisData.childRegions.forEach((child) => {
-        const scaledChild = {
-          x: (child.bounds.x - offsetX) * scaleX,
-          y: (child.bounds.y - offsetY) * scaleY,
-          width: child.bounds.width * scaleX,
-          height: child.bounds.height * scaleY,
-          rotation: child.rotation
-        };
+        const scaledChild = mapRect(child.bounds, child.rotation);
+        const isChildRect = !child.shape || child.shape === 'rectangle';
+        const isChildCircle = child.shape === 'circle';
 
         // Draw child grid if visible (shape-specific)
-        const isChildRect0 = !child.shape || child.shape === 'rectangle';
-        const isChildCircle0 = child.shape === 'circle';
-        if ((isChildRect0 && analysisData.childGridSettings.rectVisible) ||
-            (isChildCircle0 && analysisData.childGridSettings.circleVisible)) {
-          const childGridColor0 = isChildCircle0 ? analysisData.colorSettings.childCircleGridColor : analysisData.colorSettings.childRectGridColor;
-          const childGridOpacity0 = isChildCircle0 ? analysisData.colorSettings.childCircleGridOpacity : analysisData.colorSettings.childRectGridOpacity;
-          drawGrid(
-            scaledChild,
-            childGridColor0,
-            childGridOpacity0,
-            parentCellSize0,
-            isChildCircle0,
-            !isChildCircle0
-          );
+        if ((isChildRect && analysisData.childGridSettings.rectVisible) ||
+            (isChildCircle && analysisData.childGridSettings.circleVisible)) {
+          const childGridColor = isChildCircle ? cs.childCircleGridColor : cs.childRectGridColor;
+          const childGridOpacity = isChildCircle ? cs.childCircleGridOpacity : cs.childRectGridOpacity;
+          drawGridLines(ctx, scaledChild, childGridColor, childGridOpacity, 1, {
+            unitBasis,
+            cellSizeOverride: parentCellSize,
+            clipToEllipse: isChildCircle,
+            subdivide: !isChildCircle,
+          });
         }
 
         // Draw line angle guide if visible
         if (child.shape === 'line' && analysisData.childGridSettings.lineAngleGuideVisible && child.lineStart && child.lineEnd) {
-          const gLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
-          const gLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
-          const sq = getLineAngleSquare(gLS, gLE);
-          if (sq) {
-            const { x, y, side } = sq;
-            const guideOpacity = analysisData.colorSettings.lineModuleOpacity;
-            ctx.save();
-            ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = guideOpacity * 0.4;
-            for (const k of [1, 3]) {
-              const g = (k * side) / 4;
-              ctx.beginPath(); ctx.moveTo(x + g, y); ctx.lineTo(x + g, y + side); ctx.stroke();
-              ctx.beginPath(); ctx.moveTo(x, y + g); ctx.lineTo(x + side, y + g); ctx.stroke();
-            }
-            ctx.globalAlpha = guideOpacity;
-            const mid = side / 2;
-            ctx.beginPath(); ctx.moveTo(x + mid, y); ctx.lineTo(x + mid, y + side); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x, y + mid); ctx.lineTo(x + side, y + mid); ctx.stroke();
-            ctx.strokeRect(x, y, side, side);
-            ctx.restore();
-          }
+          drawLineAngleGuide(ctx, mapPoint(child.lineStart), mapPoint(child.lineEnd), cs.lineModuleColor, cs.lineModuleOpacity, 1);
         }
 
         // Draw circle modules if visible
-        if (isChildCircle0 && analysisData.childGridSettings.circleModuleVisible && analysisData.parentRegion) {
-          const diameter = scaledChild.height;
-          if (diameter > 0) {
-            const scaledParentBasis = unitBasis === 'height'
-              ? analysisData.parentRegion.height * scaleY
-              : analysisData.parentRegion.width * scaleX;
-            const modules = calculateUniformModules(diameter, scaledParentBasis);
-            if (modules.length > 0) {
-              const cx = scaledChild.x + scaledChild.width / 2;
-              const cy = scaledChild.y + scaledChild.height / 2;
-              ctx.save();
-              if (scaledChild.rotation !== 0) {
-                ctx.translate(cx, cy);
-                ctx.rotate(scaledChild.rotation);
-                ctx.translate(-cx, -cy);
-              }
-              ctx.beginPath();
-              ctx.ellipse(cx, cy, scaledChild.width / 2, scaledChild.height / 2, 0, 0, 2 * Math.PI);
-              ctx.clip();
-              const circleOpacity = analysisData.colorSettings.circleModuleOpacity;
-              ctx.strokeStyle = analysisData.colorSettings.circleModuleColor;
-              for (const entry of modules) {
-                const d = entry.radius * 2;
-                const isInner = entry.level !== modules[0].level;
-                ctx.lineWidth = isInner ? 0.5 : 1;
-                ctx.globalAlpha = isInner ? circleOpacity * 0.6 : circleOpacity;
-                for (let i = 0; i <= entry.count; i++) {
-                  if (isInner && i % 4 === 0) continue;
-                  const lineY = (scaledChild.y + scaledChild.height) - i * d;
-                  ctx.beginPath();
-                  ctx.moveTo(scaledChild.x, lineY);
-                  ctx.lineTo(scaledChild.x + scaledChild.width, lineY);
-                  ctx.stroke();
-                }
-              }
-              ctx.restore();
-            }
-          }
+        if (isChildCircle && analysisData.childGridSettings.circleModuleVisible && scaledParentBasis !== undefined) {
+          drawCircleModuleRows(ctx, scaledChild, cs.circleModuleColor, cs.circleModuleOpacity, 1, scaledParentBasis);
         }
 
         // Draw child region frame based on shape
         ctx.save();
-        const cs0 = analysisData.colorSettings;
-        const childShapeColor0 = isChildCircle0
-          ? hexToRgba(cs0.childCircleColor, cs0.childCircleColorOpacity ?? 1)
+        const childShapeColor = isChildCircle
+          ? hexToRgba(cs.childCircleColor, cs.childCircleColorOpacity ?? 1)
           : child.shape === 'line'
-            ? hexToRgba(cs0.childLineColor, cs0.childLineColorOpacity ?? 1)
-            : hexToRgba(cs0.childRectColor, cs0.childRectColorOpacity ?? 1);
-        ctx.strokeStyle = childShapeColor0;
+            ? hexToRgba(cs.childLineColor, cs.childLineColorOpacity ?? 1)
+            : hexToRgba(cs.childRectColor, cs.childRectColorOpacity ?? 1);
+        ctx.strokeStyle = childShapeColor;
         ctx.lineWidth = 2;
 
         if (child.shape === 'circle') {
           const cx = scaledChild.x + scaledChild.width / 2;
           const cy = scaledChild.y + scaledChild.height / 2;
-          const radiusX = scaledChild.width / 2;
-          const radiusY = scaledChild.height / 2;
           if (scaledChild.rotation) {
             ctx.translate(cx, cy);
             ctx.rotate(scaledChild.rotation);
             ctx.translate(-cx, -cy);
           }
           ctx.beginPath();
-          ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, 2 * Math.PI);
+          ctx.ellipse(cx, cy, scaledChild.width / 2, scaledChild.height / 2, 0, 0, 2 * Math.PI);
           ctx.stroke();
         } else if (child.shape === 'line' && child.lineStart && child.lineEnd) {
-          const sx = (child.lineStart.x - offsetX) * scaleX;
-          const sy = (child.lineStart.y - offsetY) * scaleY;
-          const ex = (child.lineEnd.x - offsetX) * scaleX;
-          const ey = (child.lineEnd.y - offsetY) * scaleY;
+          const start = mapPoint(child.lineStart);
+          const end = mapPoint(child.lineEnd);
           ctx.beginPath();
-          ctx.moveTo(sx, sy);
-          ctx.lineTo(ex, ey);
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(end.x, end.y);
           ctx.stroke();
         } else {
           // Rectangle (default)
-          drawRotatedRect(scaledChild, childShapeColor0, 2);
+          drawRotatedRect(scaledChild, childShapeColor, 2);
         }
 
         ctx.restore();
@@ -324,79 +187,19 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         // Draw line module dots on top of the line stroke (dots sit on the
         // line's centerline, so they must be drawn after the line itself).
         if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
-            analysisData.parentRegion && child.lineStart && child.lineEnd) {
-          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
-          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
-          const sdx = scaledLE.x - scaledLS.x;
-          const sdy = scaledLE.y - scaledLS.y;
-          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
-          if (scaledLen > 0) {
-            const scaledParentBasis = unitBasis === 'height'
-              ? analysisData.parentRegion.height * scaleY
-              : analysisData.parentRegion.width * scaleX;
-            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
-            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
-            if (modules.length > 0) {
-              const ux = sdx / scaledLen;
-              const uy = sdy / scaledLen;
-              ctx.save();
-              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
-              ctx.fillStyle = analysisData.colorSettings.lineModuleColor;
-              for (const entry of modules) {
-                const diameter = entry.radius * 2;
-                const isInner = entry.level !== modules[0].level;
-                const dotRadius = isInner ? 1 : 3;
-                ctx.globalAlpha = lineOpacity;
-                for (let i = 0; i <= entry.count; i++) {
-                  if (isInner && i % 4 === 0) continue;
-                  const t = i * diameter;
-                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
-                  const bx = scaledLS.x + ux * t;
-                  const by = scaledLS.y + uy * t;
-                  ctx.beginPath();
-                  ctx.arc(bx, by, dotRadius, 0, Math.PI * 2);
-                  ctx.fill();
-                }
-              }
-              ctx.restore();
-            }
-          }
+            scaledParentBasis !== undefined && child.lineStart && child.lineEnd) {
+          const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
+          drawLineModuleDots(ctx, mapPoint(child.lineStart), mapPoint(child.lineEnd), cs.lineModuleColor, cs.lineModuleOpacity, 1, scaledModuleLength);
         }
       });
 
       // Draw points
       if (analysisData.points.length > 0) {
-        analysisData.points.forEach(point => {
-          const scaledX = (point.coordinates.pixel.x - offsetX) * scaleX;
-          const scaledY = (point.coordinates.pixel.y - offsetY) * scaleY;
-
-          const cs = analysisData.colorSettings;
-          let pointColor: string;
-          if (point.parentRegionId === undefined) {
-            const hex = cs.dotColor ?? '#ffffff';
-            const op = cs.dotColorOpacity ?? 1;
-            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
-          } else {
-            const region = analysisData.childRegions.find(r => r.id === point.parentRegionId);
-            const [hex, op] = region?.shape === 'circle'
-              ? [cs.childCircleColor, cs.childCircleColorOpacity ?? 1]
-              : region?.shape === 'line'
-                ? [cs.childLineColor, cs.childLineColorOpacity ?? 1]
-                : [cs.childRectColor, cs.childRectColorOpacity ?? 1];
-            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
-          }
-
-          ctx.strokeStyle = pointColor;
-          ctx.lineWidth = 1;
-
-          const arm = 6;
-          ctx.beginPath();
-          ctx.moveTo(scaledX - arm, scaledY);
-          ctx.lineTo(scaledX + arm, scaledY);
-          ctx.moveTo(scaledX, scaledY - arm);
-          ctx.lineTo(scaledX, scaledY + arm);
-          ctx.stroke();
-        });
+        const markers = analysisData.points.map(point => ({
+          pixel: mapPoint(point.coordinates.pixel),
+          parentRegionId: point.parentRegionId,
+        }));
+        drawPointMarkers(ctx, markers, cs, analysisData.childRegions, null, 1);
       }
 
       // Export to PNG
@@ -409,383 +212,21 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `analysis-${Date.now()}.png`;
+        link.download = `${drawBackground ? 'analysis' : 'overlay'}-${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       }, 'image/png');
     } catch (error) {
-      console.error('Failed to export PNG:', error);
-      alert('Failed to export PNG');
+      console.error(`${errorMessage}:`, error);
+      alert(errorMessage);
     }
-  }, [analysisData, canvasRef, cachedImage]);
+  }, [analysisData, canvasRef, cachedImage, unitBasis]);
 
-  const handleExportPNGOverlayOnly = useCallback(() => {
-    if (!analysisData.imageInfo) {
-      alert('Image not loaded');
-      return;
-    }
+  const handleExportPNG = useCallback(() => exportComposite({ drawBackground: true }), [exportComposite]);
 
-    if (!canvasRef?.current) {
-      alert('Canvas not available for export');
-      return;
-    }
-
-    if (!analysisData.parentRegion && analysisData.childRegions.length === 0) {
-      alert('No regions to export');
-      return;
-    }
-
-    try {
-      const offscreenCanvas = document.createElement('canvas');
-      offscreenCanvas.width = analysisData.imageInfo.width;
-      offscreenCanvas.height = analysisData.imageInfo.height;
-
-      const ctx = offscreenCanvas.getContext('2d');
-      if (!ctx) {
-        alert('Failed to create canvas context');
-        return;
-      }
-
-      // Transparent background – do NOT draw the image
-
-      const displayCanvas = canvasRef.current;
-      const { drawWidth, drawHeight, offsetX, offsetY } = getImageFitLayout(
-        displayCanvas.width, displayCanvas.height,
-        analysisData.imageInfo.width, analysisData.imageInfo.height
-      );
-
-      const scaleX = analysisData.imageInfo.width / drawWidth;
-      const scaleY = analysisData.imageInfo.height / drawHeight;
-
-      const drawRotatedRect = (
-        region: { x: number; y: number; width: number; height: number; rotation: number },
-        color: string,
-        lineWidth: number
-      ) => {
-        ctx.save();
-        if (region.rotation !== 0) {
-          const centerX = region.x + region.width / 2;
-          const centerY = region.y + region.height / 2;
-          ctx.translate(centerX, centerY);
-          ctx.rotate(region.rotation);
-          ctx.translate(-centerX, -centerY);
-        }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.strokeRect(region.x, region.y, region.width, region.height);
-        ctx.restore();
-      };
-
-      const drawGrid = (
-        region: { x: number; y: number; width: number; height: number; rotation: number },
-        gridColor: string,
-        gridOpacity: number,
-        cellSizeOverride?: number,
-        clipToEllipse?: boolean,
-        subdivide?: boolean
-      ) => {
-        const basisLength = unitBasis === 'width' ? region.width : region.height;
-        const cellSize = cellSizeOverride ?? basisLength / 16;
-        if (cellSize <= 0) return;
-        ctx.save();
-        if (region.rotation !== 0) {
-          const centerX = region.x + region.width / 2;
-          const centerY = region.y + region.height / 2;
-          ctx.translate(centerX, centerY);
-          ctx.rotate(region.rotation);
-          ctx.translate(-centerX, -centerY);
-        }
-        if (clipToEllipse) {
-          ctx.beginPath();
-          ctx.ellipse(region.x + region.width / 2, region.y + region.height / 2, region.width / 2, region.height / 2, 0, 0, 2 * Math.PI);
-          ctx.clip();
-        }
-        const hexToRgb = (hex: string) => {
-          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-          return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-          } : { r: 0, g: 0, b: 0 };
-        };
-        const rgb = hexToRgb(gridColor);
-        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
-        const cx = region.x + region.width / 2;
-        const cy = region.y + region.height / 2;
-        // subdivide adds a finer 1/64 grid (4 sub-lines per 1/16 cell) for rects.
-        const sub = subdivide ? 4 : 1;
-        const fineCell = cellSize / sub;
-        const applyStyle = (k: number) => {
-          if (k % sub === 0) {
-            const m = k / sub;
-            ctx.lineWidth = m % 8 === 0 ? 1.5 : m % 4 === 0 ? 1.0 : 0.5;
-            ctx.globalAlpha = 1;
-          } else {
-            ctx.lineWidth = 0.25;
-            ctx.globalAlpha = 0.5;
-          }
-        };
-        for (let k = 0; cx + k * fineCell <= region.x + region.width + 0.5; k++) {
-          const x = cx + k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
-        }
-        for (let k = 1; cx - k * fineCell >= region.x - 0.5; k++) {
-          const x = cx - k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(x, region.y); ctx.lineTo(x, region.y + region.height); ctx.stroke();
-        }
-        for (let k = 0; cy + k * fineCell <= region.y + region.height + 0.5; k++) {
-          const y = cy + k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
-        }
-        for (let k = 1; cy - k * fineCell >= region.y - 0.5; k++) {
-          const y = cy - k * fineCell;
-          applyStyle(k);
-          ctx.beginPath(); ctx.moveTo(region.x, y); ctx.lineTo(region.x + region.width, y); ctx.stroke();
-        }
-        ctx.restore();
-      };
-
-      if (analysisData.parentRegion) {
-        const scaledParent = {
-          x: (analysisData.parentRegion.x - offsetX) * scaleX,
-          y: (analysisData.parentRegion.y - offsetY) * scaleY,
-          width: analysisData.parentRegion.width * scaleX,
-          height: analysisData.parentRegion.height * scaleY,
-          rotation: analysisData.parentRegion.rotation
-        };
-        if (analysisData.gridSettings.visible) {
-          drawGrid(scaledParent, analysisData.colorSettings.gridColor, analysisData.colorSettings.gridOpacity);
-        }
-        const parentFrameColor1 = hexToRgba(analysisData.colorSettings.parentColor, analysisData.colorSettings.parentColorOpacity ?? 1);
-        drawRotatedRect(scaledParent, parentFrameColor1, 2);
-      }
-
-      const parentBasis1 = analysisData.parentRegion
-        ? (unitBasis === 'width' ? analysisData.parentRegion.width * scaleX : analysisData.parentRegion.height * scaleY)
-        : undefined;
-      const parentCellSize1 = parentBasis1 !== undefined ? parentBasis1 / 16 : undefined;
-
-      analysisData.childRegions.forEach((child) => {
-        const scaledChild = {
-          x: (child.bounds.x - offsetX) * scaleX,
-          y: (child.bounds.y - offsetY) * scaleY,
-          width: child.bounds.width * scaleX,
-          height: child.bounds.height * scaleY,
-          rotation: child.rotation
-        };
-        const isChildRect1 = !child.shape || child.shape === 'rectangle';
-        const isChildCircle1 = child.shape === 'circle';
-        if ((isChildRect1 && analysisData.childGridSettings.rectVisible) ||
-            (isChildCircle1 && analysisData.childGridSettings.circleVisible)) {
-          const childGridColor1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridColor : analysisData.colorSettings.childRectGridColor;
-          const childGridOpacity1 = isChildCircle1 ? analysisData.colorSettings.childCircleGridOpacity : analysisData.colorSettings.childRectGridOpacity;
-          drawGrid(scaledChild, childGridColor1, childGridOpacity1, parentCellSize1, isChildCircle1, !isChildCircle1);
-        }
-
-        // Draw line angle guide if visible
-        if (child.shape === 'line' && analysisData.childGridSettings.lineAngleGuideVisible && child.lineStart && child.lineEnd) {
-          const gLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
-          const gLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
-          const sq = getLineAngleSquare(gLS, gLE);
-          if (sq) {
-            const { x, y, side } = sq;
-            const guideOpacity = analysisData.colorSettings.lineModuleOpacity;
-            ctx.save();
-            ctx.strokeStyle = analysisData.colorSettings.lineModuleColor;
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = guideOpacity * 0.4;
-            for (const k of [1, 3]) {
-              const g = (k * side) / 4;
-              ctx.beginPath(); ctx.moveTo(x + g, y); ctx.lineTo(x + g, y + side); ctx.stroke();
-              ctx.beginPath(); ctx.moveTo(x, y + g); ctx.lineTo(x + side, y + g); ctx.stroke();
-            }
-            ctx.globalAlpha = guideOpacity;
-            const mid = side / 2;
-            ctx.beginPath(); ctx.moveTo(x + mid, y); ctx.lineTo(x + mid, y + side); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(x, y + mid); ctx.lineTo(x + side, y + mid); ctx.stroke();
-            ctx.strokeRect(x, y, side, side);
-            ctx.restore();
-          }
-        }
-
-        // Draw circle modules if visible
-        if (isChildCircle1 && analysisData.childGridSettings.circleModuleVisible && analysisData.parentRegion) {
-          const diameter = scaledChild.height;
-          if (diameter > 0) {
-            const scaledParentBasis = unitBasis === 'height'
-              ? analysisData.parentRegion.height * scaleY
-              : analysisData.parentRegion.width * scaleX;
-            const modules = calculateUniformModules(diameter, scaledParentBasis);
-            if (modules.length > 0) {
-              const cx = scaledChild.x + scaledChild.width / 2;
-              const cy = scaledChild.y + scaledChild.height / 2;
-              ctx.save();
-              if (scaledChild.rotation !== 0) {
-                ctx.translate(cx, cy);
-                ctx.rotate(scaledChild.rotation);
-                ctx.translate(-cx, -cy);
-              }
-              ctx.beginPath();
-              ctx.ellipse(cx, cy, scaledChild.width / 2, scaledChild.height / 2, 0, 0, 2 * Math.PI);
-              ctx.clip();
-              const circleOpacity = analysisData.colorSettings.circleModuleOpacity;
-              ctx.strokeStyle = analysisData.colorSettings.circleModuleColor;
-              for (const entry of modules) {
-                const d = entry.radius * 2;
-                const isInner = entry.level !== modules[0].level;
-                ctx.lineWidth = isInner ? 0.5 : 1;
-                ctx.globalAlpha = isInner ? circleOpacity * 0.6 : circleOpacity;
-                for (let i = 0; i <= entry.count; i++) {
-                  if (isInner && i % 4 === 0) continue;
-                  const lineY = (scaledChild.y + scaledChild.height) - i * d;
-                  ctx.beginPath();
-                  ctx.moveTo(scaledChild.x, lineY);
-                  ctx.lineTo(scaledChild.x + scaledChild.width, lineY);
-                  ctx.stroke();
-                }
-              }
-              ctx.restore();
-            }
-          }
-        }
-
-        ctx.save();
-        const cs1 = analysisData.colorSettings;
-        const childShapeColor1 = isChildCircle1
-          ? hexToRgba(cs1.childCircleColor, cs1.childCircleColorOpacity ?? 1)
-          : child.shape === 'line'
-            ? hexToRgba(cs1.childLineColor, cs1.childLineColorOpacity ?? 1)
-            : hexToRgba(cs1.childRectColor, cs1.childRectColorOpacity ?? 1);
-        ctx.strokeStyle = childShapeColor1;
-        ctx.lineWidth = 2;
-        if (child.shape === 'circle') {
-          const cx = scaledChild.x + scaledChild.width / 2;
-          const cy = scaledChild.y + scaledChild.height / 2;
-          const radiusX = scaledChild.width / 2;
-          const radiusY = scaledChild.height / 2;
-          if (scaledChild.rotation) {
-            ctx.translate(cx, cy);
-            ctx.rotate(scaledChild.rotation);
-            ctx.translate(-cx, -cy);
-          }
-          ctx.beginPath();
-          ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, 2 * Math.PI);
-          ctx.stroke();
-        } else if (child.shape === 'line' && child.lineStart && child.lineEnd) {
-          const sx = (child.lineStart.x - offsetX) * scaleX;
-          const sy = (child.lineStart.y - offsetY) * scaleY;
-          const ex = (child.lineEnd.x - offsetX) * scaleX;
-          const ey = (child.lineEnd.y - offsetY) * scaleY;
-          ctx.beginPath();
-          ctx.moveTo(sx, sy);
-          ctx.lineTo(ex, ey);
-          ctx.stroke();
-        } else {
-          drawRotatedRect(scaledChild, childShapeColor1, 2);
-        }
-        ctx.restore();
-
-        // Draw line module dots on top of the line stroke (dots sit on the
-        // line's centerline, so they must be drawn after the line itself).
-        if (child.shape === 'line' && analysisData.childGridSettings.lineModuleVisible &&
-            analysisData.parentRegion && child.lineStart && child.lineEnd) {
-          const scaledLS = { x: (child.lineStart.x - offsetX) * scaleX, y: (child.lineStart.y - offsetY) * scaleY };
-          const scaledLE = { x: (child.lineEnd.x - offsetX) * scaleX, y: (child.lineEnd.y - offsetY) * scaleY };
-          const sdx = scaledLE.x - scaledLS.x;
-          const sdy = scaledLE.y - scaledLS.y;
-          const scaledLen = Math.sqrt(sdx * sdx + sdy * sdy);
-          if (scaledLen > 0) {
-            const scaledParentBasis = unitBasis === 'height'
-              ? analysisData.parentRegion.height * scaleY
-              : analysisData.parentRegion.width * scaleX;
-            const scaledModuleLength = (analysisData.childGridSettings.lineModuleLength ?? 1) * scaledParentBasis / 16;
-            const modules = calculateLineModuleColumns(scaledLen, scaledModuleLength);
-            if (modules.length > 0) {
-              const ux = sdx / scaledLen;
-              const uy = sdy / scaledLen;
-              ctx.save();
-              const lineOpacity = analysisData.colorSettings.lineModuleOpacity;
-              ctx.fillStyle = analysisData.colorSettings.lineModuleColor;
-              for (const entry of modules) {
-                const diameter = entry.radius * 2;
-                const isInner = entry.level !== modules[0].level;
-                const dotRadius = isInner ? 1 : 3;
-                ctx.globalAlpha = lineOpacity;
-                for (let i = 0; i <= entry.count; i++) {
-                  if (isInner && i % 4 === 0) continue;
-                  const t = i * diameter;
-                  if (t > scaledLen + 0.01) continue; // don't draw past the line end
-                  const bx = scaledLS.x + ux * t;
-                  const by = scaledLS.y + uy * t;
-                  ctx.beginPath();
-                  ctx.arc(bx, by, dotRadius, 0, Math.PI * 2);
-                  ctx.fill();
-                }
-              }
-              ctx.restore();
-            }
-          }
-        }
-      });
-
-      if (analysisData.points.length > 0) {
-        analysisData.points.forEach(point => {
-          const scaledX = (point.coordinates.pixel.x - offsetX) * scaleX;
-          const scaledY = (point.coordinates.pixel.y - offsetY) * scaleY;
-
-          const cs = analysisData.colorSettings;
-          let pointColor: string;
-          if (point.parentRegionId === undefined) {
-            const hex = cs.dotColor ?? '#ffffff';
-            const op = cs.dotColorOpacity ?? 1;
-            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
-          } else {
-            const region = analysisData.childRegions.find(r => r.id === point.parentRegionId);
-            const [hex, op] = region?.shape === 'circle'
-              ? [cs.childCircleColor, cs.childCircleColorOpacity ?? 1]
-              : region?.shape === 'line'
-                ? [cs.childLineColor, cs.childLineColorOpacity ?? 1]
-                : [cs.childRectColor, cs.childRectColorOpacity ?? 1];
-            pointColor = op < 1 ? `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${op})` : hex;
-          }
-
-          ctx.strokeStyle = pointColor;
-          ctx.lineWidth = 1;
-
-          const arm = 6;
-          ctx.beginPath();
-          ctx.moveTo(scaledX - arm, scaledY);
-          ctx.lineTo(scaledX + arm, scaledY);
-          ctx.moveTo(scaledX, scaledY - arm);
-          ctx.lineTo(scaledX, scaledY + arm);
-          ctx.stroke();
-        });
-      }
-
-      offscreenCanvas.toBlob((blob) => {
-        if (!blob) {
-          alert('Failed to export PNG');
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `overlay-${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 'image/png');
-    } catch (error) {
-      console.error('Failed to export overlay PNG:', error);
-      alert('Failed to export overlay PNG');
-    }
-  }, [analysisData, canvasRef]);
+  const handleExportPNGOverlayOnly = useCallback(() => exportComposite({ drawBackground: false }), [exportComposite]);
 
   const handleExportLayout = useCallback(() => {
     if (!analysisData.imageInfo) {
