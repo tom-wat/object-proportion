@@ -3,12 +3,8 @@ import type { AnalysisData } from '../types';
 import { downloadFile } from '../utils/export';
 import { calculateUniformModules, calculateLineModuleColumns, getLineAngleSquare } from '../utils/geometry';
 import { exportLayout } from '../utils/layoutIO';
-
-function hexToRgba(hex: string, opacity: number): string {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return hex;
-  return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})`;
-}
+import { hexToRgba } from '../utils/color';
+import { getImageFitLayout } from '../utils/imageFit';
 
 interface UseExportProps {
   analysisData: AnalysisData;
@@ -46,22 +42,10 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
 
       // Calculate scaling factors from display canvas to original image
       const displayCanvas = canvasRef.current;
-      const imgAspect = analysisData.imageInfo.width / analysisData.imageInfo.height;
-      const canvasAspect = displayCanvas.width / displayCanvas.height;
-
-      let drawWidth, drawHeight, offsetX, offsetY;
-
-      if (imgAspect > canvasAspect) {
-        drawWidth = displayCanvas.width * 0.95;
-        drawHeight = drawWidth / imgAspect;
-        offsetX = (displayCanvas.width - drawWidth) / 2;
-        offsetY = (displayCanvas.height - drawHeight) / 2;
-      } else {
-        drawHeight = displayCanvas.height * 0.95;
-        drawWidth = drawHeight * imgAspect;
-        offsetX = (displayCanvas.width - drawWidth) / 2;
-        offsetY = (displayCanvas.height - drawHeight) / 2;
-      }
+      const { drawWidth, drawHeight, offsetX, offsetY } = getImageFitLayout(
+        displayCanvas.width, displayCanvas.height,
+        analysisData.imageInfo.width, analysisData.imageInfo.height
+      );
 
       const scaleX = analysisData.imageInfo.width / drawWidth;
       const scaleY = analysisData.imageInfo.height / drawHeight;
@@ -467,22 +451,10 @@ export function useExport({ analysisData, canvasRef, cachedImage, unitBasis = 'h
       // Transparent background – do NOT draw the image
 
       const displayCanvas = canvasRef.current;
-      const imgAspect = analysisData.imageInfo.width / analysisData.imageInfo.height;
-      const canvasAspect = displayCanvas.width / displayCanvas.height;
-
-      let drawWidth, drawHeight, offsetX, offsetY;
-
-      if (imgAspect > canvasAspect) {
-        drawWidth = displayCanvas.width * 0.95;
-        drawHeight = drawWidth / imgAspect;
-        offsetX = (displayCanvas.width - drawWidth) / 2;
-        offsetY = (displayCanvas.height - drawHeight) / 2;
-      } else {
-        drawHeight = displayCanvas.height * 0.95;
-        drawWidth = drawHeight * imgAspect;
-        offsetX = (displayCanvas.width - drawWidth) / 2;
-        offsetY = (displayCanvas.height - drawHeight) / 2;
-      }
+      const { drawWidth, drawHeight, offsetX, offsetY } = getImageFitLayout(
+        displayCanvas.width, displayCanvas.height,
+        analysisData.imageInfo.width, analysisData.imageInfo.height
+      );
 
       const scaleX = analysisData.imageInfo.width / drawWidth;
       const scaleY = analysisData.imageInfo.height / drawHeight;

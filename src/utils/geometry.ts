@@ -23,6 +23,16 @@ export function rotatePoint(point: Point, center: Point, angle: number): Point {
   };
 }
 
+// Transform a canvas-space point into a region's local (unrotated) space.
+export function toRegionLocalPoint(point: Point, bounds: Bounds, rotation: number): Point {
+  if (rotation === 0) return point;
+  const center = {
+    x: bounds.x + bounds.width / 2,
+    y: bounds.y + bounds.height / 2
+  };
+  return rotatePoint(point, center, -rotation);
+}
+
 export function calculateAspectRatio(width: number, height: number): { ratio: string; decimal: number } {
   const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
   const divisor = gcd(Math.round(width), Math.round(height));

@@ -1,4 +1,5 @@
 import type { AnalysisData, LayoutFile, ParentRegion, ChildRegion, RegionPoint } from '../types';
+import { getImageFitLayout, type ImageFitLayout } from './imageFit';
 
 export function exportLayout(
   analysisData: AnalysisData,
@@ -71,29 +72,7 @@ export type ApplyLayoutResult = Pick<
   scaled: boolean;
 };
 
-// Compute how the image is drawn on a canvas of given dimensions.
-// Mirrors the logic in useCanvasDrawing.drawImage (0.95 margin, centered).
-function getImageDrawLayout(canvasW: number, canvasH: number, imgAspect: number) {
-  const canvasAspect = canvasW / canvasH;
-  let drawWidth: number, drawHeight: number;
-  if (imgAspect > canvasAspect) {
-    drawWidth = canvasW * 0.95;
-    drawHeight = drawWidth / imgAspect;
-  } else {
-    drawHeight = canvasH * 0.95;
-    drawWidth = drawHeight * imgAspect;
-  }
-  const offsetX = (canvasW - drawWidth) / 2;
-  const offsetY = (canvasH - drawHeight) / 2;
-  return { drawWidth, drawHeight, offsetX, offsetY };
-}
-
-interface DrawLayout {
-  drawWidth: number;
-  drawHeight: number;
-  offsetX: number;
-  offsetY: number;
-}
+type DrawLayout = ImageFitLayout;
 
 function scaleX(px: number, from: DrawLayout, to: DrawLayout): number {
   return (px - from.offsetX) / from.drawWidth * to.drawWidth + to.offsetX;
@@ -178,9 +157,8 @@ export function applyLayoutToState(
     sourceImageInfo.width > 0 &&
     sourceImageInfo.height > 0
   ) {
-    const imgAspect = sourceImageInfo.width / sourceImageInfo.height;
-    const from = getImageDrawLayout(canvasSize.width, canvasSize.height, imgAspect);
-    const to = getImageDrawLayout(currentCanvasSize.width, currentCanvasSize.height, imgAspect);
+    const from = getImageFitLayout(canvasSize.width, canvasSize.height, sourceImageInfo.width, sourceImageInfo.height);
+    const to = getImageFitLayout(currentCanvasSize.width, currentCanvasSize.height, sourceImageInfo.width, sourceImageInfo.height);
 
     parentRegion = parentRegion ? scaleParentRegion(parentRegion, from, to) : null;
     childRegions = childRegions.map(r => scaleChildRegion(r, from, to));

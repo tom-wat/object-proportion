@@ -191,8 +191,6 @@ export function useImageCanvas({
     zoom,
     pan,
     onPanChange: setPan,
-    getHandleAtPoint: drawing.getHandleAtPoint,
-    calculateResize: drawing.calculateResize,
     onCursorChange: handleCursorChange,
     isPanMode
   });

@@ -1,8 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useHistory } from './useHistory';
 import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSettings, ColorSettings, RegionPoint, LayoutFile } from '../types';
-import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions } from '../utils/geometry';
+import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions, rotatePoint } from '../utils/geometry';
+import { getImageFitLayout } from '../utils/imageFit';
 import { applyLayoutToState } from '../utils/layoutIO';
+
+const ORIGIN = { x: 0, y: 0 };
 
 // Helper function to update point coordinates based on child region changes
 const updatePointCoordinatesForChildChange = (
@@ -31,15 +34,7 @@ const updatePointCoordinatesForChildChange = (
     };
 
     // Step 2: Remove old rotation to get non-rotated relative position
-    let nonRotatedRelative = pointRelativeToOldCenter;
-    if (oldChild.rotation !== 0) {
-      const cos = Math.cos(-oldChild.rotation);
-      const sin = Math.sin(-oldChild.rotation);
-      nonRotatedRelative = {
-        x: pointRelativeToOldCenter.x * cos - pointRelativeToOldCenter.y * sin,
-        y: pointRelativeToOldCenter.x * sin + pointRelativeToOldCenter.y * cos
-      };
-    }
+    const nonRotatedRelative = rotatePoint(pointRelativeToOldCenter, ORIGIN, -oldChild.rotation);
 
     // Step 3: Convert to normalized coordinates (0-1 range within old region)
     const normalizedX = nonRotatedRelative.x / (oldChild.bounds.width / 2);
@@ -52,15 +47,7 @@ const updatePointCoordinatesForChildChange = (
     };
 
     // Step 5: Apply new rotation
-    let rotatedRelative = newRelativeToCenter;
-    if (newChild.rotation !== 0) {
-      const cos = Math.cos(newChild.rotation);
-      const sin = Math.sin(newChild.rotation);
-      rotatedRelative = {
-        x: newRelativeToCenter.x * cos - newRelativeToCenter.y * sin,
-        y: newRelativeToCenter.x * sin + newRelativeToCenter.y * cos
-      };
-    }
+    const rotatedRelative = rotatePoint(newRelativeToCenter, ORIGIN, newChild.rotation);
 
     // Step 6: Calculate final absolute pixel position
     const newCenterX = newChild.bounds.x + newChild.bounds.width / 2;
@@ -117,16 +104,7 @@ const updatePointCoordinatesForParentChange = (
     };
 
     // Step 2: Remove old rotation to get non-rotated relative position
-    let nonRotatedRelative = pointRelativeToOldCenter;
-    if (oldParent.rotation !== 0) {
-      const cos = Math.cos(-oldParent.rotation); // Inverse rotation
-      const sin = Math.sin(-oldParent.rotation);
-      
-      nonRotatedRelative = {
-        x: pointRelativeToOldCenter.x * cos - pointRelativeToOldCenter.y * sin,
-        y: pointRelativeToOldCenter.x * sin + pointRelativeToOldCenter.y * cos
-      };
-    }
+    const nonRotatedRelative = rotatePoint(pointRelativeToOldCenter, ORIGIN, -oldParent.rotation);
 
     // Step 3: Convert to normalized coordinates (0-1 range within region)
     const normalizedX = nonRotatedRelative.x / (oldParent.width / 2);
@@ -139,16 +117,7 @@ const updatePointCoordinatesForParentChange = (
     };
 
     // Step 5: Apply new rotation
-    let rotatedRelative = newRelativeToCenter;
-    if (newParent.rotation !== 0) {
-      const cos = Math.cos(newParent.rotation);
-      const sin = Math.sin(newParent.rotation);
-      
-      rotatedRelative = {
-        x: newRelativeToCenter.x * cos - newRelativeToCenter.y * sin,
-        y: newRelativeToCenter.x * sin + newRelativeToCenter.y * cos
-      };
-    }
+    const rotatedRelative = rotatePoint(newRelativeToCenter, ORIGIN, newParent.rotation);
 
     // Step 6: Calculate final absolute position
     const newCenterX = newParent.x + newParent.width / 2;
@@ -600,25 +569,9 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       const ctx = canvas.getContext('2d');
       if (!ctx) return prev;
 
-      // Get image natural dimensions
-      const imgAspect = prev.imageInfo.width / prev.imageInfo.height;
-      const canvasAspect = canvas.width / canvas.height;
-
-      let drawWidth, drawHeight, offsetX, offsetY;
-
-      if (imgAspect > canvasAspect) {
-        // Image is wider than canvas
-        drawWidth = canvas.width * 0.95; // Same as in useCanvasDrawing
-        drawHeight = drawWidth / imgAspect;
-        offsetX = (canvas.width - drawWidth) / 2;
-        offsetY = (canvas.height - drawHeight) / 2;
-      } else {
-        // Image is taller than canvas
-        drawHeight = canvas.height * 0.95; // Same as in useCanvasDrawing
-        drawWidth = drawHeight * imgAspect;
-        offsetX = (canvas.width - drawWidth) / 2;
-        offsetY = (canvas.height - drawHeight) / 2;
-      }
+      const { drawWidth, drawHeight, offsetX, offsetY } = getImageFitLayout(
+        canvas.width, canvas.height, prev.imageInfo.width, prev.imageInfo.height
+      );
 
       const aspectRatio = calculateAspectRatio(drawWidth, drawHeight);
       const newParentRegion: ParentRegion = {
@@ -653,19 +606,9 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       if (!child) return prev;
 
       // Calculate actual drawn image dimensions
-      const imgAspect = prev.imageInfo.width / prev.imageInfo.height;
-      const canvasAspect = canvas.width / canvas.height;
-
-      let drawHeight, offsetY;
-
-      if (imgAspect > canvasAspect) {
-        const drawWidth = canvas.width * 0.95;
-        drawHeight = drawWidth / imgAspect;
-        offsetY = (canvas.height - drawHeight) / 2;
-      } else {
-        drawHeight = canvas.height * 0.95;
-        offsetY = (canvas.height - drawHeight) / 2;
-      }
+      const { drawHeight, offsetY } = getImageFitLayout(
+        canvas.width, canvas.height, prev.imageInfo.width, prev.imageInfo.height
+      );
 
       // Update child region bounds
       const childWithNewBounds: ChildRegion = {
@@ -699,19 +642,9 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       if (!child) return prev;
 
       // Calculate actual drawn image dimensions
-      const imgAspect = prev.imageInfo.width / prev.imageInfo.height;
-      const canvasAspect = canvas.width / canvas.height;
-
-      let drawWidth, offsetX;
-
-      if (imgAspect > canvasAspect) {
-        drawWidth = canvas.width * 0.95;
-        offsetX = (canvas.width - drawWidth) / 2;
-      } else {
-        const drawHeight = canvas.height * 0.95;
-        drawWidth = drawHeight * imgAspect;
-        offsetX = (canvas.width - drawWidth) / 2;
-      }
+      const { drawWidth, offsetX } = getImageFitLayout(
+        canvas.width, canvas.height, prev.imageInfo.width, prev.imageInfo.height
+      );
 
       // Update child region bounds
       const childWithNewBounds: ChildRegion = {
