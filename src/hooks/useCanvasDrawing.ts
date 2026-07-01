@@ -1,10 +1,16 @@
 import { useCallback, useRef, useMemo } from 'react';
 import type { ParentRegion, ChildRegion, ColorSettings, GridSettings, ChildGridSettings, RegionPoint } from '../types';
 import { CANVAS_CONSTANTS, COLORS } from '../utils/constants';
-import { calculateUniformModules, calculateLineModuleColumns, getLineAngleSquare } from '../utils/geometry';
 import { hexToRgba } from '../utils/color';
 import { getImageFitLayout } from '../utils/imageFit';
 import { getResizeHandles } from '../utils/resize';
+import {
+  drawGridLines,
+  drawCircleModuleRows,
+  drawLineModuleDots,
+  drawLineAngleGuide as drawAngleGuide,
+  drawPointMarkers,
+} from '../utils/overlayRenderer';
 
 export function useCanvasDrawing() {
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -278,87 +284,20 @@ export function useCanvasDrawing() {
     // Skip grid for line shape
     if (childRegion.shape === 'line') return;
 
-    // Use parent cell size as unit; fall back to child size if no parent
-    const parentBasis = parentRegion
-      ? (unitBasis === 'height' ? parentRegion.height : parentRegion.width)
-      : (unitBasis === 'height' ? childRegion.bounds.height : childRegion.bounds.width);
-    const cellSize = parentBasis / 16;
-    if (cellSize <= 0) return;
+    // Use parent cell size as unit; the renderer falls back to the child's own
+    // basis when no override is given.
+    const parentCellSize = parentRegion
+      ? (unitBasis === 'height' ? parentRegion.height : parentRegion.width) / 16
+      : undefined;
 
-    const { x, y, width, height } = childRegion.bounds;
-
-    ctx.save();
-
-    // Apply rotation if needed
-    if (childRegion.rotation !== 0) {
-      const centerX = x + width / 2;
-      const centerY = y + height / 2;
-      ctx.translate(centerX, centerY);
-      ctx.rotate(childRegion.rotation);
-      ctx.translate(-centerX, -centerY);
-    }
-
-    // For circles, clip grid lines to the ellipse boundary
-    if (childRegion.shape === 'circle') {
-      ctx.beginPath();
-      ctx.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, 2 * Math.PI);
-      ctx.clip();
-    }
-
-    const hexToRgb = (hex: string) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : { r: 209, g: 213, b: 219 };
-    };
-
-    const rgb = hexToRgb(gridColor);
-    ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
-
-    const cx = x + width / 2;
-    const cy = y + height / 2;
-    // Rectangles also get a finer 1/64 grid (4 sub-lines per 1/16 cell), drawn
-    // thinner and fainter; circles keep the 1/16 grid only.
-    const sub = childRegion.shape === 'circle' ? 1 : 4;
-    const fineCell = cellSize / sub;
-    const applyStyle = (k: number) => {
-      if (k % sub === 0) {
-        const m = k / sub;
-        ctx.lineWidth = (m % 8 === 0 ? 1.5 : m % 4 === 0 ? 1.0 : 0.5) / zoom;
-        ctx.globalAlpha = 1;
-      } else {
-        ctx.lineWidth = 0.25 / zoom;
-        ctx.globalAlpha = 0.5;
-      }
-    };
-
-    // Vertical lines from center outward
-    for (let k = 0; cx + k * fineCell <= x + width + 0.5; k++) {
-      const lx = cx + k * fineCell;
-      applyStyle(k);
-      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
-    }
-    for (let k = 1; cx - k * fineCell >= x - 0.5; k++) {
-      const lx = cx - k * fineCell;
-      applyStyle(k);
-      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
-    }
-
-    // Horizontal lines from center outward
-    for (let k = 0; cy + k * fineCell <= y + height + 0.5; k++) {
-      const ly = cy + k * fineCell;
-      applyStyle(k);
-      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
-    }
-    for (let k = 1; cy - k * fineCell >= y - 0.5; k++) {
-      const ly = cy - k * fineCell;
-      applyStyle(k);
-      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
-    }
-
-    ctx.restore();
+    const isCircle = childRegion.shape === 'circle';
+    drawGridLines(ctx, { ...childRegion.bounds, rotation: childRegion.rotation }, gridColor, gridOpacity, 1 / zoom, {
+      unitBasis,
+      cellSizeOverride: parentCellSize,
+      clipToEllipse: isCircle,
+      // Rectangles also get a finer 1/64 grid; circles keep the 1/16 grid only.
+      subdivide: !isCircle,
+    });
   }, []);
 
   const drawGrid = useCallback((
@@ -369,64 +308,7 @@ export function useCanvasDrawing() {
     zoom: number,
     unitBasis: 'height' | 'width' = 'height'
   ) => {
-    const basisLength = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
-    const cellSize = basisLength / 16;
-    if (cellSize <= 0) return;
-
-    const { x, y, width, height } = parentRegion;
-
-    ctx.save();
-
-    // Apply rotation if needed
-    if (parentRegion.rotation !== 0) {
-      const centerX = x + width / 2;
-      const centerY = y + height / 2;
-      ctx.translate(centerX, centerY);
-      ctx.rotate(parentRegion.rotation);
-      ctx.translate(-centerX, -centerY);
-    }
-
-    const hexToRgb = (hex: string) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : { r: 209, g: 213, b: 219 };
-    };
-
-    const rgb = hexToRgb(gridColor);
-    ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${gridOpacity})`;
-
-    const cx = x + width / 2;
-    const cy = y + height / 2;
-    const lw = (k: number) => (k % 8 === 0 ? 1.5 : k % 4 === 0 ? 1.0 : 0.5) / zoom;
-
-    // Vertical lines from center outward
-    for (let k = 0; cx + k * cellSize <= x + width + 0.5; k++) {
-      const lx = cx + k * cellSize;
-      ctx.lineWidth = lw(k);
-      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
-    }
-    for (let k = 1; cx - k * cellSize >= x - 0.5; k++) {
-      const lx = cx - k * cellSize;
-      ctx.lineWidth = lw(k);
-      ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx, y + height); ctx.stroke();
-    }
-
-    // Horizontal lines from center outward
-    for (let k = 0; cy + k * cellSize <= y + height + 0.5; k++) {
-      const ly = cy + k * cellSize;
-      ctx.lineWidth = lw(k);
-      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
-    }
-    for (let k = 1; cy - k * cellSize >= y - 0.5; k++) {
-      const ly = cy - k * cellSize;
-      ctx.lineWidth = lw(k);
-      ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + width, ly); ctx.stroke();
-    }
-
-    ctx.restore();
+    drawGridLines(ctx, parentRegion, gridColor, gridOpacity, 1 / zoom, { unitBasis });
   }, []);
 
   const drawLineModules = useCallback((
@@ -442,46 +324,9 @@ export function useCanvasDrawing() {
     const lineLength = region.lineLength ?? 0;
     if (lineLength <= 0) return;
 
-    const modules = calculateLineModuleColumns(lineLength, moduleLength);
-    if (modules.length === 0) return;
-
-    const dx = region.lineEnd.x - region.lineStart.x;
-    const dy = region.lineEnd.y - region.lineStart.y;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len === 0) return;
-    const ux = dx / len;
-    const uy = dy / len;
-
-    // Module boundaries are marked with a dot centered on the line at each
-    // boundary, instead of perpendicular divider lines. The 1/16 boundaries are
-    // drawn larger/opaque; the nested 1/64 boundaries are smaller and slightly
-    // more transparent, skipping boundaries that coincide with a 1/16 dot.
-    ctx.save();
-    ctx.fillStyle = color;
-
-    for (const entry of modules) {
-      const diameter = entry.radius * 2;
-      const isInner = entry.level !== modules[0].level;
-      const dotRadius = (isInner ? 1 : 3) / zoom;
-      ctx.globalAlpha = opacity;
-      for (let i = 0; i <= entry.count; i++) {
-        if (isInner && i % 4 === 0) continue;
-        const t = i * diameter;
-        if (t > len + 0.01) continue; // don't draw past the line end
-        const bx = region.lineStart!.x + ux * t;
-        const by = region.lineStart!.y + uy * t;
-        ctx.beginPath();
-        ctx.arc(bx, by, dotRadius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    ctx.restore();
+    drawLineModuleDots(ctx, region.lineStart, region.lineEnd, color, opacity, 1 / zoom, moduleLength, lineLength);
   }, []);
 
-  // Angle guide: a square whose side is the larger of the line's width/height,
-  // with the line start at the corner the square extends from. A 1/2 grid and a
-  // fainter 1/4 grid are drawn inside.
   const drawLineAngleGuide = useCallback((
     ctx: CanvasRenderingContext2D,
     region: ChildRegion,
@@ -490,30 +335,7 @@ export function useCanvasDrawing() {
     zoom: number
   ) => {
     if (region.shape !== 'line' || !region.lineStart || !region.lineEnd) return;
-    const sq = getLineAngleSquare(region.lineStart, region.lineEnd);
-    if (!sq) return;
-    const { x, y, side } = sq;
-
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1 / zoom;
-
-    // 1/4 grid (fainter)
-    ctx.globalAlpha = opacity * 0.4;
-    for (const k of [1, 3]) {
-      const g = (k * side) / 4;
-      ctx.beginPath(); ctx.moveTo(x + g, y); ctx.lineTo(x + g, y + side); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x, y + g); ctx.lineTo(x + side, y + g); ctx.stroke();
-    }
-
-    // 1/2 grid (center cross) + square outline
-    ctx.globalAlpha = opacity;
-    const mid = side / 2;
-    ctx.beginPath(); ctx.moveTo(x + mid, y); ctx.lineTo(x + mid, y + side); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x, y + mid); ctx.lineTo(x + side, y + mid); ctx.stroke();
-    ctx.strokeRect(x, y, side, side);
-
-    ctx.restore();
+    drawAngleGuide(ctx, region.lineStart, region.lineEnd, color, opacity, 1 / zoom);
   }, []);
 
   const drawCircleModules = useCallback((
@@ -528,45 +350,8 @@ export function useCanvasDrawing() {
     if (region.shape !== 'circle') return;
     if (!parentRegion) return;
 
-    const { x, y, width, height } = region.bounds;
-    const cx = x + width / 2;
-    const cy = y + height / 2;
-    if (height <= 0) return;
-
     const parentBasis = unitBasis === 'height' ? parentRegion.height : parentRegion.width;
-    const modules = calculateUniformModules(height, parentBasis);
-    if (modules.length === 0) return;
-
-    ctx.save();
-    if (region.rotation !== 0) {
-      ctx.translate(cx, cy);
-      ctx.rotate(region.rotation);
-      ctx.translate(-cx, -cy);
-    }
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, width / 2, height / 2, 0, 0, 2 * Math.PI);
-    ctx.clip();
-
-    // "Row" rendering: horizontal divider lines across the circle (clipped to
-    // the ellipse) at each module boundary, tiled upward from the bottom edge.
-    ctx.strokeStyle = color;
-
-    for (const entry of modules) {
-      const d = entry.radius * 2;
-      const isInner = entry.level !== modules[0].level;
-      ctx.lineWidth = (isInner ? 0.5 : 1) / zoom;
-      ctx.globalAlpha = isInner ? opacity * 0.6 : opacity;
-      for (let i = 0; i <= entry.count; i++) {
-        if (isInner && i % 4 === 0) continue;
-        const lineY = (y + height) - i * d;
-        ctx.beginPath();
-        ctx.moveTo(x, lineY);
-        ctx.lineTo(x + width, lineY);
-        ctx.stroke();
-      }
-    }
-
-    ctx.restore();
+    drawCircleModuleRows(ctx, { ...region.bounds, rotation: region.rotation }, color, opacity, 1 / zoom, parentBasis);
   }, []);
 
   const drawPoints = useCallback((
@@ -577,42 +362,12 @@ export function useCanvasDrawing() {
     selectedPointId: number | null = null,
     zoom: number = 1
   ) => {
-    points.forEach(point => {
-      ctx.save();
-
-      const isSelected = selectedPointId === point.id;
-      const { x, y } = point.coordinates.pixel;
-
-      let color: string;
-      if (isSelected) {
-        color = '#3b82f6';
-      } else if (point.parentRegionId === undefined) {
-        color = hexToRgba(colorSettings.dotColor ?? '#ffffff', colorSettings.dotColorOpacity ?? 1);
-      } else {
-        const region = childRegions.find(r => r.id === point.parentRegionId);
-        if (region?.shape === 'circle') {
-          color = hexToRgba(colorSettings.childCircleColor, colorSettings.childCircleColorOpacity ?? 1);
-        } else if (region?.shape === 'line') {
-          color = hexToRgba(colorSettings.childLineColor, colorSettings.childLineColorOpacity ?? 1);
-        } else {
-          color = hexToRgba(colorSettings.childRectColor, colorSettings.childRectColorOpacity ?? 1);
-        }
-      }
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = (isSelected ? 2.5 : 1) / zoom;
-
-      const arm = 6 / zoom;
-
-      ctx.beginPath();
-      ctx.moveTo(x - arm, y);
-      ctx.lineTo(x + arm, y);
-      ctx.moveTo(x, y - arm);
-      ctx.lineTo(x, y + arm);
-      ctx.stroke();
-
-      ctx.restore();
-    });
+    const markers = points.map(point => ({
+      id: point.id,
+      pixel: point.coordinates.pixel,
+      parentRegionId: point.parentRegionId,
+    }));
+    drawPointMarkers(ctx, markers, colorSettings, childRegions, selectedPointId, 1 / zoom);
   }, []);
 
   const redraw = useCallback((
@@ -731,30 +486,16 @@ export function useCanvasDrawing() {
   // will produce the same object every render, preventing unnecessary downstream
   // re-creation of callbacks and useEffect re-runs.
   return useMemo(() => ({
-    drawImage,
-    drawParentRegion,
-    drawChildRegion,
-    drawChildGrid,
-    drawLineModules,
-    drawCircleModules,
     drawTemporaryRegion,
     drawTemporaryCircle,
     drawTemporaryLine,
-    drawPoints,
     redraw,
     setImage,
     getImageDrawInfo,
   }), [
-    drawImage,
-    drawParentRegion,
-    drawChildRegion,
-    drawChildGrid,
-    drawLineModules,
-    drawCircleModules,
     drawTemporaryRegion,
     drawTemporaryCircle,
     drawTemporaryLine,
-    drawPoints,
     redraw,
     setImage,
     getImageDrawInfo,
