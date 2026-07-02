@@ -11,6 +11,7 @@ import { useExport } from './hooks/useExport';
 import { useImport } from './hooks/useImport';
 import { usePanelExport } from './hooks/usePanelExport';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { loadUnitBasis, saveUnitBasis } from './utils/settingsStorage';
 import { Download, Upload, Undo, Redo, Copy, X, Info } from 'lucide-react';
 import type { ChildDrawMode, LayoutFile, SettingsBundle, ModeBundle, FitActions } from './types';
 
@@ -19,7 +20,7 @@ function App() {
 
   const [isPanMode, setIsPanMode] = useState(false);
   const [childDrawMode, setChildDrawMode] = useState<ChildDrawMode>('rectangle');
-  const [unitBasis, setUnitBasis] = useState<'height' | 'width'>(() => (localStorage.getItem('unitBasis') === 'width' ? 'width' : 'height'));
+  const [unitBasis, setUnitBasis] = useState<'height' | 'width'>(loadUnitBasis);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
 
@@ -76,7 +77,7 @@ function App() {
   const { exportSingleRegion } = usePanelExport();
 
   const handleUnitBasisChange = useCallback((basis: 'height' | 'width') => {
-    localStorage.setItem('unitBasis', basis);
+    saveUnitBasis(basis);
     setUnitBasis(basis);
   }, []);
 

@@ -4,6 +4,11 @@ import type { AnalysisData, ParentRegion, ChildRegion, GridSettings, ChildGridSe
 import { calculateAspectRatio, calculateChildRatios, convertToGridCoordinates, calculateEdgePositions, calculateGridDimensions, rotatePoint } from '../utils/geometry';
 import { getImageFitLayout } from '../utils/imageFit';
 import { applyLayoutToState } from '../utils/layoutIO';
+import {
+  loadGridSettings, saveGridSettings,
+  loadChildGridSettings, saveChildGridSettings,
+  loadColorSettings, saveColorSettings,
+} from '../utils/settingsStorage';
 
 const ORIGIN = { x: 0, y: 0 };
 
@@ -164,45 +169,17 @@ const updatePointCoordinatesForParentChange = (
 };
 
 export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
-  const [analysisData, setAnalysisData] = useState<AnalysisData>({
+  // Lazy initializer: read persisted settings once on mount instead of on
+  // every render.
+  const [analysisData, setAnalysisData] = useState<AnalysisData>(() => ({
     parentRegion: null,
     childRegions: [],
     points: [],
-    gridSettings: {
-      visible: localStorage.getItem('parentGridVisible') !== 'false'
-    },
-    childGridSettings: {
-      rectVisible: localStorage.getItem('rectVisible') === 'true',
-      circleVisible: localStorage.getItem('circleVisible') === 'true',
-      lineModuleVisible: localStorage.getItem('lineModuleVisible') === 'true',
-      circleModuleVisible: localStorage.getItem('circleModuleVisible') === 'true',
-      lineModuleLength: Number(localStorage.getItem('lineModuleLength')) || 1,
-      lineAngleGuideVisible: localStorage.getItem('lineAngleGuideVisible') === 'true'
-    },
-    colorSettings: {
-      parentColor: localStorage.getItem('parentColor') ?? '#3b82f6',
-      parentColorOpacity: parseFloat(localStorage.getItem('parentColorOpacity') ?? '1'),
-      childRectColor: localStorage.getItem('childRectColor') ?? '#3b82f6',
-      childRectColorOpacity: parseFloat(localStorage.getItem('childRectColorOpacity') ?? '1'),
-      childCircleColor: localStorage.getItem('childCircleColor') ?? '#3b82f6',
-      childCircleColorOpacity: parseFloat(localStorage.getItem('childCircleColorOpacity') ?? '1'),
-      childLineColor: localStorage.getItem('childLineColor') ?? '#3b82f6',
-      childLineColorOpacity: parseFloat(localStorage.getItem('childLineColorOpacity') ?? '1'),
-      gridColor: localStorage.getItem('gridColor') ?? '#ffffff',
-      gridOpacity: parseFloat(localStorage.getItem('gridOpacity') ?? '0.5'),
-      childRectGridColor: localStorage.getItem('childRectGridColor') ?? '#ffffff',
-      childCircleGridColor: localStorage.getItem('childCircleGridColor') ?? '#ffffff',
-      childRectGridOpacity: parseFloat(localStorage.getItem('childRectGridOpacity') ?? '0.3'),
-      childCircleGridOpacity: parseFloat(localStorage.getItem('childCircleGridOpacity') ?? '0.3'),
-      lineModuleColor: localStorage.getItem('lineModuleColor') ?? '#3b82f6',
-      lineModuleOpacity: parseFloat(localStorage.getItem('lineModuleOpacity') ?? '0.5'),
-      circleModuleColor: localStorage.getItem('circleModuleColor') ?? '#3b82f6',
-      circleModuleOpacity: parseFloat(localStorage.getItem('circleModuleOpacity') ?? '0.5'),
-      dotColor: localStorage.getItem('dotColor') ?? '#ffffff',
-      dotColorOpacity: parseFloat(localStorage.getItem('dotColorOpacity') ?? '1')
-    },
+    gridSettings: loadGridSettings(),
+    childGridSettings: loadChildGridSettings(),
+    colorSettings: loadColorSettings(),
     imageInfo: null,
-  });
+  }));
 
   const { 
     undo, 
@@ -384,7 +361,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, [updateStateWithHistory]);
 
   const handleGridSettingsChange = useCallback((settings: GridSettings) => {
-    localStorage.setItem('parentGridVisible', String(settings.visible));
+    saveGridSettings(settings);
     setAnalysisData(prev => ({
       ...prev,
       gridSettings: settings,
@@ -395,12 +372,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, [updateChildRegionData]);
 
   const handleChildGridSettingsChange = useCallback((settings: ChildGridSettings) => {
-    localStorage.setItem('rectVisible', String(settings.rectVisible));
-    localStorage.setItem('circleVisible', String(settings.circleVisible));
-    localStorage.setItem('lineModuleVisible', String(settings.lineModuleVisible));
-    localStorage.setItem('circleModuleVisible', String(settings.circleModuleVisible));
-    localStorage.setItem('lineModuleLength', String(settings.lineModuleLength));
-    localStorage.setItem('lineAngleGuideVisible', String(settings.lineAngleGuideVisible));
+    saveChildGridSettings(settings);
     setAnalysisData(prev => ({
       ...prev,
       childGridSettings: settings
@@ -408,26 +380,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
   }, []);
 
   const handleColorSettingsChange = useCallback((settings: ColorSettings) => {
-    localStorage.setItem('parentColor', settings.parentColor);
-    localStorage.setItem('parentColorOpacity', String(settings.parentColorOpacity));
-    localStorage.setItem('childRectColor', settings.childRectColor);
-    localStorage.setItem('childRectColorOpacity', String(settings.childRectColorOpacity));
-    localStorage.setItem('childCircleColor', settings.childCircleColor);
-    localStorage.setItem('childCircleColorOpacity', String(settings.childCircleColorOpacity));
-    localStorage.setItem('childLineColor', settings.childLineColor);
-    localStorage.setItem('childLineColorOpacity', String(settings.childLineColorOpacity));
-    localStorage.setItem('gridColor', settings.gridColor);
-    localStorage.setItem('gridOpacity', String(settings.gridOpacity));
-    localStorage.setItem('childRectGridColor', settings.childRectGridColor);
-    localStorage.setItem('childRectGridOpacity', String(settings.childRectGridOpacity));
-    localStorage.setItem('childCircleGridColor', settings.childCircleGridColor);
-    localStorage.setItem('childCircleGridOpacity', String(settings.childCircleGridOpacity));
-    localStorage.setItem('lineModuleColor', settings.lineModuleColor);
-    localStorage.setItem('lineModuleOpacity', String(settings.lineModuleOpacity));
-    localStorage.setItem('circleModuleColor', settings.circleModuleColor);
-    localStorage.setItem('circleModuleOpacity', String(settings.circleModuleOpacity));
-    localStorage.setItem('dotColor', settings.dotColor);
-    localStorage.setItem('dotColorOpacity', String(settings.dotColorOpacity));
+    saveColorSettings(settings);
     setAnalysisData(prev => ({
       ...prev,
       colorSettings: settings
@@ -493,33 +446,17 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       lineModuleLength: result.childGridSettings.lineModuleLength || 1,
       lineAngleGuideVisible: result.childGridSettings.lineAngleGuideVisible ?? false
     };
-    localStorage.setItem('rectVisible', String(importedChildGridSettings.rectVisible));
-    localStorage.setItem('circleVisible', String(importedChildGridSettings.circleVisible));
-    localStorage.setItem('lineModuleVisible', String(importedChildGridSettings.lineModuleVisible));
-    localStorage.setItem('circleModuleVisible', String(importedChildGridSettings.circleModuleVisible));
-    localStorage.setItem('lineModuleLength', String(importedChildGridSettings.lineModuleLength));
-    localStorage.setItem('lineAngleGuideVisible', String(importedChildGridSettings.lineAngleGuideVisible));
-    localStorage.setItem('parentGridVisible', String(result.gridSettings.visible));
-    localStorage.setItem('parentColor', result.colorSettings.parentColor);
-    localStorage.setItem('parentColorOpacity', String(result.colorSettings.parentColorOpacity));
-    localStorage.setItem('childRectColor', result.colorSettings.childRectColor);
-    localStorage.setItem('childRectColorOpacity', String(result.colorSettings.childRectColorOpacity));
-    localStorage.setItem('childCircleColor', result.colorSettings.childCircleColor);
-    localStorage.setItem('childCircleColorOpacity', String(result.colorSettings.childCircleColorOpacity));
-    localStorage.setItem('childLineColor', result.colorSettings.childLineColor);
-    localStorage.setItem('childLineColorOpacity', String(result.colorSettings.childLineColorOpacity));
-    localStorage.setItem('gridColor', result.colorSettings.gridColor);
-    localStorage.setItem('gridOpacity', String(result.colorSettings.gridOpacity));
-    localStorage.setItem('childRectGridColor', result.colorSettings.childRectGridColor);
-    localStorage.setItem('childRectGridOpacity', String(result.colorSettings.childRectGridOpacity));
-    localStorage.setItem('childCircleGridColor', result.colorSettings.childCircleGridColor);
-    localStorage.setItem('childCircleGridOpacity', String(result.colorSettings.childCircleGridOpacity));
-    localStorage.setItem('lineModuleColor', result.colorSettings.lineModuleColor);
-    localStorage.setItem('lineModuleOpacity', String(result.colorSettings.lineModuleOpacity));
-    localStorage.setItem('circleModuleColor', result.colorSettings.circleModuleColor);
-    localStorage.setItem('circleModuleOpacity', String(result.colorSettings.circleModuleOpacity));
-    localStorage.setItem('dotColor', result.colorSettings.dotColor);
-    localStorage.setItem('dotColorOpacity', String(result.colorSettings.dotColorOpacity));
+    // Older layout files may lack the dot color fields; default them so both
+    // state and persisted settings stay complete.
+    const importedColorSettings = {
+      dotColor: '#ffffff',
+      dotColorOpacity: 1,
+      ...(result.colorSettings as Partial<typeof result.colorSettings>),
+    } as typeof result.colorSettings;
+
+    saveGridSettings(result.gridSettings);
+    saveChildGridSettings(importedChildGridSettings);
+    saveColorSettings(importedColorSettings);
 
     setAnalysisData(prev => ({
       ...prev,
@@ -528,11 +465,7 @@ export function useAnalysisData(unitBasis: 'height' | 'width' = 'height') {
       points: result.points,
       gridSettings: result.gridSettings,
       childGridSettings: importedChildGridSettings,
-      colorSettings: {
-          dotColor: '#ffffff',
-          dotColorOpacity: 1,
-          ...(result.colorSettings as Partial<typeof result.colorSettings>),
-        } as typeof result.colorSettings,
+      colorSettings: importedColorSettings,
     }));
 
     return { scaled: result.scaled, unitBasis: result.unitBasis };
