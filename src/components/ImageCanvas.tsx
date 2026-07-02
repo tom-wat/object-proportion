@@ -20,7 +20,6 @@ interface ImageCanvasProps {
   points: RegionPoint[];
   selectedPointId?: number | null;
   onPointAdd: (point: Omit<RegionPoint, 'id'>) => void;
-  imageFile: File | null;
   cachedImage?: HTMLImageElement | null;
   isParentSelected?: boolean;
   className?: string;
@@ -47,7 +46,6 @@ export function ImageCanvas({
   points,
   selectedPointId,
   onPointAdd,
-  imageFile,
   cachedImage,
   isParentSelected,
   className = '',
@@ -57,7 +55,7 @@ export function ImageCanvas({
   unitBasis = 'height'
 }: ImageCanvasProps) {
 
-  const { canvasRef, loadImage, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom, getImageDrawInfo, drawVersion, setZoomToActualPct } = useImageCanvas({
+  const { canvasRef, loadImageFromCached, zoom, zoomIn, zoomOut, resetZoom, getImageDrawInfo, drawVersion, setZoomToActualPct } = useImageCanvas({
     selectionMode,
     parentRegion,
     childRegions,
@@ -81,25 +79,21 @@ export function ImageCanvas({
     unitBasis
   });
 
-  // Keep refs pointing to the latest versions so the effect below can always
+  // Keep a ref pointing to the latest version so the effect below can always
   // call the most up-to-date function without re-triggering on every re-render.
   const loadImageFromCachedRef = React.useRef(loadImageFromCached);
   loadImageFromCachedRef.current = loadImageFromCached;
-  const loadImageRef = React.useRef(loadImage);
-  loadImageRef.current = loadImage;
 
   // Only re-run when the actual image data changes, not when function references
-  // change.  Depending on loadImage / loadImageFromCached directly would cause
-  // the effect to fire on every render (those functions are recreated whenever
-  // any canvas state changes), which schedules a setTimeout inside useImageLoader
-  // that clears the canvas mid-drag and erases the temporary dashed preview.
+  // change.  Depending on loadImageFromCached directly would cause the effect
+  // to fire on every render (it is recreated whenever any canvas state
+  // changes), which schedules a setTimeout inside useImageLoader that clears
+  // the canvas mid-drag and erases the temporary dashed preview.
   React.useEffect(() => {
     if (cachedImage) {
       loadImageFromCachedRef.current(cachedImage);
-    } else if (imageFile) {
-      loadImageRef.current(imageFile);
     }
-  }, [imageFile, cachedImage]);
+  }, [cachedImage]);
 
 
 

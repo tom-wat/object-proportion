@@ -53,7 +53,6 @@ function App() {
   } = useAnalysisData(unitBasis);
 
   const {
-    imageFile,
     imageLoaded,
     selectionMode,
     selectedChildId,
@@ -390,7 +389,6 @@ function App() {
               points={analysisData.points}
               selectedPointId={selectedPointId}
               onPointAdd={handlePointAdd}
-              imageFile={imageFile}
               cachedImage={cachedImage}
               isParentSelected={isParentSelected}
               colorSettings={analysisData.colorSettings}

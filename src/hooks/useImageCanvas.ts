@@ -298,14 +298,6 @@ export function useImageCanvas({
   }, [canvasRef, interaction, zoomAtPoint, zoomByRatioDirect, syncStateFromRefs]);
 
 
-  const loadImage = useCallback((file: File) => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      imageLoadedRef.current = false; // Reset flag when loading new image
-      imageLoader.loadImage(file, canvas);
-    }
-  }, [canvasRef, imageLoader]);
-
   const loadImageFromCached = useCallback((cachedImage: HTMLImageElement) => {
     const canvas = canvasRef.current;
     if (canvas && cachedImage) {
@@ -343,7 +335,6 @@ export function useImageCanvas({
 
   return {
     canvasRef,
-    loadImage,
     loadImageFromCached,
     redraw: handleRedraw,
     getCanvasSize,

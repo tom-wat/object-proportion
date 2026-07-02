@@ -6,7 +6,6 @@ interface UseImageHandlingProps {
 }
 
 export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('parent');
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
@@ -35,7 +34,6 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
       });
       setImageLoaded(true);
       setSelectionMode('parent');
-      setImageFile(file);
       setCachedImage(img);
     };
     img.onerror = (error) => {
@@ -81,7 +79,6 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
     setIsParentSelected(false);
     setSelectionMode('parent');
     setImageLoaded(false);
-    setImageFile(null);
 
     // Clean up cached resources
     if (cachedBlobUrl) {
@@ -92,7 +89,6 @@ export function useImageHandling({ onImageInfoSet }: UseImageHandlingProps) {
   }, [cachedBlobUrl]);
 
   return {
-    imageFile,
     imageLoaded,
     selectionMode,
     selectedChildId,
