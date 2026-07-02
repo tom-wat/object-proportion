@@ -1,50 +1,28 @@
-import type { SelectionMode, GridSettings, ChildGridSettings, ColorSettings, ChildDrawMode } from '../types';
+import type { SettingsBundle, ModeBundle, FitActions } from '../types';
+import { ModeTabs } from './controls/ModeTabs';
+import { ShapeSelector } from './controls/ShapeSelector';
+import { ToggleChip } from './controls/ToggleChip';
+import { UnitBasisToggle } from './controls/UnitBasisToggle';
+import { ModuleControls } from './controls/ModuleControls';
+import { FitButtons } from './controls/FitButtons';
+import { ColorRow } from './controls/ColorRow';
 
 interface ToolbarProps {
-  selectionMode: SelectionMode;
-  onSelectionModeChange: (mode: SelectionMode) => void;
-  childDrawMode: ChildDrawMode;
-  onChildDrawModeChange: (mode: ChildDrawMode) => void;
-  gridSettings: GridSettings;
-  onGridSettingsChange: (settings: GridSettings) => void;
-  childGridSettings: ChildGridSettings;
-  onChildGridSettingsChange: (settings: ChildGridSettings) => void;
-  colorSettings: ColorSettings;
-  onColorSettingsChange: (settings: ColorSettings) => void;
-  hasParentRegion: boolean;
-  childCount: number;
-  selectedChildId: number | null;
-  onCreateFullCanvasParent: () => void;
-  onFitChildHeightToImage: (childId: number) => void;
-  onFitChildWidthToImage: (childId: number) => void;
-  unitBasis: 'height' | 'width';
-  onUnitBasisChange: (basis: 'height' | 'width') => void;
+  mode: ModeBundle;
+  settings: SettingsBundle;
+  fit: FitActions;
 }
 
-export function Toolbar({
-  selectionMode,
-  onSelectionModeChange,
-  childDrawMode,
-  onChildDrawModeChange,
-  gridSettings,
-  onGridSettingsChange,
-  childGridSettings,
-  onChildGridSettingsChange,
-  colorSettings,
-  onColorSettingsChange,
-  hasParentRegion,
-  childCount,
-  selectedChildId,
-  onCreateFullCanvasParent,
-  onFitChildHeightToImage,
-  onFitChildWidthToImage,
-  unitBasis,
-  onUnitBasisChange
-}: ToolbarProps) {
+export function Toolbar({ mode, settings, fit }: ToolbarProps) {
+  const { selectionMode, onSelectionModeChange, childDrawMode, onChildDrawModeChange } = mode;
+  const { gridSettings, onGridSettingsChange, childGridSettings, onChildGridSettingsChange, colorSettings, onColorSettingsChange, unitBasis, onUnitBasisChange } = settings;
+  const { hasParentRegion, childCount } = fit;
+
   const isParentMode = selectionMode === 'parent';
   const isChildRect = selectionMode === 'child' && childDrawMode === 'rectangle';
   const isChildCircle = selectionMode === 'child' && childDrawMode === 'circle';
   const isChildLine = selectionMode === 'child' && childDrawMode === 'line';
+  const isChildDot = selectionMode === 'child' && childDrawMode === 'dot';
 
   return (
     <div className="bg-white border-b border-gray-100">
@@ -55,81 +33,22 @@ export function Toolbar({
             {/* Selection Mode */}
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-gray-600">Mode</span>
-              <div className="flex bg-gray-50 rounded-lg p-0.5">
-                <button
-                  onClick={() => onSelectionModeChange('parent')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                    selectionMode === 'parent'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Parent
-                </button>
-                <button
-                  onClick={() => onSelectionModeChange('child')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                    selectionMode === 'child'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
-                  disabled={!hasParentRegion}
-                >
-                  Child
-                </button>
-              </div>
+              <ModeTabs
+                selectionMode={selectionMode}
+                onSelectionModeChange={onSelectionModeChange}
+                hasParentRegion={hasParentRegion}
+              />
             </div>
 
             {/* Child Shape Selector */}
             {selectionMode === 'child' && (
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-600">Shape</span>
-                <div className="flex bg-gray-50 rounded-lg p-0.5">
-                  <button
-                    onClick={() => onChildDrawModeChange('rectangle')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      childDrawMode === 'rectangle'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                    title="Draw rectangle"
-                  >
-                    □ Rect
-                  </button>
-                  <button
-                    onClick={() => onChildDrawModeChange('circle')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      childDrawMode === 'circle'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                    title="Draw circle (drag from center)"
-                  >
-                    ○ Circle
-                  </button>
-                  <button
-                    onClick={() => onChildDrawModeChange('line')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      childDrawMode === 'line'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                    title="Draw line (drag)"
-                  >
-                    / Line
-                  </button>
-                  <button
-                    onClick={() => onChildDrawModeChange('dot')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      childDrawMode === 'dot'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                    title="Place dot (single click)"
-                  >
-                    · Dot
-                  </button>
-                </div>
+                <ShapeSelector
+                  childDrawMode={childDrawMode}
+                  onChildDrawModeChange={onChildDrawModeChange}
+                  labelStyle="full"
+                />
               </div>
             )}
 
@@ -137,117 +56,39 @@ export function Toolbar({
             {(isChildLine || isChildCircle) && (
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">Modules</span>
-                <button
-                  onClick={() => isChildLine
-                    ? onChildGridSettingsChange({ ...childGridSettings, lineModuleVisible: !childGridSettings.lineModuleVisible })
-                    : onChildGridSettingsChange({ ...childGridSettings, circleModuleVisible: !childGridSettings.circleModuleVisible })
-                  }
-                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                    (isChildLine ? childGridSettings.lineModuleVisible : childGridSettings.circleModuleVisible)
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  disabled={childCount === 0}
-                >
-                  {(isChildLine ? childGridSettings.lineModuleVisible : childGridSettings.circleModuleVisible) ? 'ON' : 'OFF'}
-                </button>
-                {isChildLine && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-500">Base</span>
-                    <input
-                      type="number"
-                      min={0.1}
-                      max={16}
-                      step={0.1}
-                      value={childGridSettings.lineModuleLength ?? 1}
-                      onChange={(e) => onChildGridSettingsChange({ ...childGridSettings, lineModuleLength: Math.min(16, Math.max(0.1, Number(e.target.value) || 0.1)) })}
-                      className="w-16 px-1 py-0.5 text-xs border border-gray-200 rounded"
-                      title="Line module base length (grid units, 0.1–16)"
-                      disabled={childCount === 0}
-                    />
-                    <span className="text-xs text-gray-500">Preset</span>
-                    <select
-                      value={Number.isInteger(childGridSettings.lineModuleLength ?? 1) ? String(childGridSettings.lineModuleLength) : ''}
-                      onChange={(e) => onChildGridSettingsChange({ ...childGridSettings, lineModuleLength: Number(e.target.value) })}
-                      className="px-1 py-0.5 text-xs border border-gray-200 rounded bg-white"
-                      title="Pick an integer base length"
-                      disabled={childCount === 0}
-                    >
-                      {!Number.isInteger(childGridSettings.lineModuleLength ?? 1) && <option value="" disabled>–</option>}
-                      {Array.from({ length: 16 }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {isChildLine && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-gray-500">Angle</span>
-                    <button
-                      onClick={() => onChildGridSettingsChange({ ...childGridSettings, lineAngleGuideVisible: !childGridSettings.lineAngleGuideVisible })}
-                      className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                        childGridSettings.lineAngleGuideVisible
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      disabled={childCount === 0}
-                    >
-                      {childGridSettings.lineAngleGuideVisible ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                )}
+                <ModuleControls
+                  shape={isChildLine ? 'line' : 'circle'}
+                  childGridSettings={childGridSettings}
+                  onChildGridSettingsChange={onChildGridSettingsChange}
+                  childCount={childCount}
+                  size="sm"
+                />
               </div>
             )}
 
             {/* Grid Controls: Parent Grid in parent mode, Child Grid in child rect/circle mode */}
             {(isParentMode || isChildRect || isChildCircle) && (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Grid</span>
                 {isParentMode && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Grid</span>
-                    <button
-                      onClick={() => onGridSettingsChange({ ...gridSettings, visible: !gridSettings.visible })}
-                      className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                        gridSettings.visible
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {gridSettings.visible ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
+                  <ToggleChip
+                    on={gridSettings.visible}
+                    onToggle={() => onGridSettingsChange({ ...gridSettings, visible: !gridSettings.visible })}
+                  />
                 )}
                 {isChildRect && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Grid</span>
-                    <button
-                      onClick={() => onChildGridSettingsChange({ ...childGridSettings, rectVisible: !childGridSettings.rectVisible })}
-                      className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                        childGridSettings.rectVisible
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      disabled={childCount === 0}
-                    >
-                      {childGridSettings.rectVisible ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
+                  <ToggleChip
+                    on={childGridSettings.rectVisible}
+                    onToggle={() => onChildGridSettingsChange({ ...childGridSettings, rectVisible: !childGridSettings.rectVisible })}
+                    disabled={childCount === 0}
+                  />
                 )}
                 {isChildCircle && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Grid</span>
-                    <button
-                      onClick={() => onChildGridSettingsChange({ ...childGridSettings, circleVisible: !childGridSettings.circleVisible })}
-                      className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                        childGridSettings.circleVisible
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      disabled={childCount === 0}
-                    >
-                      {childGridSettings.circleVisible ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
+                  <ToggleChip
+                    on={childGridSettings.circleVisible}
+                    onToggle={() => onChildGridSettingsChange({ ...childGridSettings, circleVisible: !childGridSettings.circleVisible })}
+                    disabled={childCount === 0}
+                  />
                 )}
               </div>
             )}
@@ -256,30 +97,7 @@ export function Toolbar({
             {isParentMode && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Unit</span>
-                <div className="flex bg-gray-50 rounded-lg p-0.5">
-                  <button
-                    onClick={() => onUnitBasisChange('height')}
-                    className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${
-                      unitBasis === 'height'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                    title="Use height as grid unit basis"
-                  >
-                    H
-                  </button>
-                  <button
-                    onClick={() => onUnitBasisChange('width')}
-                    className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${
-                      unitBasis === 'width'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                    title="Use width as grid unit basis"
-                  >
-                    W
-                  </button>
-                </div>
+                <UnitBasisToggle unitBasis={unitBasis} onUnitBasisChange={onUnitBasisChange} size="sm" />
               </div>
             )}
 
@@ -291,276 +109,138 @@ export function Toolbar({
                   <span className="text-xs text-gray-500">Regions</span>
                   <div className="flex items-center gap-1">
                     {isParentMode && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.parentColor}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, parentColor: e.target.value })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Parent Region Color"
-                        />
-                        <input
-                          type="range"
-                          min="0" max="1" step="0.05"
-                          value={colorSettings.parentColorOpacity}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, parentColorOpacity: parseFloat(e.target.value) })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Parent Region Opacity"
-                        />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.parentColorOpacity * 100)}%</span>
-                      </div>
+                      <ColorRow
+                        variant="inline"
+                        label="Parent Region"
+                        color={colorSettings.parentColor}
+                        opacity={colorSettings.parentColorOpacity}
+                        onColorChange={(v) => onColorSettingsChange({ ...colorSettings, parentColor: v })}
+                        onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, parentColorOpacity: v })}
+                      />
                     )}
                     {isChildRect && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.childRectColor}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childRectColor: e.target.value })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Rectangle Color"
-                        />
-                        <input
-                          type="range"
-                          min="0" max="1" step="0.05"
-                          value={colorSettings.childRectColorOpacity}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childRectColorOpacity: parseFloat(e.target.value) })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Rectangle Opacity"
-                        />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childRectColorOpacity * 100)}%</span>
-                      </div>
+                      <ColorRow
+                        variant="inline"
+                        label="Rectangle"
+                        color={colorSettings.childRectColor}
+                        opacity={colorSettings.childRectColorOpacity}
+                        onColorChange={(v) => onColorSettingsChange({ ...colorSettings, childRectColor: v })}
+                        onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, childRectColorOpacity: v })}
+                      />
                     )}
                     {isChildCircle && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.childCircleColor}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childCircleColor: e.target.value })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Circle Color"
-                        />
-                        <input
-                          type="range"
-                          min="0" max="1" step="0.05"
-                          value={colorSettings.childCircleColorOpacity}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childCircleColorOpacity: parseFloat(e.target.value) })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Circle Opacity"
-                        />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childCircleColorOpacity * 100)}%</span>
-                      </div>
+                      <ColorRow
+                        variant="inline"
+                        label="Circle"
+                        color={colorSettings.childCircleColor}
+                        opacity={colorSettings.childCircleColorOpacity}
+                        onColorChange={(v) => onColorSettingsChange({ ...colorSettings, childCircleColor: v })}
+                        onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, childCircleColorOpacity: v })}
+                      />
                     )}
                     {isChildLine && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.childLineColor}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childLineColor: e.target.value })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Line Color"
-                        />
-                        <input
-                          type="range"
-                          min="0" max="1" step="0.05"
-                          value={colorSettings.childLineColorOpacity}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, childLineColorOpacity: parseFloat(e.target.value) })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Line Opacity"
-                        />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childLineColorOpacity * 100)}%</span>
-                      </div>
+                      <ColorRow
+                        variant="inline"
+                        label="Line"
+                        color={colorSettings.childLineColor}
+                        opacity={colorSettings.childLineColorOpacity}
+                        onColorChange={(v) => onColorSettingsChange({ ...colorSettings, childLineColor: v })}
+                        onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, childLineColorOpacity: v })}
+                      />
                     )}
-                    {selectionMode === 'child' && childDrawMode === 'dot' && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.dotColor}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, dotColor: e.target.value })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Dot Color"
-                        />
-                        <input
-                          type="range"
-                          min="0" max="1" step="0.05"
-                          value={colorSettings.dotColorOpacity}
-                          onChange={(e) => onColorSettingsChange({ ...colorSettings, dotColorOpacity: parseFloat(e.target.value) })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Dot Opacity"
-                        />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.dotColorOpacity * 100)}%</span>
-                      </div>
+                    {isChildDot && (
+                      <ColorRow
+                        variant="inline"
+                        label="Dot"
+                        color={colorSettings.dotColor}
+                        opacity={colorSettings.dotColorOpacity}
+                        onColorChange={(v) => onColorSettingsChange({ ...colorSettings, dotColor: v })}
+                        onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, dotColorOpacity: v })}
+                      />
                     )}
                   </div>
                 </div>
-                {isChildLine && <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Modules</span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="color"
-                      value={colorSettings.lineModuleColor}
-                      onChange={(e) => onColorSettingsChange({ ...colorSettings, lineModuleColor: e.target.value })}
-                      className="w-6 h-6 rounded border-0 cursor-pointer"
-                      title="Line Module Color"
+                {isChildLine && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Modules</span>
+                    <ColorRow
+                      variant="inline"
+                      label="Line Module"
+                      color={colorSettings.lineModuleColor}
+                      opacity={colorSettings.lineModuleOpacity}
+                      onColorChange={(v) => onColorSettingsChange({ ...colorSettings, lineModuleColor: v })}
+                      onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, lineModuleOpacity: v })}
                     />
-                    <input
-                      type="range"
-                      min="0" max="1" step="0.05"
-                      value={colorSettings.lineModuleOpacity}
-                      onChange={(e) => onColorSettingsChange({ ...colorSettings, lineModuleOpacity: parseFloat(e.target.value) })}
-                      className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                      title="Line Module Opacity"
-                    />
-                    <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.lineModuleOpacity * 100)}%</span>
                   </div>
-                </div>}
-                {isChildCircle && <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Modules</span>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="color"
-                      value={colorSettings.circleModuleColor}
-                      onChange={(e) => onColorSettingsChange({ ...colorSettings, circleModuleColor: e.target.value })}
-                      className="w-6 h-6 rounded border-0 cursor-pointer"
-                      title="Circle Module Color"
+                )}
+                {isChildCircle && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Modules</span>
+                    <ColorRow
+                      variant="inline"
+                      label="Circle Module"
+                      color={colorSettings.circleModuleColor}
+                      opacity={colorSettings.circleModuleOpacity}
+                      onColorChange={(v) => onColorSettingsChange({ ...colorSettings, circleModuleColor: v })}
+                      onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, circleModuleOpacity: v })}
                     />
-                    <input
-                      type="range"
-                      min="0" max="1" step="0.05"
-                      value={colorSettings.circleModuleOpacity}
-                      onChange={(e) => onColorSettingsChange({ ...colorSettings, circleModuleOpacity: parseFloat(e.target.value) })}
-                      className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                      title="Circle Module Opacity"
-                    />
-                    <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.circleModuleOpacity * 100)}%</span>
                   </div>
-                </div>}
-                {(isParentMode || isChildRect || isChildCircle) && <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Grids</span>
-                  <div className="flex items-center gap-1">
-                    {isParentMode && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.gridColor}
-                          onChange={(e) => onColorSettingsChange({
-                            ...colorSettings,
-                            gridColor: e.target.value
-                          })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Parent Grid Color"
+                )}
+                {(isParentMode || isChildRect || isChildCircle) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Grids</span>
+                    <div className="flex items-center gap-1">
+                      {isParentMode && (
+                        <ColorRow
+                          variant="inline"
+                          label="Parent Grid"
+                          step={0.1}
+                          color={colorSettings.gridColor}
+                          opacity={colorSettings.gridOpacity}
+                          onColorChange={(v) => onColorSettingsChange({ ...colorSettings, gridColor: v })}
+                          onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, gridOpacity: v })}
                         />
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={colorSettings.gridOpacity}
-                          onChange={(e) => onColorSettingsChange({
-                            ...colorSettings,
-                            gridOpacity: parseFloat(e.target.value)
-                          })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Parent Grid Opacity"
+                      )}
+                      {isChildRect && (
+                        <ColorRow
+                          variant="inline"
+                          label="Rect Grid"
+                          step={0.1}
+                          color={colorSettings.childRectGridColor}
+                          opacity={colorSettings.childRectGridOpacity}
+                          onColorChange={(v) => onColorSettingsChange({ ...colorSettings, childRectGridColor: v })}
+                          onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, childRectGridOpacity: v })}
                         />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.gridOpacity * 100)}%</span>
-                      </div>
-                    )}
-                    {isChildRect && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.childRectGridColor}
-                          onChange={(e) => onColorSettingsChange({
-                            ...colorSettings,
-                            childRectGridColor: e.target.value
-                          })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Rect Grid Color"
+                      )}
+                      {isChildCircle && (
+                        <ColorRow
+                          variant="inline"
+                          label="Circle Grid"
+                          step={0.1}
+                          color={colorSettings.childCircleGridColor}
+                          opacity={colorSettings.childCircleGridOpacity}
+                          onColorChange={(v) => onColorSettingsChange({ ...colorSettings, childCircleGridColor: v })}
+                          onOpacityChange={(v) => onColorSettingsChange({ ...colorSettings, childCircleGridOpacity: v })}
                         />
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={colorSettings.childRectGridOpacity}
-                          onChange={(e) => onColorSettingsChange({
-                            ...colorSettings,
-                            childRectGridOpacity: parseFloat(e.target.value)
-                          })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Rect Grid Opacity"
-                        />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childRectGridOpacity * 100)}%</span>
-                      </div>
-                    )}
-                    {isChildCircle && (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="color"
-                          value={colorSettings.childCircleGridColor}
-                          onChange={(e) => onColorSettingsChange({
-                            ...colorSettings,
-                            childCircleGridColor: e.target.value
-                          })}
-                          className="w-6 h-6 rounded border-0 cursor-pointer"
-                          title="Circle Grid Color"
-                        />
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={colorSettings.childCircleGridOpacity}
-                          onChange={(e) => onColorSettingsChange({
-                            ...colorSettings,
-                            childCircleGridOpacity: parseFloat(e.target.value)
-                          })}
-                          className="w-16 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer"
-                          title="Circle Grid Opacity"
-                        />
-                        <span className="text-xs text-gray-400 w-8">{Math.round(colorSettings.childCircleGridOpacity * 100)}%</span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>}
+                )}
               </div>
             </div>
           </div>
 
           {/* Right Section: Fit buttons */}
           <div className="flex items-center gap-2">
-            {isParentMode && (
-              <button
-                onClick={onCreateFullCanvasParent}
-                className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all"
-                title={hasParentRegion ? "Fit parent region to image size" : "Create parent region matching image size"}
-              >
-                Fit to Image
-              </button>
-            )}
-
-            {/* Child Region Fit Buttons: only for rectangle in child mode */}
-            {isChildRect && (
-              <>
-                <button
-                  onClick={() => selectedChildId !== null && onFitChildHeightToImage(selectedChildId)}
-                  disabled={selectedChildId === null}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
-                  title={selectedChildId !== null ? "Fit child region height to image height" : "Select a child region first"}
-                >
-                  Fit Height
-                </button>
-
-                <button
-                  onClick={() => selectedChildId !== null && onFitChildWidthToImage(selectedChildId)}
-                  disabled={selectedChildId === null}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
-                  title={selectedChildId !== null ? "Fit child region width to image width" : "Select a child region first"}
-                >
-                  Fit Width
-                </button>
-              </>
-            )}
+            <FitButtons
+              isParentMode={isParentMode}
+              isChildRect={isChildRect}
+              hasParentRegion={hasParentRegion}
+              selectedChildId={fit.selectedChildId}
+              onCreateFullCanvasParent={fit.onCreateFullCanvasParent}
+              onFitChildHeightToImage={fit.onFitChildHeightToImage}
+              onFitChildWidthToImage={fit.onFitChildWidthToImage}
+            />
           </div>
 
         </div>

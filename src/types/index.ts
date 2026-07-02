@@ -141,3 +141,32 @@ export interface ResizeHandleInfo {
   x: number;
   y: number;
 }
+
+// Grouped prop bundles shared by the desktop Toolbar and the mobile
+// menu drawer / bottom toolbar.
+export interface SettingsBundle {
+  gridSettings: GridSettings;
+  onGridSettingsChange: (s: GridSettings) => void;
+  childGridSettings: ChildGridSettings;
+  onChildGridSettingsChange: (s: ChildGridSettings) => void;
+  colorSettings: ColorSettings;
+  onColorSettingsChange: (s: ColorSettings) => void;
+  unitBasis: 'height' | 'width';
+  onUnitBasisChange: (b: 'height' | 'width') => void;
+}
+
+export interface ModeBundle {
+  selectionMode: SelectionMode;
+  onSelectionModeChange: (m: SelectionMode) => void;
+  childDrawMode: ChildDrawMode;
+  onChildDrawModeChange: (m: ChildDrawMode) => void;
+}
+
+export interface FitActions {
+  hasParentRegion: boolean;
+  childCount: number;
+  selectedChildId: number | null;
+  onCreateFullCanvasParent: () => void;
+  onFitChildHeightToImage: (id: number) => void;
+  onFitChildWidthToImage: (id: number) => void;
+}
